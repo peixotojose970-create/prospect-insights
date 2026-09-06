@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Globe, MessageCircle, Phone } from "lucide-react";
+import { Flame, Globe, MessageCircle, Phone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
 import { LeadCard } from "@/components/prospector/LeadCard";
