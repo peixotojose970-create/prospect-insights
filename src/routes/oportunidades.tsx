@@ -35,6 +35,8 @@ const filters = [
   { key: "sem-site", label: "Sem site", icon: Globe },
   { key: "telefone", label: "Com telefone", icon: Phone },
   { key: "whatsapp", label: "WhatsApp provável", icon: MessageCircle },
+  { key: "quente", label: "Score alto (80+)", icon: Flame },
+  { key: "bem-avaliada", label: "Bem avaliada (4.5+)", icon: Star },
 ] as const;
 
 type FilterKey = (typeof filters)[number]["key"];
@@ -57,6 +59,8 @@ function Oportunidades() {
           if (active.includes("sem-site") && b.website) return false;
           if (active.includes("telefone") && !b.phone) return false;
           if (active.includes("whatsapp") && !normalizePhone(b.phone)) return false;
+          if (active.includes("quente") && b.score < 80) return false;
+          if (active.includes("bem-avaliada") && (b.rating === null || b.rating < 4.5)) return false;
           return true;
         })
         .sort((a, b) => b.score - a.score),
