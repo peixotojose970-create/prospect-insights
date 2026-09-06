@@ -63,6 +63,9 @@ type Store = {
   logHistory: (id: string, label: string) => void;
   completeFollowUp: (id: string) => void;
   createFollowUp: (leadId: string, label: string, date: string) => void;
+  toggleFavorite: (id: string) => void;
+  setNextAction: (id: string, action: string) => void;
+  setTags: (id: string, tags: string[]) => void;
   removeSavedSearch: (id: string) => void;
 };
 
