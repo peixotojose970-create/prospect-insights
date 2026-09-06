@@ -22,6 +22,7 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "prospector:v1";
+const CLIENT_TIMEOUT_MS = 32_000;
 
 type Persisted = {
   leads: Lead[];
@@ -34,7 +35,7 @@ type SearchState = {
   status: "idle" | "loading" | "success" | "error";
   results: Business[];
   outcome: SearchOutcome | null;
-  error: { code: SearchErrorCode; message: string } | null;
+  error: { code: SearchErrorCode; message: string; detail?: string } | null;
   criteria: SearchCriteria | null;
 };
 
