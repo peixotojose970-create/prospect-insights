@@ -29,7 +29,25 @@ type Persisted = {
   followUps: FollowUp[];
   activities: Activity[];
   savedSearches: SavedSearch[];
+  /** Seleção temporária de empresas (persiste entre pesquisas e recarregamentos). */
+  selection: Business[];
 };
+
+export type BatchSaveOptions = { tag?: string; status?: LeadStatus };
+export type BatchSaveResult = {
+  selected: number;
+  created: number;
+  duplicates: number;
+  failed: { id: string; name: string }[];
+};
+
+/** Chave de deduplicação: Place ID quando existir; senão nome + endereço + cidade + telefone. */
+export function dedupeKey(b: Business) {
+  const place = b.placeId || b.externalId || b.id;
+  if (place) return `place:${place}`;
+  return `mix:${[b.name, b.address, b.city, b.phone].map((v) => (v ?? "").toLowerCase().trim()).join("|")}`;
+}
+
 
 type SearchState = {
   status: "idle" | "loading" | "success" | "error";
