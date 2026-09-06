@@ -61,7 +61,7 @@ function Prospeccao() {
   const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
   const [city, setCity] = useState("");
   const [state, setState] = useState("SP");
-  const [onlyNoSite, setOnlyNoSite] = useState(true);
+  const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
