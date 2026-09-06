@@ -33,7 +33,7 @@ type Persisted = {
   selection: Business[];
 };
 
-export type BatchSaveOptions = { tag?: string; status?: LeadStatus };
+export type BatchSaveOptions = { tag?: string | undefined; status?: LeadStatus | undefined };
 export type BatchSaveResult = {
   selected: number;
   created: number;
