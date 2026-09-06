@@ -1,0 +1,26 @@
+{
+  "name": "Prospector — Prospecção B2B",
+  "short_name": "Prospector",
+  "description": "Busque empresas locais, avalie o potencial e feche sites: prospecção B2B no celular.",
+  "start_url": "/prospeccao",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6fa4",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
