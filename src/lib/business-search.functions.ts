@@ -344,7 +344,7 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
 
     try {
-      const place = (await callPlaces(`places/v1/places/${encodeURIComponent(data.placeId)}`, {
+      const place = (await callPlaces(`places/v1/places/${encodeURIComponent(data.placeId)}?languageCode=pt-BR&regionCode=BR`, {
         method: "GET",
         fieldMask: DETAILS_FIELD_MASK,
       })) as PlaceResult;
@@ -402,7 +402,7 @@ export const fetchPlacePhotos = createServerFn({ method: "POST" })
       }
       try {
         const payload = (await callPlaces(
-          `${ref}/media?maxWidthPx=800&skipHttpRedirect=true`,
+          `places/v1/${ref}/media?maxWidthPx=800&skipHttpRedirect=true`,
           { method: "GET", fieldMask: "*" },
         )) as { photoUri?: string };
         if (payload.photoUri) {
