@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InstallAppMenuItem, InstallAppStrip } from "@/components/prospector/InstallApp";
 import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
 import { cn } from "@/lib/utils";
@@ -85,6 +86,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
+      <InstallAppStrip />
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
         <Link to="/" className="flex min-w-0 items-center gap-2">
           <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
@@ -194,6 +196,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          <InstallAppMenuItem className="hidden px-3 pt-3 lg:block" />
           <div className="hidden px-4 pt-4 text-xs text-muted-foreground lg:block">
             <p className="font-medium text-foreground">Atalhos</p>
             <p className="mt-1">Ctrl + K — buscar</p>

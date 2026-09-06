@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { toCsv } from "@/features/prospector/generators";
 import { useProspector } from "@/features/prospector/store";
 import { PageHeader, SourceNotice } from "@/features/prospector/ui";
@@ -87,6 +88,8 @@ function Configuracoes() {
   return (
     <div className="space-y-6">
       <PageHeader title="Configurações" subtitle="Aparência, preferências e seus dados." />
+
+      <InstallAppCard />
 
       <Section title="Aparência" description="Escolha entre tema claro e escuro.">
         <div className="flex gap-2">
