@@ -7,7 +7,7 @@ export function buildSitePrompt(business: Business) {
   return `# PAPEL
 Você é um designer e desenvolvedor web sênior especializado em sites institucionais para empresas locais brasileiras.
 
-# CONTEXTO DA EMPRESA (dados públicos do OpenStreetMap — não inventar nada além disto)
+# CONTEXTO DA EMPRESA (dados públicos do Google Maps — não inventar nada além disto)
 Nome: ${business.name}
 Nicho / categoria: ${business.category}
 Endereço: ${fullAddress(business)}
@@ -69,7 +69,7 @@ export function buildMessages(business: Business) {
         ? "Procurei um site de vocês e não encontrei nenhum endereço informado nas bases públicas."
         : "Dei uma olhada no site de vocês e tive algumas ideias simples de melhoria."
     } Posso te mostrar uma ideia rápida?`,
-    natural: `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} em bases públicas de mapas (OpenStreetMap). ${
+    natural: `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
       semSiteInformado
         ? "Não encontrei um site informado para vocês — pode ser que exista e ainda não esteja cadastrado, por isso queria confirmar."
         : "Vi o site atual e anotei pontos que podem aumentar os contatos."
@@ -85,7 +85,7 @@ O que encontrei em bases públicas:
 • Contato listado: ${formatPhone(business.phone)}
 • Endereço: ${fullAddress(business)}
 
-Observação: essas informações vêm do OpenStreetMap e podem estar incompletas — se algo estiver desatualizado, me corrija.
+Observação: essas informações vêm do Google Maps e podem estar incompletas — se algo estiver desatualizado, me corrija.
 
 Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp.
 

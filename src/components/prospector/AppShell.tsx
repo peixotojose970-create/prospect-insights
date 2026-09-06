@@ -75,7 +75,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <span className="truncate text-sm font-semibold tracking-tight text-foreground">PROSPECTOR</span>
         </Link>
         <span className="ml-2 hidden rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground md:inline">
-          Dados abertos do OpenStreetMap
+          Dados oficiais do Google Maps
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Tooltip>

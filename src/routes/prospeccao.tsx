@@ -29,12 +29,12 @@ export const Route = createFileRoute("/prospeccao")({
       {
         name: "description",
         content:
-          "Busque empresas reais por categoria e cidade usando dados abertos do OpenStreetMap e encontre negócios sem site informado.",
+          "Busque empresas reais por categoria e cidade usando dados oficiais do Google Maps e encontre negócios sem site informado.",
       },
       { property: "og:title", content: "Prospecção de empresas locais | Prospector" },
       {
         property: "og:description",
-        content: "Busque empresas por categoria e cidade com dados abertos do OpenStreetMap.",
+        content: "Busque empresas por categoria e cidade com dados oficiais do Google Maps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -88,7 +88,7 @@ function Prospeccao() {
     <div className="space-y-6">
       <PageHeader
         title="Prospecção"
-        subtitle="Empresas reais de dados abertos do OpenStreetMap, filtradas pelo potencial de fechar um site."
+        subtitle="Estabelecimentos reais do Google Maps, filtradas pelo potencial de fechar um site."
       />
 
       <Card className="gap-4 p-4">

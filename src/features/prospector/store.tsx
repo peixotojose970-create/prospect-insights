@@ -251,7 +251,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
             notes: "",
             lastContact: null,
             nextFollowUp: null,
-            history: [{ id: `${Date.now()}`, date: stamp(), label: "Lead salvo a partir do OpenStreetMap" }],
+            history: [{ id: `${Date.now()}`, date: stamp(), label: "Lead salvo a partir do Google Maps" }],
           };
           return {
             ...prev,
@@ -314,7 +314,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       removeSavedSearch: (id) =>
         setState((prev) => ({ ...prev, savedSearches: prev.savedSearches.filter((s) => s.id !== id) })),
     };
-  }, [state, search, openId, runSearch, patchLead, pushActivity]);
+  }, [state, search, openId, runSearch, loadMore, loadingMore, patchLead, pushActivity]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

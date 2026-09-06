@@ -44,7 +44,7 @@ export function CreateSiteDialog({
         <DialogHeader>
           <DialogTitle>Preparar projeto do site</DialogTitle>
           <DialogDescription>
-            Dados públicos encontrados no OpenStreetMap e prompt estruturado pronto para uso.
+            Dados públicos encontrados no Google Maps e prompt estruturado pronto para uso.
           </DialogDescription>
         </DialogHeader>
 

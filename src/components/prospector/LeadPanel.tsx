@@ -126,7 +126,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
             rel="noreferrer"
             className="inline-block text-xs text-primary underline underline-offset-2"
           >
-            Ver registro original no OpenStreetMap
+            Ver no Google Maps
           </a>
         ) : null}
       </section>
