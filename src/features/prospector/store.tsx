@@ -45,8 +45,11 @@ type Store = {
   activities: Activity[];
   savedSearches: SavedSearch[];
   search: SearchState;
-  runSearch: (criteria: SearchCriteria) => Promise<void>;
+  runSearch: (criteria: SearchCriteria, append?: boolean) => Promise<void>;
+  loadMore: () => Promise<void>;
+  loadingMore: boolean;
   clearSearch: () => void;
+
   openId: string | null;
   openLead: (id: string | null) => void;
   findById: (id: string) => Business | Lead | undefined;
