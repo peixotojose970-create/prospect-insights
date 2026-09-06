@@ -42,8 +42,15 @@ export function siteState(business: Business): SiteState {
 }
 
 export function siteLabel(business: Business) {
-  return business.website ? "Site encontrado" : "Sem site informado na fonte";
+  return business.website ? "Site encontrado" : "Site não informado (a verificar)";
 }
+
+export function ratingLabel(business: Business) {
+  if (business.rating === null) return "Sem avaliações no Google";
+  const reviews = business.reviews !== null ? ` · ${business.reviews} avaliações` : "";
+  return `★ ${business.rating.toFixed(1)}${reviews}`;
+}
+
 
 export function fullAddress(business: Business) {
   const parts = [

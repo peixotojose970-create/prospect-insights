@@ -1,46 +1,61 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { findCategory, labelFromTags } from "@/features/prospector/osmCategories";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import type { Business, SearchOutcome } from "@/types";
 
-export type SearchErrorCode = "vazio" | "amplo" | "timeout" | "rate-limit" | "rede" | "local";
+/**
+ * Fonte de dados: Google Maps Platform — Places API (New).
+ * Endpoints usados (todos oficiais e documentados, via gateway de conectores):
+ *  - POST places/v1/places:searchText  (Text Search)
+ *  - GET  places/v1/places/{placeId}   (Place Details, somente sob demanda)
+ *  - GET  places/v1/{photoName}/media  (Place Photos, somente sob demanda)
+ * Todas essas APIs são cobradas pelo Google conforme o uso da conta configurada.
+ */
+
+export type SearchErrorCode =
+  | "vazio"
+  | "amplo"
+  | "timeout"
+  | "rate-limit"
+  | "rede"
+  | "local"
+  | "config"
+  | "permissao";
+
 export type SearchResult =
   | { ok: true; outcome: SearchOutcome }
   | { ok: false; code: SearchErrorCode; message: string; detail?: string };
 
-/** Endpoint configurável — fácil trocar de servidor Overpass no futuro. */
-const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
-const FALLBACK_OVERPASS_ENDPOINTS = [
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-];
-const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "Prospector/0.2 (prospeccao B2B; contato via app Lovable)";
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+const REQUEST_TIMEOUT_MS = 30_000;
+const CACHE_TTL_MS = 1000 * 60 * 60 * 6; // 6h — evita consultas repetidas e custo desnecessário
+const MIN_INTERVAL_MS = 400;
+const MAX_PAGE_SIZE = 20;
 
-const HARD_LIMIT = 200;
-const OVERPASS_TIMEOUT_MS = 30_000;
-const CACHE_TTL_MS = 1000 * 60 * 60 * 6; // 6h
-const MIN_INTERVAL_MS = 1500; // 1 consulta por vez, com espaçamento
+const SEARCH_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.addressComponents",
+  "places.location",
+  "places.rating",
+  "places.userRatingCount",
+  "places.nationalPhoneNumber",
+  "places.websiteUri",
+  "places.primaryTypeDisplayName",
+  "places.googleMapsUri",
+  "places.photos",
+  "nextPageToken",
+].join(",");
 
-type CacheEntry = { at: number; value: SearchOutcome };
-
-const searchCache = new Map<string, CacheEntry>();
-const areaCache = new Map<string, { at: number; bbox: BBox | null }>();
-let lastRequestAt = 0;
-let queue: Promise<unknown> = Promise.resolve();
-
-/** Serializa as consultas externas e respeita um intervalo mínimo entre elas. */
-function withRateLimit<T>(task: () => Promise<T>): Promise<T> {
-  const run = queue.then(async () => {
-    const wait = MIN_INTERVAL_MS - (Date.now() - lastRequestAt);
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    lastRequestAt = Date.now();
-    return task();
-  });
-  queue = run.catch(() => undefined);
-  return run;
-}
+const DETAILS_FIELD_MASK = [
+  "id",
+  "displayName",
+  "regularOpeningHours.weekdayDescriptions",
+  "nationalPhoneNumber",
+  "websiteUri",
+  "photos",
+].join(",");
 
 class SearchError extends Error {
   constructor(
@@ -52,201 +67,186 @@ class SearchError extends Error {
   }
 }
 
-type BBox = { south: number; west: number; north: number; east: number };
+type CacheEntry = { at: number; value: SearchOutcome };
+const searchCache = new Map<string, CacheEntry>();
+let lastRequestAt = 0;
+let queue: Promise<unknown> = Promise.resolve();
 
-function endpoints(): string[] {
-  const configured = process.env["OVERPASS_ENDPOINT"];
-  return configured ? [configured, ...FALLBACK_OVERPASS_ENDPOINTS] : [DEFAULT_OVERPASS_ENDPOINT, ...FALLBACK_OVERPASS_ENDPOINTS];
+/** Serializa as chamadas externas: nunca dispara consultas em paralelo/loop. */
+function withRateLimit<T>(task: () => Promise<T>): Promise<T> {
+  const run = queue.then(async () => {
+    const wait = MIN_INTERVAL_MS - (Date.now() - lastRequestAt);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastRequestAt = Date.now();
+    return task();
+  });
+  queue = run.catch(() => undefined);
+  return run;
 }
 
-/** Tenta os espelhos Overpass em sequência; só falha quando todos recusam. */
-async function fetchOverpass(query: string): Promise<Response> {
-  let lastError: SearchError = new SearchError("rede", "Não foi possível concluir a pesquisa.");
+function credentials() {
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];
+  if (!lovableKey || !mapsKey) {
+    throw new SearchError(
+      "config",
+      "Google Maps não está configurado neste projeto.",
+      "LOVABLE_API_KEY ou GOOGLE_MAPS_API_KEY ausente",
+    );
+  }
+  return { lovableKey, mapsKey };
+}
 
-  for (const url of endpoints()) {
-    let response: Response;
-    try {
-      response = await withRateLimit(() =>
-        fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": USER_AGENT,
-          },
-          body: new URLSearchParams({ data: query }),
-          signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
-        }),
+async function callPlaces(
+  path: string,
+  init: { method: "GET" | "POST"; fieldMask: string; body?: unknown },
+): Promise<unknown> {
+  const { lovableKey, mapsKey } = credentials();
+  const startedAt = Date.now();
+
+  let response: Response;
+  try {
+    response = await withRateLimit(() =>
+      fetch(`${GATEWAY_URL}/${path}`, {
+        method: init.method,
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": mapsKey,
+          "Content-Type": "application/json",
+          "X-Goog-FieldMask": init.fieldMask,
+        },
+        ...(init.body ? { body: JSON.stringify(init.body) } : {}),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      }),
+    );
+  } catch (error) {
+    const name = (error as Error)?.name;
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new SearchError("timeout", "A pesquisa demorou mais que o esperado.");
+    }
+    throw new SearchError("rede", "Não foi possível consultar o Google Maps.", (error as Error)?.message);
+  }
+
+  const text = await response.text();
+  console.log("[SEARCH] google places", path, response.status, `${Date.now() - startedAt}ms`);
+
+  if (!response.ok) {
+    const detail = text.slice(0, 500);
+    if (response.status === 429) {
+      throw new SearchError("rate-limit", "Limite de consultas atingido.", detail);
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new SearchError(
+        "permissao",
+        "É necessário configurar o Google Cloud para utilizar esta integração.",
+        detail,
       );
-    } catch (error) {
-      const name = (error as Error)?.name;
-      lastError =
-        name === "TimeoutError" || name === "AbortError"
-          ? new SearchError("timeout", "A pesquisa demorou além do esperado.")
-          : new SearchError("rede", "Não foi possível concluir a pesquisa.");
-      continue;
     }
-
-    if (response.ok) return response;
-
-    lastError =
-      response.status === 429 || response.status === 504
-        ? new SearchError("rate-limit", "Servidor de dados temporariamente ocupado.")
-        : new SearchError("rede", `A fonte respondeu com erro (${response.status}).`);
+    if (response.status === 400) {
+      throw new SearchError("amplo", "O Google Maps não aceitou esta pesquisa.", detail);
+    }
+    throw new SearchError("rede", "Não foi possível consultar o Google Maps.", detail);
   }
 
-  throw lastError;
-}
-
-function normalize(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-/** Busca pontual no Nominatim para descobrir a caixa geográfica da cidade. */
-async function resolveBBox(city: string, state: string): Promise<BBox | null> {
-  const key = `${normalize(city)}|${normalize(state)}`;
-  const hit = areaCache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS * 8) return hit.bbox;
-
-  const url = new URL(NOMINATIM_ENDPOINT);
-  url.searchParams.set("q", `${city}, ${state}, Brasil`);
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("countrycodes", "br");
-  url.searchParams.set("limit", "1");
-  url.searchParams.set("addressdetails", "0");
-
-  const response = await withRateLimit(() =>
-    fetch(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-      signal: AbortSignal.timeout(15_000),
-    }),
-  );
-
-  console.log("[SEARCH] geocodificação", city, state, response.status);
-  if (response.status === 429) throw new SearchError("rate-limit", "Servidor de geocodificação ocupado.");
-  if (!response.ok) throw new SearchError("rede", `Geocodificação falhou (${response.status}).`);
-
-  const data = (await response.json()) as Array<{ boundingbox?: [string, string, string, string] }>;
-  const raw = data[0]?.boundingbox;
-  let bbox: BBox | null = null;
-  if (raw && raw.length === 4) {
-    const [south, north, west, east] = raw.map(Number) as [number, number, number, number];
-    if ([south, north, west, east].every((n) => Number.isFinite(n))) {
-      bbox = { south, west, north, east };
-    }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new SearchError("rede", "Não foi possível consultar o Google Maps.", "resposta não é JSON válido");
   }
-
-  areaCache.set(key, { at: Date.now(), bbox });
-  return bbox;
 }
 
-/**
- * Consulta por caixa geográfica (bbox). Consultas por `area(...)` do Overpass
- * estouram o tempo limite em cidades médias; a bbox responde em segundos.
- */
-function buildQuery(tags: string[], bbox: BBox, limit: number) {
-  const box = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
-  const body = tags
-    .map((tag) => {
-      const [key, value] = tag.split("=");
-      return `nwr["${key}"="${value}"]["name"](${box});`;
-    })
-    .join("\n  ");
+type AddressComponent = { longText?: string; shortText?: string; types?: string[] };
+type PlacePhoto = { name?: string; authorAttributions?: { displayName?: string; uri?: string }[] };
 
-  return `[out:json][timeout:25];
-(
-  ${body}
-);
-out tags center ${limit};`;
-}
-
-type OverpassElement = {
-  type: "node" | "way" | "relation";
-  id: number;
-  lat?: number;
-  lon?: number;
-  center?: { lat: number; lon: number };
-  tags?: Record<string, string>;
+type PlaceResult = {
+  id?: string;
+  displayName?: { text?: string };
+  primaryTypeDisplayName?: { text?: string };
+  formattedAddress?: string;
+  addressComponents?: AddressComponent[];
+  location?: { latitude?: number; longitude?: number };
+  rating?: number;
+  userRatingCount?: number;
+  nationalPhoneNumber?: string;
+  websiteUri?: string;
+  googleMapsUri?: string;
+  photos?: PlacePhoto[];
+  regularOpeningHours?: { weekdayDescriptions?: string[] };
 };
 
-function instagramFrom(tags: Record<string, string>) {
-  const raw = tags["contact:instagram"] ?? tags["instagram"];
-  if (!raw) return null;
-  const handle = raw.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/+$/, "");
-  return handle ? (handle.startsWith("@") ? handle : `@${handle}`) : null;
+function component(components: AddressComponent[], type: string, short = false) {
+  const found = components.find((c) => c.types?.includes(type));
+  if (!found) return null;
+  return (short ? found.shortText : found.longText) ?? null;
 }
 
-function toBusiness(element: OverpassElement, fallbackCity: string, fallbackState: string): Business | null {
-  const tags = element.tags ?? {};
-  const name = tags["name"];
-  const lat = element.lat ?? element.center?.lat;
-  const lon = element.lon ?? element.center?.lon;
-  if (!name || lat === undefined || lon === undefined) return null;
+function isBrazil(components: AddressComponent[]) {
+  return component(components, "country", true)?.toUpperCase() === "BR";
+}
 
-  const street = tags["addr:street"] ?? null;
-  const houseNumber = tags["addr:housenumber"] ?? null;
-  const city = tags["addr:city"] ?? (fallbackCity || null);
-  const state = tags["addr:state"] ?? (fallbackState || null);
-  const address = street ? [street, houseNumber].filter(Boolean).join(", ") : null;
-  const externalId = `${element.type}/${element.id}`;
+/** Converte um Place oficial em Business — nada é inventado. */
+function toBusiness(place: PlaceResult): Business | null {
+  const placeId = place.id;
+  const name = place.displayName?.text;
+  const lat = place.location?.latitude;
+  const lon = place.location?.longitude;
+  const components = place.addressComponents ?? [];
+  if (!placeId || !name || lat === undefined || lon === undefined) return null;
+  if (components.length > 0 && !isBrazil(components)) return null;
+
+  const street = component(components, "route");
+  const houseNumber = component(components, "street_number");
 
   const base = {
-    id: externalId.replace("/", "-"),
-    externalId,
-    source: "OpenStreetMap",
-    sourceUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`,
+    id: placeId,
+    externalId: placeId,
+    placeId,
+    source: "Google Maps",
+    sourceUrl: place.googleMapsUri ?? null,
+    mapsUrl: place.googleMapsUri ?? null,
     name,
-    category: labelFromTags(tags),
+    category: place.primaryTypeDisplayName?.text ?? "Não informado",
     street,
     houseNumber,
-    neighborhood: tags["addr:suburb"] ?? tags["addr:neighbourhood"] ?? null,
-    city,
-    state,
-    postalCode: tags["addr:postcode"] ?? null,
-    address,
-    phone: tags["phone"] ?? tags["contact:phone"] ?? tags["contact:mobile"] ?? null,
-    website: tags["website"] ?? tags["contact:website"] ?? tags["url"] ?? null,
-    instagram: instagramFrom(tags),
-    openingHours: tags["opening_hours"] ?? null,
+    neighborhood: component(components, "sublocality_level_1") ?? component(components, "sublocality"),
+    city: component(components, "administrative_area_level_2") ?? component(components, "locality"),
+    state: component(components, "administrative_area_level_1", true),
+    postalCode: component(components, "postal_code"),
+    address: place.formattedAddress ?? (street ? [street, houseNumber].filter(Boolean).join(", ") : null),
+    phone: place.nationalPhoneNumber ?? null,
+    website: place.websiteUri ?? null,
+    // O Google Places não é fonte de Instagram: só quando o próprio site é um perfil.
+    instagram: /instagram\.com/i.test(place.websiteUri ?? "") ? (place.websiteUri as string) : null,
+    openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
     latitude: lat,
     longitude: lon,
+    rating: typeof place.rating === "number" ? place.rating : null,
+    reviews: typeof place.userRatingCount === "number" ? place.userRatingCount : null,
+    photoRefs: (place.photos ?? []).map((p) => p.name).filter((n): n is string => !!n).slice(0, 6),
+    photoAttributions: Array.from(
+      new Set(
+        (place.photos ?? [])
+          .flatMap((p) => p.authorAttributions ?? [])
+          .map((a) => a.displayName)
+          .filter((n): n is string => !!n),
+      ),
+    ).slice(0, 6),
   };
 
   const { score, factors } = scoreBusiness(base);
   return { ...base, score, scoreFactors: factors };
 }
 
-/** Deduplica por externalId e por nome + proximidade geográfica. */
-function dedupe(businesses: Business[]) {
-  const byExternal = new Map<string, Business>();
-  for (const b of businesses) if (!byExternal.has(b.externalId)) byExternal.set(b.externalId, b);
-
-  const out: Business[] = [];
-  for (const b of byExternal.values()) {
-    const duplicate = out.find(
-      (o) =>
-        normalize(o.name) === normalize(b.name) &&
-        Math.abs(o.latitude - b.latitude) < 0.0012 &&
-        Math.abs(o.longitude - b.longitude) < 0.0012,
-    );
-    if (!duplicate) out.push(b);
-    else if (!duplicate.phone && b.phone) out[out.indexOf(duplicate)] = b;
-  }
-  return out;
-}
-
-const inputSchema = z.object({
+const searchSchema = z.object({
   category: z.string().trim().max(80),
   city: z.string().trim().max(120),
   state: z.string().trim().max(2),
-  limit: z.number().int().min(10).max(HARD_LIMIT).optional(),
+  limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(),
+  pageToken: z.string().trim().max(2000).optional(),
 });
 
 export const searchBusinesses = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => inputSchema.parse(data))
+  .inputValidator((data: unknown) => searchSchema.parse(data))
   .handler(async ({ data }): Promise<SearchResult> => {
     try {
       return { ok: true, outcome: await runSearch(data) };
@@ -264,86 +264,154 @@ export const searchBusinesses = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "rede",
-        message: "Não foi possível concluir a pesquisa.",
+        message: "Não foi possível consultar o Google Maps.",
         detail: (error as Error)?.message ?? String(error),
       };
     }
   });
 
-async function runSearch(data: z.infer<typeof inputSchema>): Promise<SearchOutcome> {
-    const limit = data.limit ?? 60;
+async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutcome> {
+  if (!data.category.trim() || !data.city.trim()) {
+    throw new SearchError("amplo", "Escolha uma categoria e uma cidade para realizar uma busca.");
+  }
 
-    // Proteção obrigatória contra consultas massivas.
-    if (!data.category || !data.city) {
-      throw new SearchError(
-        "amplo",
-        "Escolha uma categoria e uma localização para realizar uma busca.",
-      );
-    }
+  const areaLabel = [data.city, data.state].filter(Boolean).join(" - ");
+  const textQuery = `${data.category} em ${areaLabel}, Brasil`;
+  const pageSize = data.limit ?? MAX_PAGE_SIZE;
+  const cacheKey = `${textQuery}|${pageSize}|${data.pageToken ?? ""}`.toLowerCase();
 
-    const category = findCategory(data.category);
-    if (!category) {
-      throw new SearchError("local", "Categoria não reconhecida. Escolha uma das categorias disponíveis.");
-    }
+  const hit = searchCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return { ...hit.value, cached: true };
+  }
 
-    const cacheKey = `${category.label}|${normalize(data.city)}|${normalize(data.state)}|${limit}`;
-    const cached = searchCache.get(cacheKey);
-    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
-      return { ...cached.value, cached: true };
-    }
+  const payload = (await callPlaces("places/v1/places:searchText", {
+    method: "POST",
+    fieldMask: SEARCH_FIELD_MASK,
+    body: {
+      textQuery,
+      languageCode: "pt-BR",
+      regionCode: "BR",
+      pageSize,
+      ...(data.pageToken ? { pageToken: data.pageToken } : {}),
+    },
+  })) as { places?: PlaceResult[]; nextPageToken?: string };
 
-    const bbox = await resolveBBox(data.city, data.state);
-    if (!bbox) {
-      throw new SearchError("local", "Cidade não localizada na fonte. Confira o nome e o estado.");
-    }
+  const places = payload.places ?? [];
+  const businesses = places.map(toBusiness).filter((b): b is Business => b !== null);
+  console.log("[SEARCH]", textQuery, "resultados", places.length, "parseados", businesses.length);
 
-    const query = buildQuery(category.tags, bbox, limit + 20);
-    const startedAt = Date.now();
-    const response = await fetchOverpass(query);
-
-    let payload: { elements?: OverpassElement[]; remark?: string };
-    try {
-      payload = (await response.json()) as { elements?: OverpassElement[]; remark?: string };
-    } catch {
-      throw new SearchError("rede", "A fonte devolveu uma resposta inválida.", "JSON inválido");
-    }
-    console.log(
-      "[SEARCH]",
-      category.label,
-      `${data.city}/${data.state}`,
-      "status",
-      response.status,
-      `${Date.now() - startedAt}ms`,
-      "elementos",
-      payload.elements?.length ?? 0,
+  if (businesses.length === 0 && !data.pageToken) {
+    throw new SearchError(
+      "vazio",
+      "O Google Maps não retornou estabelecimentos para essa busca no Brasil.",
     );
+  }
 
-    // O Overpass devolve HTTP 200 com "remark" quando a consulta estoura o tempo.
-    if (payload.remark && (payload.elements?.length ?? 0) === 0) {
-      const timedOut = /timed out|timeout/i.test(payload.remark);
-      throw new SearchError(
-        timedOut ? "timeout" : "rede",
-        timedOut
-          ? "A pesquisa demorou mais que o esperado."
-          : "A fonte de dados recusou a consulta.",
-        payload.remark,
-      );
-    }
+  const outcome: SearchOutcome = {
+    businesses,
+    total: businesses.length,
+    truncated: !!payload.nextPageToken,
+    cached: false,
+    areaLabel,
+    nextPageToken: payload.nextPageToken ?? null,
+  };
 
-    const parsed = (payload.elements ?? [])
-      .map((el) => toBusiness(el, data.city, data.state.toUpperCase()))
-      .filter((b): b is Business => b !== null);
-
-    const unique = dedupe(parsed).sort((a, b) => b.score - a.score);
-    const outcome: SearchOutcome = {
-      businesses: unique.slice(0, limit),
-      total: unique.length,
-      truncated: unique.length > limit,
-      cached: false,
-      areaLabel: `${data.city} - ${data.state.toUpperCase()}`,
-    };
-
-    searchCache.set(cacheKey, { at: Date.now(), value: outcome });
-    if (searchCache.size > 80) searchCache.delete(searchCache.keys().next().value as string);
-    return outcome;
+  searchCache.set(cacheKey, { at: Date.now(), value: outcome });
+  return outcome;
 }
+
+/** Place Details sob demanda — só quando o usuário abre o estabelecimento. */
+export type PlaceDetailsResult =
+  | {
+      ok: true;
+      details: {
+        openingHours: string | null;
+        phone: string | null;
+        website: string | null;
+        photoRefs: string[];
+        photoAttributions: string[];
+      };
+    }
+  | { ok: false; code: SearchErrorCode; message: string; detail?: string };
+
+const detailsCache = new Map<string, { at: number; value: PlaceDetailsResult }>();
+
+export const fetchPlaceDetails = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ placeId: z.string().trim().min(3).max(400) }).parse(data))
+  .handler(async ({ data }): Promise<PlaceDetailsResult> => {
+    const hit = detailsCache.get(data.placeId);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
+
+    try {
+      const place = (await callPlaces(`places/v1/places/${encodeURIComponent(data.placeId)}?languageCode=pt-BR&regionCode=BR`, {
+        method: "GET",
+        fieldMask: DETAILS_FIELD_MASK,
+      })) as PlaceResult;
+
+      const value: PlaceDetailsResult = {
+        ok: true,
+        details: {
+          openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
+          phone: place.nationalPhoneNumber ?? null,
+          website: place.websiteUri ?? null,
+          photoRefs: (place.photos ?? []).map((p) => p.name).filter((n): n is string => !!n).slice(0, 6),
+          photoAttributions: Array.from(
+            new Set(
+              (place.photos ?? [])
+                .flatMap((p) => p.authorAttributions ?? [])
+                .map((a) => a.displayName)
+                .filter((n): n is string => !!n),
+            ),
+          ).slice(0, 6),
+        },
+      };
+      detailsCache.set(data.placeId, { at: Date.now(), value });
+      return value;
+    } catch (error) {
+      if (error instanceof SearchError) {
+        return {
+          ok: false,
+          code: error.code,
+          message: error.message,
+          ...(error.detail ? { detail: error.detail } : {}),
+        };
+      }
+      return { ok: false, code: "rede", message: "Não foi possível consultar o Google Maps." };
+    }
+  });
+
+/**
+ * Place Photos sob demanda. Retorna apenas a URL temporária fornecida pelo
+ * Google (nada é baixado nem armazenado), respeitando os termos de uso.
+ */
+export type PlacePhotosResult = { urls: string[] };
+const photoCache = new Map<string, { at: number; url: string }>();
+
+export const fetchPlacePhotos = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ photoRefs: z.array(z.string().trim().max(600)).max(4) }).parse(data),
+  )
+  .handler(async ({ data }): Promise<PlacePhotosResult> => {
+    const urls: string[] = [];
+    for (const ref of data.photoRefs) {
+      const hit = photoCache.get(ref);
+      if (hit && Date.now() - hit.at < 1000 * 60 * 50) {
+        urls.push(hit.url);
+        continue;
+      }
+      try {
+        const payload = (await callPlaces(
+          `places/v1/${ref}/media?maxWidthPx=800&skipHttpRedirect=true`,
+          { method: "GET", fieldMask: "*" },
+        )) as { photoUri?: string };
+        if (payload.photoUri) {
+          photoCache.set(ref, { at: Date.now(), url: payload.photoUri });
+          urls.push(payload.photoUri);
+        }
+      } catch (error) {
+        console.error("[SEARCH] foto indisponível", (error as Error)?.message);
+      }
+    }
+    return { urls };
+  });

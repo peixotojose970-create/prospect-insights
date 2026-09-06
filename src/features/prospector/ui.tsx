@@ -92,23 +92,25 @@ export function ScorePill({ score }: { score: number }) {
   );
 }
 
-/** Atribuição obrigatória da fonte aberta utilizada. */
+/** Atribuição obrigatória da fonte oficial utilizada. */
 export function SourceNotice({ className }: { className?: string }) {
   return (
     <p className={cn("text-xs text-muted-foreground", className)}>
-      Dados de empresas ©{" "}
+      Dados de estabelecimentos ©{" "}
       <a
-        href="https://www.openstreetmap.org/"
+        href="https://developers.google.com/maps/documentation/places/web-service"
         target="_blank"
         rel="noreferrer"
         className="underline underline-offset-2 hover:text-foreground"
       >
-        OpenStreetMap contributors
-      </a>{" "}
-      (licença ODbL). Cobertura parcial — são os resultados encontrados na fonte, não todas as empresas da cidade.
+        Google Maps Platform — Places API
+      </a>
+      . Somente resultados no Brasil (pt-BR). Cobertura conforme o retorno oficial do Google — não é a lista
+      completa de empresas da cidade.
     </p>
   );
 }
+
 
 export function EmptyState({
   title,

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,16 +11,69 @@ import { Textarea } from "@/components/ui/textarea";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
 import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { buildKit } from "@/features/prospector/generators";
+import { placeDetailsRepository, photoProvider } from "@/features/prospector/repository";
 import {
-  NAO_DISPONIVEL_FONTE,
   formatPhone,
   fullAddress,
+  ratingLabel,
   whatsappLabel,
   whatsappLink,
 } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, SourceNotice, StatusBadge, copyText } from "@/features/prospector/ui";
 import { LEAD_STATUSES, type Business, type ContactType, type Lead, type LeadStatus } from "@/types";
+
+type PlaceDetails = {
+  openingHours: string | null;
+  phone: string | null;
+  website: string | null;
+  photoRefs: string[];
+  photoAttributions: string[];
+};
+
+/** Galeria de fotos do Google (URLs temporárias, nada é armazenado). */
+function PlaceGallery({ business }: { business: Business }) {
+  const [photos, setPhotos] = useState<{ url: string; alt: string }[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    setPhotos([]);
+    if (business.photoRefs.length === 0) return;
+    photoProvider
+      .photosFor(business)
+      .then((list) => alive && setPhotos(list))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [business]);
+
+  if (business.photoRefs.length === 0) {
+    return <p className="text-xs text-muted-foreground">Fotos: não informado</p>;
+  }
+  if (photos.length === 0) return <p className="text-xs text-muted-foreground">Carregando fotos do Google…</p>;
+
+  return (
+    <section className="space-y-1.5">
+      <div className="grid grid-cols-2 gap-2">
+        {photos.map((photo) => (
+          <img
+            key={photo.url}
+            src={photo.url}
+            alt={photo.alt}
+            loading="lazy"
+            className="h-28 w-full rounded-md object-cover"
+          />
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Fotos © Google Maps
+        {business.photoAttributions.length > 0 ? ` · ${business.photoAttributions.join(", ")}` : ""}
+      </p>
+    </section>
+  );
+}
+
 
 const contactTypes: { value: ContactType; label: string }[] = [
   { value: "whatsapp", label: "WhatsApp" },
@@ -78,10 +131,31 @@ function LeadDetail({ business }: { business: Business | Lead }) {
   const [contactNote, setContactNote] = useState("");
   const [fuLabel, setFuLabel] = useState("");
   const [fuDate, setFuDate] = useState("");
+  const [details, setDetails] = useState<PlaceDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Place Details é consultado apenas quando o estabelecimento é aberto.
+  useEffect(() => {
+    let alive = true;
+    setDetails(null);
+    if (business.openingHours) return;
+    setLoadingDetails(true);
+    placeDetailsRepository
+      .detailsFor(business)
+      .then((result) => {
+        if (alive && result.ok) setDetails(result.details);
+      })
+      .catch(() => undefined)
+      .finally(() => alive && setLoadingDetails(false));
+    return () => {
+      alive = false;
+    };
+  }, [business]);
 
   const wa = whatsappLink(business.phone);
   const kit = buildKit(business);
   const leadFollowUps = followUps.filter((f) => f.leadId === business.id);
+
 
   return (
     <div className="space-y-6 p-6">
@@ -103,12 +177,15 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </ul>
       </section>
 
+      <PlaceGallery business={business} />
+
       <section className="space-y-2 rounded-lg border border-border p-4">
         <Row icon={<MapPin className="size-3.5" />} value={fullAddress(business)} />
+        <Row icon={<Star className="size-3.5" />} value={ratingLabel(business)} />
         <Row icon={<Phone className="size-3.5" />} value={formatPhone(business.phone)} />
         <Row
           icon={<Globe className="size-3.5" />}
-          value={business.website ?? "Sem site informado na fonte"}
+          value={business.website ?? "Site não informado (a verificar)"}
           href={business.website}
         />
         <Row
@@ -117,19 +194,40 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           href={business.instagram}
         />
         <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
-        <p className="pt-1 text-xs text-muted-foreground">Horário: {business.openingHours ?? "Não informado"}</p>
-        <p className="text-xs text-muted-foreground">Avaliações: {NAO_DISPONIVEL_FONTE}</p>
-        {business.sourceUrl ? (
+        <p className="pt-1 text-xs text-muted-foreground">
+          Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
+        </p>
+        <p className="text-xs text-muted-foreground">Place ID: {business.placeId}</p>
+        <p className="text-xs text-muted-foreground">
+          Coordenadas: {business.latitude.toFixed(5)}, {business.longitude.toFixed(5)}
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {business.phone ? (
+            <Button size="sm" variant="outline" onClick={() => void copyText(business.phone!, "Telefone copiado.")}>
+              <Copy className="size-4" aria-hidden />
+              Copiar telefone
+            </Button>
+          ) : null}
+          {wa ? (
+            <Button size="sm" variant="outline" asChild title={whatsappLabel(business.phone)}>
+              <a href={wa} target="_blank" rel="noreferrer">
+                Abrir WhatsApp
+              </a>
+            </Button>
+          ) : null}
+        </div>
+        {business.mapsUrl ? (
           <a
-            href={business.sourceUrl}
+            href={business.mapsUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-block text-xs text-primary underline underline-offset-2"
           >
-            Ver registro original no OpenStreetMap
+            Ver no Google Maps
           </a>
         ) : null}
       </section>
+
 
       <div className="flex flex-wrap gap-2">
         {saved ? (

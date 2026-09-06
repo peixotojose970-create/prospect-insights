@@ -29,12 +29,12 @@ export const Route = createFileRoute("/prospeccao")({
       {
         name: "description",
         content:
-          "Busque empresas reais por categoria e cidade usando dados abertos do OpenStreetMap e encontre negócios sem site informado.",
+          "Busque empresas reais por categoria e cidade usando dados oficiais do Google Maps e encontre negócios sem site informado.",
       },
       { property: "og:title", content: "Prospecção de empresas locais | Prospector" },
       {
         property: "og:description",
-        content: "Busque empresas por categoria e cidade com dados abertos do OpenStreetMap.",
+        content: "Busque empresas por categoria e cidade com dados oficiais do Google Maps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -44,21 +44,24 @@ export const Route = createFileRoute("/prospeccao")({
 });
 
 const errorHints: Record<string, string> = {
-  vazio: "Nenhuma empresa encontrada nessa cidade para essa categoria. Tente outra categoria ou uma cidade maior.",
-  amplo: "A busca ficou ampla demais. Informe cidade e categoria mais específicas.",
-  timeout: "A fonte de dados demorou para responder. Tente novamente em alguns segundos.",
-  "rate-limit": "Muitas buscas em sequência. Aguarde alguns segundos antes de buscar de novo.",
-  rede: "Não foi possível falar com a fonte de dados agora.",
+  vazio: "O Google Maps não retornou estabelecimentos para essa combinação. Tente outra categoria ou cidade.",
+  amplo: "Informe uma categoria e uma cidade brasileira para pesquisar.",
+  timeout: "A pesquisa demorou mais que o esperado.",
+  "rate-limit": "Limite de consultas atingido. Aguarde alguns instantes e tente novamente.",
+  rede: "Não foi possível consultar o Google Maps.",
   local: "Não encontramos essa cidade. Confira o nome e o estado.",
+  config: "Google Maps não está configurado.",
+  permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
 function Prospeccao() {
-  const { search, runSearch, savedSearches, removeSavedSearch, openLead } = useProspector();
+  const { search, runSearch, loadMore, loadingMore, savedSearches, removeSavedSearch, openLead } = useProspector();
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
   const [city, setCity] = useState("");
   const [state, setState] = useState("SP");
-  const [onlyNoSite, setOnlyNoSite] = useState(true);
+  const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
@@ -88,7 +91,7 @@ function Prospeccao() {
     <div className="space-y-6">
       <PageHeader
         title="Prospecção"
-        subtitle="Empresas reais de dados abertos do OpenStreetMap, filtradas pelo potencial de fechar um site."
+        subtitle="Estabelecimentos reais do Google Maps, filtradas pelo potencial de fechar um site."
       />
 
       <Card className="gap-4 p-4">
@@ -273,7 +276,17 @@ function Prospeccao() {
                 <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} />
               ))}
             </div>
+
+            {search.outcome?.nextPageToken ? (
+              <div className="flex justify-center">
+                <Button variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
+                  {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                  Carregar mais
+                </Button>
+              </div>
+            ) : null}
           </>
+
         )
       ) : null}
 

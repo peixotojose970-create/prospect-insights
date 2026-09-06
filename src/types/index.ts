@@ -27,14 +27,16 @@ export type HistoryEntry = {
 
 export type ContactType = "whatsapp" | "ligacao" | "instagram" | "outro";
 
-/** Empresa como veio da fonte aberta (OpenStreetMap via Overpass). */
+/** Estabelecimento como veio da fonte oficial (Google Maps Platform — Places API). */
 export type Business = {
-  /** id interno estável, derivado do externalId */
+  /** id interno estável (usa o Place ID) */
   id: string;
-  /** identificador na fonte, ex.: node/123456 */
+  /** identificador na fonte (Place ID) */
   externalId: string;
+  placeId: string;
   source: string;
   sourceUrl: string | null;
+  mapsUrl: string | null;
   name: string;
   category: string;
   street: string | null;
@@ -50,9 +52,15 @@ export type Business = {
   openingHours: string | null;
   latitude: number;
   longitude: number;
+  rating: number | null;
+  reviews: number | null;
+  /** nomes de recurso das fotos do Google (não são URLs) */
+  photoRefs: string[];
+  photoAttributions: string[];
   score: number;
   scoreFactors: ScoreFactor[];
 };
+
 
 /** Dados de CRM que o usuário adiciona ao salvar um lead. */
 export type LeadCrm = {
@@ -98,6 +106,7 @@ export type SearchCriteria = {
   city: string;
   state: string;
   limit?: number;
+  pageToken?: string;
 };
 
 export type SearchOutcome = {
@@ -106,4 +115,7 @@ export type SearchOutcome = {
   truncated: boolean;
   cached: boolean;
   areaLabel: string;
+  /** token do Google para "Carregar mais" */
+  nextPageToken: string | null;
 };
+
