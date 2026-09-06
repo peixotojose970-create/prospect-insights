@@ -57,14 +57,14 @@ function PlaceGallery({ business }: { business: Business }) {
 
   return (
     <section className="space-y-1.5">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
         {photos.map((photo) => (
           <img
             key={photo.url}
             src={photo.url}
             alt={photo.alt}
             loading="lazy"
-            className="h-28 w-full rounded-md object-cover"
+            className="h-28 w-48 shrink-0 snap-start rounded-md object-cover sm:w-full"
           />
         ))}
       </div>
