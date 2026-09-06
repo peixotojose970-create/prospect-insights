@@ -1,7 +1,8 @@
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Lead, LeadStatus } from "@/types";
+import type { Business, LeadStatus } from "@/types";
+import { siteLabel } from "./format";
 
 export async function copyText(text: string, message: string) {
   try {
@@ -14,7 +15,7 @@ export async function copyText(text: string, message: string) {
 
 export function priorityOf(score: number) {
   if (score >= 80) return { key: "alta", label: "Alta prioridade", dot: "bg-danger" } as const;
-  if (score >= 65) return { key: "media", label: "Média prioridade", dot: "bg-warning" } as const;
+  if (score >= 60) return { key: "media", label: "Média prioridade", dot: "bg-warning" } as const;
   return { key: "baixa", label: "Baixa prioridade", dot: "bg-muted-foreground" } as const;
 }
 
@@ -52,16 +53,16 @@ export function StatusBadge({ status, className }: { status: LeadStatus; classNa
   );
 }
 
-export function SiteBadge({ lead }: { lead: Lead }) {
-  return lead.website ? (
+export function SiteBadge({ business }: { business: Business }) {
+  return business.website ? (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-      <span className="size-2 rounded-full bg-success" aria-hidden />
-      Site encontrado
+      <span className="size-2 shrink-0 rounded-full bg-success" aria-hidden />
+      {siteLabel(business)}
     </span>
   ) : (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-danger">
-      <span className="size-2 rounded-full bg-danger" aria-hidden />
-      Sem site
+      <span className="size-2 shrink-0 rounded-full bg-danger" aria-hidden />
+      {siteLabel(business)}
     </span>
   );
 }
@@ -71,7 +72,10 @@ export function ScoreBar({ score, className }: { score: number; className?: stri
   return (
     <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-muted", className)}>
       <div
-        className={cn("h-full rounded-full transition-all", p.key === "alta" ? "bg-danger" : p.key === "media" ? "bg-warning" : "bg-muted-foreground")}
+        className={cn(
+          "h-full rounded-full transition-all",
+          p.key === "alta" ? "bg-danger" : p.key === "media" ? "bg-warning" : "bg-muted-foreground",
+        )}
         style={{ width: `${score}%` }}
       />
     </div>
@@ -88,10 +92,20 @@ export function ScorePill({ score }: { score: number }) {
   );
 }
 
-export function DemoNotice({ className }: { className?: string }) {
+/** Atribuição obrigatória da fonte aberta utilizada. */
+export function SourceNotice({ className }: { className?: string }) {
   return (
     <p className={cn("text-xs text-muted-foreground", className)}>
-      Dados de demonstração — não são informações coletadas de fontes reais.
+      Dados de empresas ©{" "}
+      <a
+        href="https://www.openstreetmap.org/"
+        target="_blank"
+        rel="noreferrer"
+        className="underline underline-offset-2 hover:text-foreground"
+      >
+        OpenStreetMap contributors
+      </a>{" "}
+      (licença ODbL). Cobertura parcial — são os resultados encontrados na fonte, não todas as empresas da cidade.
     </p>
   );
 }
@@ -126,12 +140,10 @@ export function PageHeader({
   return (
     <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-border pb-5 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-          {title}
-        </h1>
+        <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
   );
 }

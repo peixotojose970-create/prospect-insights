@@ -50,7 +50,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const { dark, setDark } = useTheme();
   const { leads } = useProspector();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const alerts = leads.filter((l) => l.saved && l.status === "interessado").length;
+  const alerts = leads.filter((l) => l.status === "interessado").length;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -75,7 +75,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <span className="truncate text-sm font-semibold tracking-tight text-foreground">PROSPECTOR</span>
         </Link>
         <span className="ml-2 hidden rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground md:inline">
-          Protótipo com dados de demonstração
+          Dados abertos do OpenStreetMap
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Tooltip>

@@ -1,271 +1,282 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Flame, RefreshCw, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { LeadCard } from "@/components/prospector/LeadCard";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
-import { CATEGORIES, CITIES, STATES } from "@/data/mockData";
+import { LeadCard } from "@/components/prospector/LeadCard";
+
+import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
+import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
-import { DemoNotice, EmptyState, PageHeader } from "@/features/prospector/ui";
-import type { Lead } from "@/types";
+import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
+import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
+import { ClientOnly } from "@tanstack/react-router";
+import type { Business } from "@/types";
+
+// Leaflet só funciona no navegador: carregado depois da hidratação.
+const ResultsMap = lazy(() => import("@/components/prospector/ResultsMap"));
 
 export const Route = createFileRoute("/prospeccao")({
   head: () => ({
     meta: [
-      { title: "Prospecção — Prospector" },
+      { title: "Prospecção de empresas locais | Prospector" },
       {
         name: "description",
-        content: "Busque empresas por cidade e categoria e identifique oportunidades comerciais.",
+        content:
+          "Busque empresas reais por categoria e cidade usando dados abertos do OpenStreetMap e encontre negócios sem site informado.",
       },
-      { property: "og:title", content: "Prospecção — Prospector" },
+      { property: "og:title", content: "Prospecção de empresas locais | Prospector" },
       {
         property: "og:description",
-        content: "Encontre empresas e identifique oportunidades comerciais com filtros avançados.",
+        content: "Busque empresas por categoria e cidade com dados abertos do OpenStreetMap.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Prospeccao,
 });
 
-const ALL = "todos";
+const errorHints: Record<string, string> = {
+  vazio: "Nenhuma empresa encontrada nessa cidade para essa categoria. Tente outra categoria ou uma cidade maior.",
+  amplo: "A busca ficou ampla demais. Informe cidade e categoria mais específicas.",
+  timeout: "A fonte de dados demorou para responder. Tente novamente em alguns segundos.",
+  "rate-limit": "Muitas buscas em sequência. Aguarde alguns segundos antes de buscar de novo.",
+  rede: "Não foi possível falar com a fonte de dados agora.",
+  local: "Não encontramos essa cidade. Confira o nome e o estado.",
+};
 
 function Prospeccao() {
-  const { leads } = useProspector();
-  const [query, setQuery] = useState("Clínicas Curitiba");
-  const [applied, setApplied] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [city, setCity] = useState(ALL);
-  const [state, setState] = useState(ALL);
-  const [category, setCategory] = useState(ALL);
-  const [minRating, setMinRating] = useState(ALL);
-  const [minReviews, setMinReviews] = useState(ALL);
-  const [minScore, setMinScore] = useState(ALL);
-  const [onlyNoSite, setOnlyNoSite] = useState(false);
+  const { search, runSearch, savedSearches, removeSavedSearch, openLead } = useProspector();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("SP");
+  const [onlyNoSite, setOnlyNoSite] = useState(true);
   const [onlyPhone, setOnlyPhone] = useState(false);
-  const [onlyWhats, setOnlyWhats] = useState(false);
-  const [siteLead, setSiteLead] = useState<Lead | null>(null);
+  const [minScore, setMinScore] = useState(0);
+  const [siteFor, setSiteFor] = useState<Business | null>(null);
 
   const results = useMemo(() => {
-    const terms = applied
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .split(/\s+/)
-      .filter(Boolean);
-    const norm = (s: string) =>
-      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    return leads
-      .filter((l) => {
-        const haystack = norm(`${l.name} ${l.category} ${l.city} ${l.state}`);
-        if (terms.length && !terms.every((t) => haystack.includes(t.replace(/s$/, "")))) return false;
-        if (city !== ALL && l.city !== city) return false;
-        if (state !== ALL && l.state !== state) return false;
-        if (category !== ALL && l.category !== category) return false;
-        if (minRating !== ALL && l.rating < Number(minRating)) return false;
-        if (minReviews !== ALL && l.reviews < Number(minReviews)) return false;
-        if (minScore !== ALL && l.score < Number(minScore)) return false;
-        if (onlyNoSite && l.website) return false;
-        if (onlyPhone && !l.phone) return false;
-        if (onlyWhats && !l.whatsapp) return false;
-        return true;
-      })
+    return search.results
+      .filter((b) => (onlyNoSite ? !b.website : true))
+      .filter((b) => (onlyPhone ? !!b.phone : true))
+      .filter((b) => b.score >= minScore)
       .sort((a, b) => b.score - a.score);
-  }, [leads, applied, city, state, category, minRating, minReviews, minScore, onlyNoSite, onlyPhone, onlyWhats]);
+  }, [search.results, onlyNoSite, onlyPhone, minScore]);
 
-  function search() {
-    setLoading(true);
-    setError(false);
-    setTimeout(() => {
-      setApplied(query);
-      setLoading(false);
-    }, 700);
-  }
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
+    const finalCategory = parsed.category || category;
+    const finalCity = parsed.city || city;
+    const finalState = parsed.state || state;
+    if (!finalCity.trim()) return;
+    setCategory(finalCategory);
+    setCity(finalCity);
+    setState(finalState);
+    void runSearch({ category: finalCategory, city: finalCity, state: finalState });
+  };
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         title="Prospecção"
-        subtitle="Encontre empresas e identifique oportunidades comerciais."
-        actions={
-          <Button variant="outline" size="sm" onClick={() => setError(!error)}>
-            <RefreshCw className="size-3.5" aria-hidden />
-            Simular erro
-          </Button>
-        }
+        subtitle="Empresas reais de dados abertos do OpenStreetMap, filtradas pelo potencial de fechar um site."
       />
 
       <Card className="gap-4 p-4">
-        <form
-          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
-          onSubmit={(e) => {
-            e.preventDefault();
-            search();
-          }}
-        >
-          <div className="min-w-0">
-            <Label htmlFor="busca" className="sr-only">
-              Buscar empresas
-            </Label>
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="busca">Busca rápida</Label>
+            <div className="flex gap-2">
               <Input
                 id="busca"
                 data-global-search
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ex.: Clínicas Curitiba"
-                className="pl-9"
+                placeholder="Ex.: pizzaria em Campinas SP"
               />
+              <Button type="submit" disabled={search.status === "loading"}>
+                {search.status === "loading" ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Search className="size-4" aria-hidden />
+                )}
+                Buscar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Atalho: Ctrl+K foca este campo.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_LABELS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cidade">Cidade</Label>
+              <Input
+                id="cidade"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Ex.: Campinas"
+                list="cidades-sugeridas"
+              />
+              <datalist id="cidades-sugeridas">
+                {CITY_SUGGESTIONS.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={state} onValueChange={setState}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <Button type="submit" className="sm:w-32">
-            Buscar
-          </Button>
+
+          <div className="flex flex-wrap items-center gap-5">
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <Checkbox checked={onlyNoSite} onCheckedChange={(v) => setOnlyNoSite(v === true)} />
+              Somente sem site informado
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <Checkbox checked={onlyPhone} onCheckedChange={(v) => setOnlyPhone(v === true)} />
+              Somente com telefone
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              Score mínimo
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={minScore}
+                onChange={(e) => setMinScore(Number(e.target.value) || 0)}
+                className="w-20"
+              />
+            </label>
+          </div>
         </form>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <FilterSelect label="Cidade" value={city} onChange={setCity} options={CITIES} />
-          <FilterSelect label="Estado" value={state} onChange={setState} options={STATES} />
-          <FilterSelect label="Categoria" value={category} onChange={setCategory} options={CATEGORIES} />
-          <FilterSelect label="Nota mínima" value={minRating} onChange={setMinRating} options={["4.0", "4.5", "4.7"]} />
-          <FilterSelect label="Avaliações" value={minReviews} onChange={setMinReviews} options={["50", "100", "200"]} />
-          <FilterSelect label="Score mínimo" value={minScore} onChange={setMinScore} options={["60", "70", "80", "90"]} />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
-          <button
-            type="button"
-            onClick={() => setOnlyNoSite(!onlyNoSite)}
-            aria-pressed={onlyNoSite}
-            className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
-              onlyNoSite
-                ? "border-danger bg-danger/10 text-danger"
-                : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Flame className="size-4" aria-hidden />
-            Somente empresas sem site
-          </button>
-          <ToggleField id="f-tel" label="Com telefone" checked={onlyPhone} onChange={setOnlyPhone} />
-          <ToggleField id="f-whats" label="Com WhatsApp" checked={onlyWhats} onChange={setOnlyWhats} />
-        </div>
       </Card>
 
-      {error ? (
+      {savedSearches.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {savedSearches.map((s) => (
+            <span
+              key={s.id}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground"
+            >
+              <button
+                type="button"
+                className="hover:text-foreground"
+                onClick={() => {
+                  setCategory(s.category);
+                  setCity(s.city);
+                  setState(s.state);
+                  void runSearch({ category: s.category, city: s.city, state: s.state });
+                }}
+              >
+                {s.query} ({s.results})
+              </button>
+              <button type="button" aria-label="Remover busca" onClick={() => removeSavedSearch(s.id)}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {search.status === "loading" ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-52 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : null}
+
+      {search.status === "error" && search.error ? (
         <EmptyState
-          title="Não foi possível carregar os resultados."
-          description="Ocorreu uma falha ao consultar a base de demonstração."
+          title="Não foi possível concluir a busca"
+          description={errorHints[search.error.code] ?? search.error.message}
           action={
-            <Button size="sm" onClick={() => setError(false)}>
-              Tentar novamente
-            </Button>
+            search.criteria ? (
+              <Button variant="outline" onClick={() => void runSearch(search.criteria!)}>
+                Tentar novamente
+              </Button>
+            ) : null
           }
         />
-      ) : loading ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Procurando empresas...</p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-64 w-full rounded-xl" />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">
-              {results.length} {results.length === 1 ? "oportunidade encontrada" : "oportunidades encontradas"}
-            </h2>
-            <DemoNotice />
-          </div>
-          {results.length === 0 ? (
-            <EmptyState
-              title="Nenhum resultado"
-              description="Não encontramos empresas com esses filtros. Ajuste a busca e tente novamente."
-            />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {results.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} onCreateSite={setSiteLead} />
+      ) : null}
+
+      {search.status === "idle" ? (
+        <EmptyState
+          title="Comece uma busca"
+          description="Escolha uma categoria e uma cidade para listar empresas reais e ver quais não têm site informado."
+        />
+      ) : null}
+
+      {search.status === "success" ? (
+        results.length === 0 ? (
+          <EmptyState
+            title="Nenhum resultado com esses filtros"
+            description="A busca retornou empresas, mas os filtros atuais removeram todas. Reduza o score mínimo ou desmarque os filtros."
+          />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">
+                {results.length} de {search.outcome?.total ?? results.length} empresas encontradas em{" "}
+                {search.outcome?.areaLabel ?? "área buscada"}
+                {search.outcome?.truncated ? " (lista limitada)" : ""}
+                {search.outcome?.cached ? " · resultado em cache" : ""}
+              </p>
+            </div>
+
+            <ClientOnly fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
+              <Suspense fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
+                <ResultsMap businesses={results} onSelect={(b: Business) => openLead(b.id)} />
+              </Suspense>
+            </ClientOnly>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {results.map((b) => (
+                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} />
               ))}
             </div>
-          )}
-        </>
-      )}
+          </>
+        )
+      ) : null}
 
-      <CreateSiteDialog lead={siteLead} onOpenChange={(o) => !o && setSiteLead(null)} />
-    </>
-  );
-}
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-}) {
-  const id = `filtro-${label.toLowerCase().replace(/\s/g, "-")}`;
-  return (
-    <div className="min-w-0">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
-      </Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id} className="mt-1 w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>Todos</SelectItem>
-          {options.map((o) => (
-            <SelectItem key={o} value={o}>
-              {o}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function ToggleField({
-  id,
-  label,
-  checked,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-      <Label htmlFor={id} className="text-sm text-muted-foreground">
-        {label}
-      </Label>
+      <SourceNotice />
+      <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
     </div>
   );
 }

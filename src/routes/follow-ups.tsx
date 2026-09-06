@@ -1,120 +1,118 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { Check, MessageCircle, Mail } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check, MessageCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MessageDialog } from "@/components/prospector/MessageDialog";
+import { formatPhone, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
-import { copyText, EmptyState, PageHeader, StatusBadge } from "@/features/prospector/ui";
-import type { Lead } from "@/types";
+import { EmptyState, PageHeader, SourceNotice, StatusBadge, copyText } from "@/features/prospector/ui";
 
 export const Route = createFileRoute("/follow-ups")({
   head: () => ({
     meta: [
-      { title: "Follow-ups — Prospector" },
+      { title: "Follow-ups agendados | Prospector B2B" },
       {
         name: "description",
-        content: "Follow-ups atrasados, de hoje e próximos, com ações rápidas de abordagem.",
+        content: "Veja os retornos agendados por dia, registre contatos e conclua follow-ups sem perder o timing.",
       },
-      { property: "og:title", content: "Follow-ups — Prospector" },
-      {
-        property: "og:description",
-        content: "Nunca perca um retorno: acompanhe atrasados, hoje e próximos.",
-      },
+      { property: "og:title", content: "Follow-ups agendados | Prospector B2B" },
+      { property: "og:description", content: "Retornos agendados por dia e registro rápido de contatos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: FollowUps,
 });
 
-const groups = [
-  { key: "atrasado", title: "Atrasados", dot: "bg-danger" },
-  { key: "hoje", title: "Hoje", dot: "bg-warning" },
-  { key: "proximo", title: "Próximos", dot: "bg-info" },
-] as const;
-
 function FollowUps() {
-  const { followUps, leads, completeFollowUp, openLead, registerContact } = useProspector();
-  const [msgLead, setMsgLead] = useState<Lead | null>(null);
-  const pending = followUps.filter((f) => !f.done);
+  const { followUps, leads, completeFollowUp, registerContact, openLead } = useProspector();
+  const pending = followUps.filter((f) => !f.done).sort((a, b) => a.date.localeCompare(b.date));
+  const days = [...new Set(pending.map((f) => f.date))];
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <>
-      <PageHeader title="Follow-ups" subtitle="Organize seus retornos e mantenha a cadência de contato." />
+    <div className="space-y-6">
+      <PageHeader title="Follow-ups" subtitle="Os retornos combinados, organizados por dia." />
 
       {pending.length === 0 ? (
         <EmptyState
-          title="Tudo em dia"
-          description="Você não possui follow-ups pendentes. Crie um novo dentro de um lead."
+          title="Nenhum follow-up pendente"
+          description="Abra um lead salvo e agende um retorno para ele aparecer aqui."
+          action={
+            <Button asChild size="sm">
+              <Link to="/leads">Ver meus leads</Link>
+            </Button>
+          }
         />
       ) : (
-        groups.map((g) => {
-          const items = pending.filter((f) => f.when === g.key);
-          return (
-            <section key={g.key} className="space-y-3">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <span className={`size-2 rounded-full ${g.dot}`} aria-hidden />
-                {g.title}
-                <span className="text-muted-foreground">({items.length})</span>
+        <div className="space-y-6">
+          {days.map((day) => (
+            <section key={day} className="space-y-3">
+              <h2 className="text-sm font-semibold text-foreground">
+                {day === today ? "Hoje" : day.split("-").reverse().join("/")}
+                {day < today ? " · atrasado" : ""}
               </h2>
-              {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {g.key === "hoje" ? "Você não possui follow-ups para hoje." : "Nada por aqui."}
-                </p>
-              ) : (
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {items.map((f) => {
+              <div className="space-y-2">
+                {pending
+                  .filter((f) => f.date === day)
+                  .map((f) => {
                     const lead = leads.find((l) => l.id === f.leadId);
                     if (!lead) return null;
+                    const wa = whatsappLink(lead.phone);
                     return (
-                      <Card key={f.id} className="gap-3 p-4">
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                          <div className="min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => openLead(lead.id)}
-                              className="truncate text-sm font-semibold text-foreground hover:underline"
-                            >
-                              {lead.name}
-                            </button>
-                            <p className="mt-0.5 text-xs text-muted-foreground">{f.label}</p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="font-mono text-xs text-foreground">{f.time}</p>
-                            <StatusBadge status={lead.status} className="mt-1" />
-                          </div>
+                      <Card key={f.id} className="flex-row items-start justify-between gap-3 p-4">
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            className="truncate text-sm font-medium text-foreground hover:underline"
+                            onClick={() => openLead(lead.id)}
+                          >
+                            {lead.name}
+                          </button>
+                          <p className="text-xs text-muted-foreground">
+                            {f.time} · {f.label}
+                          </p>
+                          <StatusBadge status={lead.status} className="mt-1" />
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setMsgLead(lead)}>
-                            <Mail className="size-3.5" aria-hidden />
-                            Gerar mensagem
-                          </Button>
+                        <div className="flex shrink-0 flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              registerContact(lead.id, "whatsapp", "Follow-up via WhatsApp");
-                              copyText(lead.phone, "Telefone copiado.");
+                              registerContact(lead.id, "ligacao", "Follow-up por telefone");
+                              void copyText(formatPhone(lead.phone), "Telefone copiado.");
                             }}
                           >
-                            <MessageCircle className="size-3.5" aria-hidden />
-                            WhatsApp
+                            <Phone className="size-4" aria-hidden />
+                            Ligar
                           </Button>
+                          {wa ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => registerContact(lead.id, "whatsapp", "Follow-up via WhatsApp")}
+                              asChild
+                            >
+                              <a href={wa} target="_blank" rel="noreferrer">
+                                <MessageCircle className="size-4" aria-hidden />
+                                WhatsApp
+                              </a>
+                            </Button>
+                          ) : null}
                           <Button size="sm" onClick={() => completeFollowUp(f.id)}>
-                            <Check className="size-3.5" aria-hidden />
+                            <Check className="size-4" aria-hidden />
                             Concluir
                           </Button>
                         </div>
                       </Card>
                     );
                   })}
-                </div>
-              )}
+              </div>
             </section>
-          );
-        })
+          ))}
+        </div>
       )}
 
-      <MessageDialog lead={msgLead} onOpenChange={(o) => !o && setMsgLead(null)} />
-    </>
+      <SourceNotice />
+    </div>
   );
 }

@@ -10,40 +10,41 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { buildSitePrompt } from "@/features/prospector/generators";
+import { NAO_DISPONIVEL_FONTE, formatPhone, orNotInformed } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
-import type { Lead } from "@/types";
+import type { Business } from "@/types";
 
 export function CreateSiteDialog({
-  lead,
+  business,
   onOpenChange,
 }: {
-  lead: Lead | null;
+  business: Business | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { logHistory } = useProspector();
-  if (!lead) return null;
-  const prompt = buildSitePrompt(lead);
+  const { logHistory, isSaved } = useProspector();
+  if (!business) return null;
+  const prompt = buildSitePrompt(business);
 
   const fields: [string, string][] = [
-    ["Nome", lead.name],
-    ["Categoria", lead.category],
-    ["Cidade", lead.city],
-    ["Estado", lead.state],
-    ["Nota", lead.rating.toFixed(1)],
-    ["Avaliações", String(lead.reviews)],
-    ["Telefone", lead.phone],
-    ["Website", lead.website ?? "Sem site"],
-    ["Instagram", lead.instagram ?? "Não informado"],
+    ["Nome", business.name],
+    ["Categoria", business.category],
+    ["Cidade", orNotInformed(business.city)],
+    ["Estado", orNotInformed(business.state)],
+    ["Avaliações", NAO_DISPONIVEL_FONTE],
+    ["Telefone", formatPhone(business.phone)],
+    ["Website", business.website ?? "Sem site informado na fonte"],
+    ["Instagram", business.instagram ?? "Não informado"],
+    ["Horário", business.openingHours ?? "Não informado"],
   ];
 
   return (
-    <Dialog open={!!lead} onOpenChange={onOpenChange}>
+    <Dialog open={!!business} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] gap-0 overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Preparar projeto do site</DialogTitle>
           <DialogDescription>
-            Dados de demonstração da empresa e prompt estruturado pronto para uso.
+            Dados públicos encontrados no OpenStreetMap e prompt estruturado pronto para uso.
           </DialogDescription>
         </DialogHeader>
 
@@ -67,7 +68,7 @@ export function CreateSiteDialog({
           <Button
             onClick={() => {
               copyText(prompt, "Prompt copiado.");
-              logHistory(lead.id, "Prompt de site gerado");
+              if (isSaved(business.id)) logHistory(business.id, "Prompt de site gerado");
             }}
           >
             <Copy className="size-4" aria-hidden />

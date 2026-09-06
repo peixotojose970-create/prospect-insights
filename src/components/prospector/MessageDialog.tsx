@@ -11,18 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildMessages } from "@/features/prospector/generators";
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
-import type { Lead } from "@/types";
+import type { Business } from "@/types";
 
 export function MessageDialog({
-  lead,
+  business,
   onOpenChange,
 }: {
-  lead: Lead | null;
+  business: Business | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { logHistory } = useProspector();
-  if (!lead) return null;
-  const messages = buildMessages(lead);
+  const { logHistory, isSaved } = useProspector();
+  if (!business) return null;
+  const messages = buildMessages(business);
   const tabs: [keyof typeof messages, string][] = [
     ["curta", "Curta"],
     ["natural", "Natural"],
@@ -30,11 +30,11 @@ export function MessageDialog({
   ];
 
   return (
-    <Dialog open={!!lead} onOpenChange={onOpenChange}>
+    <Dialog open={!!business} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Mensagem de abordagem</DialogTitle>
-          <DialogDescription>{lead.name} — escolha o tom da abordagem.</DialogDescription>
+          <DialogDescription>{business.name} — escolha o tom da abordagem.</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="curta">
           <TabsList className="w-full">
@@ -52,7 +52,7 @@ export function MessageDialog({
               <Button
                 onClick={() => {
                   copyText(messages[key], "Mensagem copiada.");
-                  logHistory(lead.id, "Mensagem copiada");
+                  if (isSaved(business.id)) logHistory(business.id, "Mensagem copiada");
                 }}
               >
                 <Copy className="size-4" aria-hidden />
@@ -61,6 +61,9 @@ export function MessageDialog({
             </TabsContent>
           ))}
         </Tabs>
+        <p className="text-xs text-muted-foreground">
+          Revise a mensagem antes de enviar: os dados vêm de uma base pública e podem estar incompletos.
+        </p>
       </DialogContent>
     </Dialog>
   );

@@ -1,133 +1,125 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Card } from "@/components/ui/card";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Bell, Flame, Globe, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useProspector } from "@/features/prospector/store";
-import { EmptyState, PageHeader, StatusBadge, DemoNotice } from "@/features/prospector/ui";
-import { LEAD_STATUSES } from "@/types";
+import { EmptyState, PageHeader, ScorePill, SourceNotice, StatusBadge } from "@/features/prospector/ui";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Visão geral — Prospector" },
+      { title: "Painel do prospector | Prospector B2B" },
       {
         name: "description",
         content:
-          "Painel de prospecção B2B: leads encontrados, oportunidades, pipeline e follow-ups do dia.",
+          "Acompanhe leads salvos, oportunidades sem site, follow-ups do dia e atividade recente da sua prospecção B2B.",
       },
-      { property: "og:title", content: "Visão geral — Prospector" },
+      { property: "og:title", content: "Painel do prospector | Prospector B2B" },
       {
         property: "og:description",
-        content: "Acompanhe leads, oportunidades e follow-ups da sua prospecção comercial.",
+        content: "Leads salvos, oportunidades sem site e follow-ups do dia em um só painel.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,
 });
 
 function Dashboard() {
-  const { leads, followUps, activities, openLead, completeFollowUp } = useProspector();
+  const { leads, followUps, activities, openLead } = useProspector();
+  const noSite = leads.filter((l) => !l.website);
+  const pending = followUps.filter((f) => !f.done);
+  const hot = leads.filter((l) => l.score >= 80);
 
-  const saved = leads.filter((l) => l.saved);
-  const cards = [
-    { label: "Leads encontrados", value: leads.length },
-    { label: "Oportunidades", value: leads.filter((l) => l.score >= 65).length },
-    { label: "Sem site", value: leads.filter((l) => !l.website).length },
-    { label: "Contatados", value: saved.filter((l) => l.status !== "novo").length },
-    { label: "Responderam", value: saved.filter((l) => ["respondeu", "interessado", "negociacao", "fechado"].includes(l.status)).length },
-    { label: "Interessados", value: saved.filter((l) => l.status === "interessado").length },
-    { label: "Fechados", value: saved.filter((l) => l.status === "fechado").length },
-  ];
-
-  const pipeline = LEAD_STATUSES.filter((s) => s.value !== "perdido").map((s) => ({
-    ...s,
-    count: leads.filter((l) => l.saved && l.status === s.value).length,
-  }));
-  const maxPipeline = Math.max(1, ...pipeline.map((p) => p.count));
-  const todays = followUps.filter((f) => !f.done && (f.when === "hoje" || f.when === "atrasado"));
+  const stats = [
+    { label: "Leads salvos", value: leads.length, icon: Users, to: "/leads" },
+    { label: "Sem site informado", value: noSite.length, icon: Globe, to: "/oportunidades" },
+    { label: "Alta prioridade", value: hot.length, icon: Flame, to: "/oportunidades" },
+    { label: "Follow-ups pendentes", value: pending.length, icon: Bell, to: "/follow-ups" },
+  ] as const;
 
   return (
-    <>
-      <PageHeader title="Visão geral" subtitle="Veja suas oportunidades e acompanhe sua prospecção." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Painel"
+        subtitle="Sua carteira de prospecção construída a partir de dados abertos de empresas."
+        actions={
+          <Button asChild>
+            <Link to="/prospeccao">Buscar empresas</Link>
+          </Button>
+        }
+      />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        {cards.map((c) => (
-          <Card key={c.label} className="gap-1 p-4">
-            <p className="text-xs text-muted-foreground">{c.label}</p>
-            <p className="text-2xl font-semibold tabular-nums text-foreground">{c.value}</p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((s) => (
+          <Card key={s.label} className="gap-1 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <s.icon className="size-4 text-muted-foreground" aria-hidden />
+            </div>
+            <p className="text-3xl font-bold tabular-nums text-foreground">{s.value}</p>
+            <Link to={s.to} className="text-xs text-primary underline underline-offset-2">
+              Ver detalhes
+            </Link>
           </Card>
         ))}
-      </section>
-      <DemoNotice />
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="p-5 lg:col-span-2">
-          <h2 className="text-sm font-semibold text-foreground">Pipeline resumido</h2>
-          <ul className="mt-4 space-y-3">
-            {pipeline.map((p) => (
-              <li key={p.value} className="grid grid-cols-[7rem_minmax(0,1fr)_2rem] items-center gap-3">
-                <span className="truncate text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  {p.label}
-                </span>
-                <span className="h-2 rounded-full bg-muted">
-                  <span
-                    className="block h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${(p.count / maxPipeline) * 100}%` }}
-                  />
-                </span>
-                <span className="text-right text-xs tabular-nums text-foreground">{p.count}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-foreground">Follow-ups de hoje</h2>
-          <div className="mt-4 space-y-3">
-            {todays.length === 0 ? (
-              <EmptyState title="Nada para hoje" description="Você não possui follow-ups para hoje." />
-            ) : (
-              todays.map((f) => {
-                const lead = leads.find((l) => l.id === f.leadId);
-                if (!lead) return null;
-                return (
-                  <div key={f.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{lead.name}</p>
-                      <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{f.time}</span>
-                        <StatusBadge status={lead.status} />
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <Button size="sm" variant="outline" onClick={() => openLead(lead.id)}>
-                        Abrir
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => completeFollowUp(f.id)}>
-                        Concluir
-                      </Button>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="gap-3 p-4">
+          <h2 className="text-sm font-semibold text-foreground">Leads recentes</h2>
+          {leads.length === 0 ? (
+            <EmptyState
+              title="Nenhum lead salvo"
+              description="Faça uma busca e salve as empresas que fazem sentido para você."
+              action={
+                <Button asChild size="sm">
+                  <Link to="/prospeccao">Ir para prospecção</Link>
+                </Button>
+              }
+            />
+          ) : (
+            <ul className="divide-y divide-border">
+              {leads.slice(0, 6).map((lead) => (
+                <li key={lead.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{lead.name}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <StatusBadge status={lead.status} />
+                      <ScorePill score={lead.score} />
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                  <Button size="sm" variant="outline" onClick={() => openLead(lead.id)}>
+                    Abrir
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="gap-3 p-4">
+          <h2 className="text-sm font-semibold text-foreground">Atividade recente</h2>
+          {activities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Suas ações aparecem aqui.</p>
+          ) : (
+            <ol className="space-y-3 border-l border-border pl-4">
+              {activities.slice(0, 8).map((a) => (
+                <li key={a.id} className="relative text-sm">
+                  <span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-primary" aria-hidden />
+                  <p className="text-foreground">
+                    {a.label} — <span className="text-muted-foreground">{a.lead}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.at}</p>
+                </li>
+              ))}
+            </ol>
+          )}
         </Card>
       </div>
 
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold text-foreground">Atividade recente</h2>
-        <ol className="mt-4 space-y-3">
-          {activities.map((a) => (
-            <li key={a.id} className="flex items-center gap-3 text-sm">
-              <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-foreground">
-                {a.label} — <span className="text-muted-foreground">{a.lead}</span>
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">{a.at}</span>
-            </li>
-          ))}
-        </ol>
-      </Card>
-    </>
+      <SourceNotice />
+    </div>
   );
 }

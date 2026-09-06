@@ -27,34 +27,51 @@ export type HistoryEntry = {
 
 export type ContactType = "whatsapp" | "ligacao" | "instagram" | "outro";
 
-export type Lead = {
+/** Empresa como veio da fonte aberta (OpenStreetMap via Overpass). */
+export type Business = {
+  /** id interno estável, derivado do externalId */
   id: string;
+  /** identificador na fonte, ex.: node/123456 */
+  externalId: string;
+  source: string;
+  sourceUrl: string | null;
   name: string;
   category: string;
-  city: string;
-  state: string;
-  address: string;
-  rating: number;
-  reviews: number;
-  phone: string;
-  whatsapp: boolean;
+  street: string | null;
+  houseNumber: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  address: string | null;
+  phone: string | null;
   website: string | null;
   instagram: string | null;
+  openingHours: string | null;
+  latitude: number;
+  longitude: number;
   score: number;
   scoreFactors: ScoreFactor[];
+};
+
+/** Dados de CRM que o usuário adiciona ao salvar um lead. */
+export type LeadCrm = {
   status: LeadStatus;
-  saved: boolean;
+  savedAt: string;
+  notes: string;
   lastContact: string | null;
   nextFollowUp: string | null;
-  notes: string;
   history: HistoryEntry[];
 };
+
+export type Lead = Business & LeadCrm;
 
 export type FollowUp = {
   id: string;
   leadId: string;
+  /** ISO date (yyyy-mm-dd) */
+  date: string;
   time: string;
-  when: "atrasado" | "hoje" | "proximo";
   label: string;
   done: boolean;
 };
@@ -64,4 +81,29 @@ export type Activity = {
   label: string;
   lead: string;
   at: string;
+};
+
+export type SavedSearch = {
+  id: string;
+  category: string;
+  city: string;
+  state: string;
+  query: string;
+  at: string;
+  results: number;
+};
+
+export type SearchCriteria = {
+  category: string;
+  city: string;
+  state: string;
+  limit?: number;
+};
+
+export type SearchOutcome = {
+  businesses: Business[];
+  total: number;
+  truncated: boolean;
+  cached: boolean;
+  areaLabel: string;
 };
