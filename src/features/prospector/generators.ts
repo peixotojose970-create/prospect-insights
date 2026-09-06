@@ -58,40 +58,119 @@ Não afirmar quantidade de avaliações ou nota — esses dados não existem nes
 Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser confirmado.`;
 }
 
+/** Mensagens montadas a partir da situação real da empresa (nada inventado). */
 export function buildMessages(business: Business) {
-  const semSiteInformado = !business.website;
+  const semSite = !business.website;
   const cidade = business.city ?? "sua região";
   const categoria = business.category.toLowerCase();
+  const boaReputacao = business.rating !== null && business.rating >= 4.5;
+  const notaTxt = business.rating !== null ? `nota ${business.rating.toFixed(1)}` : null;
+  const avaliacoesTxt = business.reviews !== null ? `${business.reviews} avaliações` : null;
+  const reputacao = [notaTxt, avaliacoesTxt].filter(Boolean).join(" e ");
 
-  return {
-    curta: `Oi! Tudo bem? Vi a ${business.name}, aqui em ${cidade}. ${
-      semSiteInformado
-        ? "Procurei um site de vocês e não encontrei nenhum endereço informado nas bases públicas."
-        : "Dei uma olhada no site de vocês e tive algumas ideias simples de melhoria."
-    } Posso te mostrar uma ideia rápida?`,
-    natural: `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
-      semSiteInformado
-        ? "Não encontrei um site informado para vocês — pode ser que exista e ainda não esteja cadastrado, por isso queria confirmar."
-        : "Vi o site atual e anotei pontos que podem aumentar os contatos."
-    } Montei uma ideia de presença online para ${categoria}. Posso te enviar?`,
-    comercial: `Olá, falo com o responsável pela ${business.name}?
+  const curta = semSite
+    ? `Oi! Vi a ${business.name} no Google e achei o trabalho bem interessante. Percebi que não encontrei um site informado para vocês e tive uma ideia de como poderia ficar a presença online da empresa. Posso te mostrar?`
+    : `Oi! Encontrei a ${business.name} no Google e dei uma olhada na presença online de vocês. Trabalho com criação e melhoria de sites e tive algumas ideias que poderiam valorizar ainda mais a apresentação da empresa. Posso te mostrar?`;
+
+  const natural = boaReputacao
+    ? `Oi! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Vi que a ${business.name} tem uma avaliação muito boa no Google${
+        reputacao ? ` (${reputacao})` : ""
+      } — bastante gente já conhece o trabalho de vocês. ${
+        semSite
+          ? "Como não encontrei um site informado, tive uma ideia de como transformar essa confiança em uma presença online ainda mais profissional."
+          : "Tive algumas ideias de como transformar essa confiança em uma presença online ainda mais profissional."
+      } Posso te enviar?`
+    : `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
+        semSite
+          ? "Não encontrei um site informado para vocês — pode existir e ainda não estar cadastrado, por isso queria confirmar."
+          : "Vi a presença online atual e anotei pontos que podem aumentar os contatos."
+      } Montei uma ideia de presença online para ${categoria}. Posso te enviar?`;
+
+  const comercial = `Olá, falo com o responsável pela ${business.name}?
 
 Sou especialista em sites para empresas de ${categoria} e atendo negócios em ${cidade}${
-      business.state ? ` - ${business.state}` : ""
-    }.
+    business.state ? ` - ${business.state}` : ""
+  }.
 
-O que encontrei em bases públicas:
-• ${semSiteInformado ? "Nenhum site informado na fonte consultada" : `Site informado: ${business.website}`}
+O que encontrei nos dados públicos do Google:
+• ${semSite ? "Nenhum site informado no perfil" : `Site informado: ${business.website}`}
 • Contato listado: ${formatPhone(business.phone)}
-• Endereço: ${fullAddress(business)}
+• Endereço: ${fullAddress(business)}${reputacao ? `\n• Reputação: ${reputacao}` : ""}
 
-Observação: essas informações vêm do Google Maps e podem estar incompletas — se algo estiver desatualizado, me corrija.
+Observação: essas informações vêm do perfil público e podem estar incompletas — se algo estiver desatualizado, me corrija.
 
 Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp.
 
-Posso te enviar uma prévia sem compromisso?`,
-  };
+Posso te enviar uma prévia sem compromisso?`;
+
+  return { curta, natural, comercial };
 }
+
+/** Follow-up considerando status, dias desde o último contato e contexto do lead. */
+export function buildFollowUp(lead: Lead) {
+  const dias = lead.lastContact
+    ? Math.max(
+        0,
+        Math.round((Date.now() - new Date(lead.lastContact.split(" ")[0]!.split("/").reverse().join("-")).getTime()) / 86400000),
+      )
+    : null;
+  const tempo = dias === null ? "" : dias <= 1 ? " ontem" : ` há ${dias} dias`;
+
+  if (lead.status === "respondeu" || lead.status === "interessado")
+    return `Oi! Retomando nossa conversa sobre o site da ${lead.name}. Consegui organizar a ideia que te comentei${tempo} — se fizer sentido, te mostro em 5 minutos como ficaria a página inicial. Posso enviar?`;
+  if (lead.status === "negociacao")
+    return `Oi! Passando para saber se ficou alguma dúvida na proposta do site da ${lead.name}. Se preferir, ajusto o escopo ou o prazo conforme a sua necessidade.`;
+  return `Oi! Passando novamente por aqui porque não sei se você conseguiu ver a ideia que te enviei${tempo} sobre o site da ${lead.name}. Se fizer sentido, posso te mostrar rapidamente como pensei o site para vocês.`;
+}
+
+/** Proposta comercial: nenhum valor ou prazo é inventado. */
+export function buildProposal(input: {
+  business: Business;
+  contact: string;
+  service: string;
+  description: string;
+  deadline: string;
+  investment: string;
+  validity: string;
+  notes: string;
+}) {
+  const p = (v: string) => (v.trim() ? v.trim() : "[preencher]");
+  return `PROPOSTA DE CRIAÇÃO DE SITE
+
+Cliente:
+${input.business.name}${input.contact.trim() ? `\nResponsável:\n${input.contact.trim()}` : ""}
+
+Objetivo:
+Criar uma presença digital profissional para apresentar a empresa e facilitar o contato com clientes.
+
+Serviço:
+${p(input.service)}
+
+Descrição:
+${p(input.description)}
+
+Incluído:
+• Site responsivo
+• Página inicial
+• Serviços
+• Contato
+• WhatsApp
+• Localização
+• SEO básico
+
+Prazo:
+${p(input.deadline)}
+
+Investimento:
+${p(input.investment)}
+
+Validade da proposta:
+${p(input.validity)}
+
+Observações:
+${p(input.notes)}`;
+}
+
 
 export function buildKit(business: Business) {
   const messages = buildMessages(business);
