@@ -6,13 +6,23 @@ import {
   Kanban,
   LayoutDashboard,
   Moon,
+  MoreVertical,
   Search,
   Settings,
   Sun,
   Target,
   Users,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
@@ -20,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/prospeccao", label: "Prospecção", icon: Search },
+  { to: "/rapido", label: "Modo rápido", icon: Zap },
   { to: "/oportunidades", label: "Oportunidades", icon: Flame },
   { to: "/leads", label: "Leads", icon: Users },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
@@ -28,7 +39,14 @@ const nav = [
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
-const mobileNav = nav.filter((n) => n.to !== "/configuracoes");
+/** Bottom navigation do mobile: 5 destinos principais, o resto vai no menu ⋮. */
+const mobileNav = [
+  { to: "/prospeccao", label: "Buscar", icon: Search },
+  { to: "/oportunidades", label: "Oportun.", icon: Flame },
+  { to: "/leads", label: "Leads", icon: Users },
+  { to: "/follow-ups", label: "Follow-up", icon: Bell },
+  { to: "/", label: "Painel", icon: LayoutDashboard },
+] as const;
 
 export function useTheme() {
   const [dark, setDark] = useState(false);
@@ -67,37 +85,82 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-card px-4">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
         <Link to="/" className="flex min-w-0 items-center gap-2">
           <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
             <Target className="size-4" aria-hidden />
           </span>
           <span className="truncate text-sm font-semibold tracking-tight text-foreground">PROSPECTOR</span>
         </Link>
-        <span className="ml-2 hidden rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground md:inline">
+        <span className="ml-2 hidden rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground lg:inline">
           Dados oficiais do Google Maps
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden size-10 md:inline-flex"
+            onClick={() => setDark(!dark)}
+            aria-label="Alternar tema"
+          >
+            {dark ? <Moon className="size-4" /> : <Sun className="size-4" />}
+          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} aria-label="Alternar tema">
-                {dark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Tema {dark ? "escuro" : "claro"}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Notificações" className="relative">
-                <Bell className="size-4" />
-                {alerts > 0 ? (
-                  <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-danger" aria-hidden />
-                ) : null}
+              <Button variant="ghost" size="icon" aria-label="Notificações" className="relative size-10" asChild>
+                <Link to="/follow-ups">
+                  <Bell className="size-4" />
+                  {alerts > 0 ? (
+                    <span className="absolute top-2 right-2 size-1.5 rounded-full bg-danger" aria-hidden />
+                  ) : null}
+                </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent>{alerts} leads interessados</TooltipContent>
           </Tooltip>
-          <span className="ml-1 grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground">
+
+          {/* Menu secundário: no mobile concentra tema, modo rápido, pipeline e configurações. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Prospector</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link to="/leads">
+                  <Search className="size-4" aria-hidden />
+                  Buscar leads salvos
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/rapido">
+                  <Zap className="size-4" aria-hidden />
+                  Prospecção rápida
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/pipeline">
+                  <Kanban className="size-4" aria-hidden />
+                  Pipeline
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/configuracoes">
+                  <Settings className="size-4" aria-hidden />
+                  Configurações
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setDark(!dark)}>
+                {dark ? <Moon className="size-4" aria-hidden /> : <Sun className="size-4" aria-hidden />}
+                Tema {dark ? "escuro" : "claro"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <span className="ml-1 hidden size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground sm:grid">
             JP
           </span>
         </div>
@@ -138,12 +201,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 pt-5 pb-24 sm:px-6 md:pb-8">
-          <div className="mx-auto max-w-7xl space-y-6">{children}</div>
+        <main className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-6 sm:pt-5 md:pb-8">
+          <div className="mx-auto max-w-7xl space-y-5 sm:space-y-6">{children}</div>
         </main>
       </div>
 
-      <nav className="fixed bottom-0 z-30 flex w-full items-stretch border-t border-border bg-card md:hidden">
+      <nav
+        className="fixed bottom-0 z-30 flex w-full items-stretch border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+        aria-label="Navegação principal"
+      >
         {mobileNav.map((item) => {
           const active = pathname === item.to;
           return (
@@ -151,12 +217,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               key={item.to}
               to={item.to}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium",
+                "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
-              <item.icon className="size-4" aria-hidden />
-              <span className="truncate">{item.label}</span>
+              <item.icon className="size-5" aria-hidden />
+              <span className="max-w-full truncate px-0.5">{item.label}</span>
             </Link>
           );
         })}
