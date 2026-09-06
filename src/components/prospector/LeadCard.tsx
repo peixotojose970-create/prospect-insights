@@ -1,7 +1,8 @@
-import { BookmarkCheck, BookmarkPlus, Globe, MapPin, MessageCircle, Phone } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Globe, MapPin, MessageCircle, Phone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatPhone, fullAddress, whatsappLabel, whatsappLink } from "@/features/prospector/format";
+import { formatPhone, fullAddress, ratingLabel, whatsappLabel, whatsappLink } from "@/features/prospector/format";
+
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, ScorePill, SiteBadge, StatusBadge } from "@/features/prospector/ui";
 import type { Business, Lead } from "@/types";
@@ -43,6 +44,10 @@ export function LeadCard({
           <span className="min-w-0 break-words">{fullAddress(business)}</span>
         </li>
         <li className="flex items-center gap-2">
+          <Star className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{ratingLabel(business)}</span>
+        </li>
+        <li className="flex items-center gap-2">
           <Phone className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">{formatPhone(business.phone)}</span>
         </li>
@@ -51,6 +56,7 @@ export function LeadCard({
           <SiteBadge business={business} />
         </li>
       </ul>
+
 
       <div className="flex flex-wrap gap-2 pt-1">
         <Button size="sm" variant="outline" onClick={() => openLead(business.id)}>
