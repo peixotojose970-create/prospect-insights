@@ -78,10 +78,31 @@ function LeadDetail({ business }: { business: Business | Lead }) {
   const [contactNote, setContactNote] = useState("");
   const [fuLabel, setFuLabel] = useState("");
   const [fuDate, setFuDate] = useState("");
+  const [details, setDetails] = useState<PlaceDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Place Details é consultado apenas quando o estabelecimento é aberto.
+  useEffect(() => {
+    let alive = true;
+    setDetails(null);
+    if (business.openingHours) return;
+    setLoadingDetails(true);
+    placeDetailsRepository
+      .detailsFor(business)
+      .then((result) => {
+        if (alive && result.ok) setDetails(result.details);
+      })
+      .catch(() => undefined)
+      .finally(() => alive && setLoadingDetails(false));
+    return () => {
+      alive = false;
+    };
+  }, [business]);
 
   const wa = whatsappLink(business.phone);
   const kit = buildKit(business);
   const leadFollowUps = followUps.filter((f) => f.leadId === business.id);
+
 
   return (
     <div className="space-y-6 p-6">
