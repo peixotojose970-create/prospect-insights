@@ -33,7 +33,10 @@ function Signal({ ok, label }: { ok: boolean; label: string }) {
 function SiteAnalysis({ business }: { business: Business }) {
   const run = useServerFn(auditWebsite);
   const [state, setState] = useState<
-    { status: "idle" | "loading" } | { status: "error"; message: string } | { status: "ok"; audit: SiteAudit }
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "error"; message: string }
+    | { status: "ok"; audit: SiteAudit }
   >({ status: "idle" });
 
   useEffect(() => {
