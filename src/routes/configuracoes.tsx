@@ -129,7 +129,7 @@ function Configuracoes() {
   );
 }
 
-function Pref({ id, label, defaultChecked }: { id: string; label: string; defaultChecked?: boolean }) {
+function Pref({ id, label, defaultChecked = false }: { id: string; label: string; defaultChecked?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <Label htmlFor={id} className="text-sm font-normal text-muted-foreground">
