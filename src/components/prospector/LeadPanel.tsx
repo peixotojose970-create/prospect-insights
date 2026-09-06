@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
