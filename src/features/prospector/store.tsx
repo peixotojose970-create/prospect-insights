@@ -261,12 +261,110 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
 
   const value = useMemo<Store>(() => {
-    const { leads, followUps, activities, savedSearches } = state;
+    const { leads, followUps, activities, savedSearches, selection } = state;
+    const selectedIds = new Set(selection.map((b) => b.id));
     return {
       leads,
       followUps,
       activities,
       savedSearches,
+      selection,
+      isSelected: (id) => selectedIds.has(id),
+      toggleSelected: (business) =>
+        setState((prev) => {
+          const key = dedupeKey(business);
+          const exists = prev.selection.some((b) => b.id === business.id || dedupeKey(b) === key);
+          return {
+            ...prev,
+            selection: exists
+              ? prev.selection.filter((b) => b.id !== business.id && dedupeKey(b) !== key)
+              : [...prev.selection, business],
+          };
+        }),
+      selectMany: (businesses) =>
+        setState((prev) => {
+          const keys = new Set(prev.selection.map(dedupeKey));
+          const add: Business[] = [];
+          for (const b of businesses) {
+            const key = dedupeKey(b);
+            if (keys.has(key)) continue;
+            keys.add(key);
+            add.push(b);
+          }
+          return add.length ? { ...prev, selection: [...prev.selection, ...add] } : prev;
+        }),
+      deselectMany: (ids) => {
+        const remove = new Set(ids);
+        setState((prev) => ({ ...prev, selection: prev.selection.filter((b) => !remove.has(b.id)) }));
+      },
+      clearSelection: () => setState((prev) => ({ ...prev, selection: [] })),
+      saveSelected: (options) => {
+        const status: LeadStatus = options?.status ?? "novo";
+        const tag = options?.tag?.trim();
+        const existing = new Set(leads.map(dedupeKey));
+        const created: Lead[] = [];
+        let duplicates = 0;
+        const failed: { id: string; name: string }[] = [];
+
+        for (const business of selection) {
+          try {
+            const key = dedupeKey(business);
+            if (existing.has(key)) {
+              duplicates += 1;
+              continue;
+            }
+            existing.add(key);
+            created.push({
+              ...business,
+              status,
+              savedAt: stamp(),
+              notes: "",
+              lastContact: null,
+              nextFollowUp: null,
+              ...(tag ? { tags: [tag] } : {}),
+              history: [
+                {
+                  id: `${Date.now()}-${Math.random()}`,
+                  date: stamp(),
+                  label: "Lead salvo em lote a partir do Google Maps",
+                },
+              ],
+            });
+          } catch {
+            failed.push({ id: business.id, name: business.name });
+          }
+        }
+
+        if (created.length) {
+          // Uma única gravação em lote — sem requisições por empresa.
+          setState((prev) => {
+            const known = new Set(prev.leads.map(dedupeKey));
+            const fresh = created.filter((l) => !known.has(dedupeKey(l)));
+            return {
+              ...prev,
+              leads: [...fresh, ...prev.leads],
+              selection: prev.selection.filter((b) => failed.some((f) => f.id === b.id)),
+              activities: [
+                {
+                  id: `${Date.now()}-batch`,
+                  label: `${fresh.length} leads salvos em lote`,
+                  lead: fresh[0]?.name ?? "Leads",
+                  at: stamp(),
+                },
+                ...prev.activities,
+              ].slice(0, 20),
+            };
+          });
+        } else {
+          setState((prev) => ({
+            ...prev,
+            selection: prev.selection.filter((b) => failed.some((f) => f.id === b.id)),
+          }));
+        }
+
+        return { selected: selection.length, created: created.length, duplicates, failed };
+      },
+
       search,
       runSearch,
       loadMore,
