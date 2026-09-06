@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,16 +11,69 @@ import { Textarea } from "@/components/ui/textarea";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
 import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { buildKit } from "@/features/prospector/generators";
+import { placeDetailsRepository, photoProvider } from "@/features/prospector/repository";
 import {
-  NAO_DISPONIVEL_FONTE,
   formatPhone,
   fullAddress,
+  ratingLabel,
   whatsappLabel,
   whatsappLink,
 } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, SourceNotice, StatusBadge, copyText } from "@/features/prospector/ui";
 import { LEAD_STATUSES, type Business, type ContactType, type Lead, type LeadStatus } from "@/types";
+
+type PlaceDetails = {
+  openingHours: string | null;
+  phone: string | null;
+  website: string | null;
+  photoRefs: string[];
+  photoAttributions: string[];
+};
+
+/** Galeria de fotos do Google (URLs temporárias, nada é armazenado). */
+function PlaceGallery({ business }: { business: Business }) {
+  const [photos, setPhotos] = useState<{ url: string; alt: string }[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    setPhotos([]);
+    if (business.photoRefs.length === 0) return;
+    photoProvider
+      .photosFor(business)
+      .then((list) => alive && setPhotos(list))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [business]);
+
+  if (business.photoRefs.length === 0) {
+    return <p className="text-xs text-muted-foreground">Fotos: não informado</p>;
+  }
+  if (photos.length === 0) return <p className="text-xs text-muted-foreground">Carregando fotos do Google…</p>;
+
+  return (
+    <section className="space-y-1.5">
+      <div className="grid grid-cols-2 gap-2">
+        {photos.map((photo) => (
+          <img
+            key={photo.url}
+            src={photo.url}
+            alt={photo.alt}
+            loading="lazy"
+            className="h-28 w-full rounded-md object-cover"
+          />
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Fotos © Google Maps
+        {business.photoAttributions.length > 0 ? ` · ${business.photoAttributions.join(", ")}` : ""}
+      </p>
+    </section>
+  );
+}
+
 
 const contactTypes: { value: ContactType; label: string }[] = [
   { value: "whatsapp", label: "WhatsApp" },
