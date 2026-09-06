@@ -269,6 +269,7 @@ function Leads() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       <SourceNotice />
