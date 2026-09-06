@@ -1,157 +1,171 @@
-import type { Lead } from "@/types";
+import type { Business, Lead } from "@/types";
+import { NAO_DISPONIVEL_FONTE, formatPhone, fullAddress, orNotInformed, whatsappLabel } from "./format";
 
-export function buildSitePrompt(lead: Lead) {
-  const missing = "[INFORMAR]";
+const MISSING = "[CONFIRMAR COM O CLIENTE]";
+
+export function buildSitePrompt(business: Business) {
   return `# PAPEL
 Você é um designer e desenvolvedor web sênior especializado em sites institucionais para empresas locais brasileiras.
 
-# CONTEXTO DA EMPRESA
-Nome: ${lead.name}
-Nicho / categoria: ${lead.category}
-Cidade: ${lead.city}
-Estado: ${lead.state}
-Endereço: ${lead.address}
-Nota de avaliação: ${lead.rating.toFixed(1)}
-Quantidade de avaliações: ${lead.reviews}
-Telefone: ${lead.phone}
-WhatsApp: ${lead.whatsapp ? "sim" : "não informado"}
-Site atual: ${lead.website ?? "não possui site"}
-Instagram: ${lead.instagram ?? "não informado"}
-Serviços detalhados: ${missing}
-Horário de funcionamento: ${missing}
+# CONTEXTO DA EMPRESA (dados públicos do OpenStreetMap — não inventar nada além disto)
+Nome: ${business.name}
+Nicho / categoria: ${business.category}
+Endereço: ${fullAddress(business)}
+Cidade: ${orNotInformed(business.city)}
+Estado: ${orNotInformed(business.state)}
+Telefone: ${formatPhone(business.phone)}
+WhatsApp: ${whatsappLabel(business.phone)}
+Site informado na fonte: ${business.website ?? "não informado"}
+Instagram: ${business.instagram ?? "não informado"}
+Horário de funcionamento: ${business.openingHours ?? "não informado"}
+Avaliações / nota: ${NAO_DISPONIVEL_FONTE}
+Fonte: ${business.source} (${business.externalId})
 
 # OBJETIVO DO SITE
-Criar a primeira presença digital profissional da empresa, transmitindo credibilidade
-local e convertendo visitantes em contato direto por WhatsApp e telefone.
+Criar uma presença digital profissional, transmitindo credibilidade local e convertendo
+visitantes em contato direto por WhatsApp e telefone.
 
 # IDENTIDADE VISUAL
-- Estética limpa, moderna e adequada ao nicho "${lead.category}".
-- Paleta sóbria com uma única cor de destaque; sem gradientes exagerados.
-- Tipografia legível, hierarquia clara, espaçamento generoso mas sem desperdício.
-- Fotografia real da empresa quando disponível; caso contrário, usar placeholders.
+- Estética limpa, moderna e adequada ao nicho "${business.category}".
+- Paleta sóbria com uma única cor de destaque.
+- Tipografia legível, hierarquia clara, espaçamento generoso.
 
 # ESTRUTURA DO SITE
 1. Hero — nome, proposta de valor, cidade e CTA principal.
-2. Sobre — apresentação curta e honesta da empresa.
-3. Serviços — apenas os serviços efetivamente informados.
-4. Diferenciais — pontos objetivos (atendimento, localização, avaliações).
-5. Avaliações — destacar nota ${lead.rating.toFixed(1)} e ${lead.reviews} avaliações.
-6. Galeria — fotos do espaço/serviços.
-7. Localização — endereço, mapa e referências.
-8. FAQ — dúvidas frequentes do nicho.
-9. CTA final — contato por WhatsApp e telefone.
+2. Sobre — apresentação curta e honesta.
+3. Serviços — ${MISSING} (não foram encontrados serviços específicos na fonte; não inventar serviços).
+4. Diferenciais — apenas pontos objetivos confirmados pelo cliente.
+5. Localização — endereço e mapa (dados acima).
+6. FAQ — dúvidas frequentes do nicho, sem afirmações não confirmadas.
+7. CTA final — contato por WhatsApp e telefone.
 
 # CTA
-CTA primário: falar no WhatsApp (${lead.phone}).
+CTA primário: falar no WhatsApp (${formatPhone(business.phone)}).
 CTA secundário: ligar agora.
-CTAs visíveis no hero, no meio da página e no rodapé fixo em mobile.
 
 # RESPONSIVIDADE
-Mobile-first, testado em 390x844, 768x1024 e 1440x900. Botões com área de toque adequada.
+Mobile-first, testado em 390x844, 768x1024 e 1440x900.
 
 # SEO
 - Title com nome + serviço + cidade (até 60 caracteres).
 - Meta description até 160 caracteres.
 - Um único H1, headings semânticos, alt em todas as imagens.
-- JSON-LD LocalBusiness com nome, endereço, telefone e nota.
+- JSON-LD LocalBusiness apenas com dados confirmados.
 
 # REGRAS DE CONTEÚDO (OBRIGATÓRIO)
-NÃO INVENTAR: serviços, preços, depoimentos, certificações, história, promoções,
-informações médicas ou qualquer dado não fornecido acima.
-Quando faltar informação, utilizar placeholder explícito no formato ${missing}
-e listar ao final tudo que precisa ser confirmado com o cliente.`;
+NÃO INVENTAR: serviços, preços, notas, depoimentos, certificações, história ou promoções.
+Não afirmar quantidade de avaliações ou nota — esses dados não existem nesta fonte.
+Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser confirmado.`;
 }
 
-export function buildMessages(lead: Lead) {
-  const semSite = !lead.website;
+export function buildMessages(business: Business) {
+  const semSiteInformado = !business.website;
+  const cidade = business.city ?? "sua região";
+  const categoria = business.category.toLowerCase();
+
   return {
-    curta: `Oi! Tudo bem? Vi a ${lead.name} aqui em ${lead.city} e achei o trabalho de vocês muito bom. ${
-      semSite ? "Notei que vocês ainda não têm um site próprio." : "Vi que o site de vocês pode render bem mais."
+    curta: `Oi! Tudo bem? Vi a ${business.name}, aqui em ${cidade}. ${
+      semSiteInformado
+        ? "Procurei um site de vocês e não encontrei nenhum endereço informado nas bases públicas."
+        : "Dei uma olhada no site de vocês e tive algumas ideias simples de melhoria."
     } Posso te mostrar uma ideia rápida?`,
-    natural: `Olá! Me chamo [SEU NOME], trabalho criando sites para empresas de ${lead.city}. Conheci a ${lead.name} pelas avaliações (${lead.rating.toFixed(
-      1,
-    )} com ${lead.reviews} avaliações — bem acima da média do setor de ${lead.category.toLowerCase()}). ${
-      semSite
-        ? "Percebi que vocês ainda não têm um site próprio, e hoje muita gente pesquisa antes de ligar."
-        : "Dei uma olhada no site atual e vi pontos simples que aumentariam os contatos."
-    } Montei uma ideia de como poderia ficar a presença online de vocês. Posso te enviar?`,
-    comercial: `Olá, falo com o responsável pela ${lead.name}?
+    natural: `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} em bases públicas de mapas (OpenStreetMap). ${
+      semSiteInformado
+        ? "Não encontrei um site informado para vocês — pode ser que exista e ainda não esteja cadastrado, por isso queria confirmar."
+        : "Vi o site atual e anotei pontos que podem aumentar os contatos."
+    } Montei uma ideia de presença online para ${categoria}. Posso te enviar?`,
+    comercial: `Olá, falo com o responsável pela ${business.name}?
 
-Sou especialista em sites para empresas de ${lead.category.toLowerCase()} e trabalho com negócios em ${lead.city} - ${lead.state}.
+Sou especialista em sites para empresas de ${categoria} e atendo negócios em ${cidade}${
+      business.state ? ` - ${business.state}` : ""
+    }.
 
-O que identifiquei:
-• ${semSite ? "A empresa não possui site próprio" : "O site atual não converte bem"}
-• Reputação forte: ${lead.rating.toFixed(1)} estrelas com ${lead.reviews} avaliações
-• Contato principal hoje: ${lead.phone}
+O que encontrei em bases públicas:
+• ${semSiteInformado ? "Nenhum site informado na fonte consultada" : `Site informado: ${business.website}`}
+• Contato listado: ${formatPhone(business.phone)}
+• Endereço: ${fullAddress(business)}
 
-Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp, entregue em poucos dias.
+Observação: essas informações vêm do OpenStreetMap e podem estar incompletas — se algo estiver desatualizado, me corrija.
+
+Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp.
 
 Posso te enviar uma prévia sem compromisso?`,
   };
 }
 
-export function buildKit(lead: Lead) {
-  const messages = buildMessages(lead);
+export function buildKit(business: Business) {
+  const messages = buildMessages(business);
   return [
     {
       title: "Resumo da empresa",
-      content: `${lead.name} — ${lead.category}\n${lead.city} - ${lead.state}\nNota ${lead.rating.toFixed(1)} (${lead.reviews} avaliações)\nSite: ${
-        lead.website ?? "sem site"
-      }`,
+      content: `${business.name} — ${business.category}
+${fullAddress(business)}
+Telefone: ${formatPhone(business.phone)}
+Site: ${business.website ?? "sem site informado na fonte"}
+Instagram: ${business.instagram ?? "não informado"}
+Avaliações: ${NAO_DISPONIVEL_FONTE}
+Fonte: ${business.source} · ${business.externalId}`,
     },
     {
       title: "Score e motivos",
-      content: `Lead Score ${lead.score}/100\n${lead.scoreFactors.map((f) => `+${f.points} ${f.label}`).join("\n")}`,
-    },
-    {
-      title: "Contato",
-      content: `Telefone: ${lead.phone}\nWhatsApp: ${lead.whatsapp ? "sim" : "não informado"}\nInstagram: ${
-        lead.instagram ?? "não informado"
-      }\nEndereço: ${lead.address}, ${lead.city} - ${lead.state}`,
+      content: `Lead Score ${business.score}/100
+${business.scoreFactors.map((f) => `+${f.points} ${f.label}`).join("\n")}
+Potencial baseado nos dados disponíveis na fonte.`,
     },
     { title: "Mensagem curta", content: messages.curta },
     { title: "Mensagem natural", content: messages.natural },
     { title: "Mensagem comercial", content: messages.comercial },
-    { title: "Prompt do site", content: buildSitePrompt(lead) },
+    { title: "Prompt do site", content: buildSitePrompt(business) },
   ];
 }
 
+/** CSV dos leads realmente salvos pelo usuário. */
 export function toCsv(leads: Lead[]) {
   const header = [
     "empresa",
     "categoria",
+    "endereco",
+    "bairro",
     "cidade",
     "estado",
+    "cep",
     "telefone",
     "site",
-    "nota",
-    "avaliacoes",
+    "instagram",
+    "horario",
+    "latitude",
+    "longitude",
     "score",
     "status",
+    "fonte",
+    "external_id",
+    "source_url",
+    "salvo_em",
   ];
   const rows = leads.map((l) =>
     [
       l.name,
       l.category,
-      l.city,
-      l.state,
-      l.phone,
-      l.website ?? "sem site",
-      l.rating,
-      l.reviews,
+      l.address ?? "",
+      l.neighborhood ?? "",
+      l.city ?? "",
+      l.state ?? "",
+      l.postalCode ?? "",
+      l.phone ?? "",
+      l.website ?? "",
+      l.instagram ?? "",
+      l.openingHours ?? "",
+      l.latitude,
+      l.longitude,
       l.score,
       l.status,
+      l.source,
+      l.externalId,
+      l.sourceUrl ?? "",
+      l.savedAt,
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),
   );
   return [header.join(","), ...rows].join("\n");
-}
-
-export function demoPhotos(lead: Lead) {
-  return Array.from({ length: 6 }, (_, i) => ({
-    id: `${lead.id}-${i}`,
-    url: `https://picsum.photos/seed/${encodeURIComponent(lead.id)}-${i}/640/420`,
-    alt: `Foto de demonstração ${i + 1} — ${lead.category} (imagem ilustrativa)`,
-  }));
 }

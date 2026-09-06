@@ -2,83 +2,212 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { mockActivities, mockFollowUps, mockLeads } from "@/data/mockData";
-import type { Activity, ContactType, FollowUp, Lead, LeadStatus } from "@/types";
+import { businessSearchRepository } from "./repository";
+import type { SearchErrorCode } from "@/lib/business-search.functions";
+import type {
+  Activity,
+  Business,
+  ContactType,
+  FollowUp,
+  Lead,
+  LeadStatus,
+  SavedSearch,
+  SearchCriteria,
+  SearchOutcome,
+} from "@/types";
+
+const STORAGE_KEY = "prospector:v1";
+
+type Persisted = {
+  leads: Lead[];
+  followUps: FollowUp[];
+  activities: Activity[];
+  savedSearches: SavedSearch[];
+};
+
+type SearchState = {
+  status: "idle" | "loading" | "success" | "error";
+  results: Business[];
+  outcome: SearchOutcome | null;
+  error: { code: SearchErrorCode; message: string } | null;
+  criteria: SearchCriteria | null;
+};
 
 type Store = {
   leads: Lead[];
   followUps: FollowUp[];
   activities: Activity[];
-  openLeadId: string | null;
+  savedSearches: SavedSearch[];
+  search: SearchState;
+  runSearch: (criteria: SearchCriteria) => Promise<void>;
+  clearSearch: () => void;
+  openId: string | null;
   openLead: (id: string | null) => void;
-  saveLead: (id: string) => void;
+  findById: (id: string) => Business | Lead | undefined;
+  isSaved: (id: string) => boolean;
+  sourceName: string;
+  saveLead: (business: Business) => void;
+  removeLead: (id: string) => void;
   setStatus: (id: string, status: LeadStatus) => void;
   setNotes: (id: string, notes: string) => void;
   registerContact: (id: string, type: ContactType, note: string) => void;
   logHistory: (id: string, label: string) => void;
   completeFollowUp: (id: string) => void;
-  createFollowUp: (leadId: string, label: string) => void;
+  createFollowUp: (leadId: string, label: string, date: string) => void;
+  removeSavedSearch: (id: string) => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
-const today = "Hoje";
+const emptyState: Persisted = { leads: [], followUps: [], activities: [], savedSearches: [] };
+
+function load(): Persisted {
+  if (typeof window === "undefined") return emptyState;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyState;
+    const parsed = JSON.parse(raw) as Partial<Persisted>;
+    return {
+      leads: parsed.leads ?? [],
+      followUps: parsed.followUps ?? [],
+      activities: parsed.activities ?? [],
+      savedSearches: parsed.savedSearches ?? [],
+    };
+  } catch {
+    return emptyState;
+  }
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function stamp() {
+  return new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
 
 export function ProspectorProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
-  const [followUps, setFollowUps] = useState<FollowUp[]>(mockFollowUps);
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
+  const [state, setState] = useState<Persisted>(emptyState);
+  const [hydrated, setHydrated] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [search, setSearch] = useState<SearchState>({
+    status: "idle",
+    results: [],
+    outcome: null,
+    error: null,
+    criteria: null,
+  });
+
+  useEffect(() => {
+    setState(load());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state, hydrated]);
 
   const pushActivity = useCallback((label: string, lead: string) => {
-    setActivities((prev) =>
-      [{ id: `${Date.now()}-${Math.random()}`, label, lead, at: "agora" }, ...prev].slice(0, 12),
-    );
+    setState((prev) => ({
+      ...prev,
+      activities: [{ id: `${Date.now()}-${Math.random()}`, label, lead, at: stamp() }, ...prev.activities].slice(0, 20),
+    }));
   }, []);
 
   const patchLead = useCallback((id: string, patch: (lead: Lead) => Lead) => {
-    setLeads((prev) => prev.map((l) => (l.id === id ? patch(l) : l)));
+    setState((prev) => ({ ...prev, leads: prev.leads.map((l) => (l.id === id ? patch(l) : l)) }));
   }, []);
 
-  const logHistory = useCallback(
-    (id: string, label: string) => {
-      patchLead(id, (l) => ({
-        ...l,
-        history: [{ id: `${id}-${Date.now()}`, date: today, label }, ...l.history],
-      }));
-    },
-    [patchLead],
-  );
+  const historyEntry = (label: string) => ({ id: `${Date.now()}-${Math.random()}`, date: stamp(), label });
 
-  const value = useMemo<Store>(
-    () => ({
+  const runSearch = useCallback(async (criteria: SearchCriteria) => {
+    setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
+    const result = await businessSearchRepository.search(criteria);
+    if (!result.ok) {
+      setSearch({ status: "error", results: [], outcome: null, error: { code: result.code, message: result.message }, criteria });
+      return;
+    }
+    setSearch({
+      status: "success",
+      results: result.outcome.businesses,
+      outcome: result.outcome,
+      error: null,
+      criteria,
+    });
+    setState((prev) => ({
+      ...prev,
+      savedSearches: [
+        {
+          id: `${Date.now()}`,
+          category: criteria.category,
+          city: criteria.city,
+          state: criteria.state,
+          query: `${criteria.category} em ${criteria.city} - ${criteria.state}`,
+          at: stamp(),
+          results: result.outcome.total,
+        },
+        ...prev.savedSearches.filter(
+          (s) => !(s.category === criteria.category && s.city === criteria.city && s.state === criteria.state),
+        ),
+      ].slice(0, 15),
+    }));
+  }, []);
+
+  const value = useMemo<Store>(() => {
+    const { leads, followUps, activities, savedSearches } = state;
+    return {
       leads,
       followUps,
       activities,
-      openLeadId,
-      openLead: setOpenLeadId,
-      saveLead: (id) => {
-        patchLead(id, (l) => ({
-          ...l,
-          saved: true,
-          history: [{ id: `${id}-${Date.now()}`, date: today, label: "Lead salvo" }, ...l.history],
-        }));
-        const lead = leads.find((l) => l.id === id);
-        if (lead) pushActivity("Lead salvo", lead.name);
+      savedSearches,
+      search,
+      runSearch,
+      clearSearch: () =>
+        setSearch({ status: "idle", results: [], outcome: null, error: null, criteria: null }),
+      openId,
+      openLead: setOpenId,
+      findById: (id) => leads.find((l) => l.id === id) ?? search.results.find((b) => b.id === id),
+      isSaved: (id) => leads.some((l) => l.id === id),
+      sourceName: businessSearchRepository.sourceName,
+      saveLead: (business) => {
+        setState((prev) => {
+          if (prev.leads.some((l) => l.id === business.id)) return prev;
+          const lead: Lead = {
+            ...business,
+            status: "novo",
+            savedAt: stamp(),
+            notes: "",
+            lastContact: null,
+            nextFollowUp: null,
+            history: [{ id: `${Date.now()}`, date: stamp(), label: "Lead salvo a partir do OpenStreetMap" }],
+          };
+          return {
+            ...prev,
+            leads: [lead, ...prev.leads],
+            activities: [
+              { id: `${Date.now()}-s`, label: "Lead salvo", lead: business.name, at: stamp() },
+              ...prev.activities,
+            ].slice(0, 20),
+          };
+        });
       },
+      removeLead: (id) =>
+        setState((prev) => ({
+          ...prev,
+          leads: prev.leads.filter((l) => l.id !== id),
+          followUps: prev.followUps.filter((f) => f.leadId !== id),
+        })),
       setStatus: (id, status) => {
         patchLead(id, (l) => ({
           ...l,
           status,
-          saved: true,
-          history: [
-            { id: `${id}-${Date.now()}`, date: today, label: `Status alterado para ${status}` },
-            ...l.history,
-          ],
+          history: [historyEntry(`Status alterado para ${status}`), ...l.history],
         }));
         const lead = leads.find((l) => l.id === id);
         if (lead) pushActivity(`Lead movido para ${status}`, lead.name);
@@ -87,47 +216,39 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       registerContact: (id, type, note) => {
         patchLead(id, (l) => ({
           ...l,
-          saved: true,
-          lastContact: "agora",
+          lastContact: stamp(),
           status: l.status === "novo" ? "contatado" : l.status,
-          history: [
-            {
-              id: `${id}-${Date.now()}`,
-              date: today,
-              label: `Contato registrado (${type})${note ? ` — ${note}` : ""}`,
-            },
-            ...l.history,
-          ],
+          history: [historyEntry(`Contato registrado (${type})${note ? ` — ${note}` : ""}`), ...l.history],
         }));
         const lead = leads.find((l) => l.id === id);
         if (lead) pushActivity("Contato registrado", lead.name);
       },
-      logHistory,
+      logHistory: (id, label) => patchLead(id, (l) => ({ ...l, history: [historyEntry(label), ...l.history] })),
       completeFollowUp: (id) => {
-        setFollowUps((prev) => prev.map((f) => (f.id === id ? { ...f, done: true } : f)));
+        setState((prev) => ({
+          ...prev,
+          followUps: prev.followUps.map((f) => (f.id === id ? { ...f, done: true } : f)),
+        }));
         const fu = followUps.find((f) => f.id === id);
         const lead = leads.find((l) => l.id === fu?.leadId);
         pushActivity("Follow-up concluído", lead?.name ?? "Lead");
       },
-      createFollowUp: (leadId, label) => {
-        setFollowUps((prev) => [
+      createFollowUp: (leadId, label, date) => {
+        setState((prev) => ({
           ...prev,
-          {
-            id: `f-${Date.now()}`,
-            leadId,
-            time: "09:00",
-            when: "proximo",
-            label,
-            done: false,
-          },
-        ]);
-        patchLead(leadId, (l) => ({ ...l, nextFollowUp: "amanhã" }));
+          followUps: [
+            ...prev.followUps,
+            { id: `f-${Date.now()}`, leadId, date: date || todayISO(), time: "09:00", label, done: false },
+          ],
+          leads: prev.leads.map((l) => (l.id === leadId ? { ...l, nextFollowUp: date || todayISO() } : l)),
+        }));
         const lead = leads.find((l) => l.id === leadId);
         if (lead) pushActivity("Follow-up criado", lead.name);
       },
-    }),
-    [leads, followUps, activities, openLeadId, patchLead, pushActivity, logHistory],
-  );
+      removeSavedSearch: (id) =>
+        setState((prev) => ({ ...prev, savedSearches: prev.savedSearches.filter((s) => s.id !== id) })),
+    };
+  }, [state, search, openId, runSearch, patchLead, pushActivity]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
