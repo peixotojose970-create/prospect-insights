@@ -128,9 +128,46 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
   const runSearch = useCallback(async (criteria: SearchCriteria) => {
     setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
-    const result = await businessSearchRepository.search(criteria);
+
+    let result: Awaited<ReturnType<typeof businessSearchRepository.search>>;
+    try {
+      // Rede de segurança: nenhuma busca pode ficar carregando para sempre.
+      result = await Promise.race([
+        businessSearchRepository.search(criteria),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout-cliente")), CLIENT_TIMEOUT_MS),
+        ),
+      ]);
+    } catch (error) {
+      const timeout = (error as Error)?.message === "timeout-cliente";
+      setSearch({
+        status: "error",
+        results: [],
+        outcome: null,
+        error: {
+          code: timeout ? "timeout" : "rede",
+          message: timeout
+            ? "A pesquisa demorou mais que o esperado."
+            : "Não foi possível concluir a busca.",
+          detail: (error as Error)?.message,
+        },
+        criteria,
+      });
+      return;
+    }
+
     if (!result.ok) {
-      setSearch({ status: "error", results: [], outcome: null, error: { code: result.code, message: result.message }, criteria });
+      setSearch({
+        status: "error",
+        results: [],
+        outcome: null,
+        error: {
+          code: result.code,
+          message: result.message,
+          ...(result.detail ? { detail: result.detail } : {}),
+        },
+        criteria,
+      });
       return;
     }
     setSearch({
