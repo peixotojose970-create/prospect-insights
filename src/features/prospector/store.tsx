@@ -99,6 +99,8 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(emptyState);
   const [hydrated, setHydrated] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const [search, setSearch] = useState<SearchState>({
     status: "idle",
     results: [],
@@ -229,6 +231,9 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       savedSearches,
       search,
       runSearch,
+      loadMore,
+      loadingMore,
+
       clearSearch: () =>
         setSearch({ status: "idle", results: [], outcome: null, error: null, criteria: null }),
       openId,
