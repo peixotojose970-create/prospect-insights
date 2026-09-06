@@ -16,6 +16,7 @@ import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as OportunidadesRouteImport } from './routes/oportunidades'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as ProspeccaoRouteImport } from './routes/prospeccao'
+import { Route as RapidoRouteImport } from './routes/rapido'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const ProspeccaoRoute = ProspeccaoRouteImport.update({
   path: '/prospeccao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RapidoRoute = RapidoRouteImport.update({
+  id: '/rapido',
+  path: '/rapido',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
+  '/rapido': typeof RapidoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
+  '/rapido': typeof RapidoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
+  '/rapido': typeof RapidoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/oportunidades'
     | '/pipeline'
     | '/prospeccao'
+    | '/rapido'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/oportunidades'
     | '/pipeline'
     | '/prospeccao'
+    | '/rapido'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/oportunidades'
     | '/pipeline'
     | '/prospeccao'
+    | '/rapido'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   OportunidadesRoute: typeof OportunidadesRoute
   PipelineRoute: typeof PipelineRoute
   ProspeccaoRoute: typeof ProspeccaoRoute
+  RapidoRoute: typeof RapidoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProspeccaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rapido': {
+      id: '/rapido'
+      path: '/rapido'
+      fullPath: '/rapido'
+      preLoaderRoute: typeof RapidoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   OportunidadesRoute: OportunidadesRoute,
   PipelineRoute: PipelineRoute,
   ProspeccaoRoute: ProspeccaoRoute,
+  RapidoRoute: RapidoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -195,7 +195,38 @@ function Leads() {
           }
         />
       ) : (
-        <Card className="overflow-x-auto p-0">
+        <>
+        {/* Mobile: cards de leitura rápida. Desktop: tabela completa. */}
+        <div className="space-y-3 md:hidden">
+          {rows.map((l) => (
+            <Card key={l.id} className="gap-2 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{l.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {l.category}
+                    {l.city ? ` · ${l.city}` : ""}
+                    {l.state ? ` - ${l.state}` : ""}
+                  </p>
+                </div>
+                <ScorePill score={l.score} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={l.status} />
+                <SiteBadge business={l} />
+              </div>
+              <p className="text-xs text-muted-foreground">{formatPhone(l.phone)}</p>
+              {l.nextAction ? (
+                <p className="text-xs font-medium text-foreground">Próxima ação: {l.nextAction}</p>
+              ) : null}
+              <Button variant="outline" className="mt-1 h-11 w-full" onClick={() => openLead(l.id)}>
+                Abrir lead
+              </Button>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="hidden overflow-x-auto p-0 md:block">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-border text-left text-xs text-muted-foreground">
               <tr>
@@ -238,6 +269,7 @@ function Leads() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       <SourceNotice />

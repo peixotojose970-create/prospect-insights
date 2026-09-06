@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,14 +57,14 @@ function PlaceGallery({ business }: { business: Business }) {
 
   return (
     <section className="space-y-1.5">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
         {photos.map((photo) => (
           <img
             key={photo.url}
             src={photo.url}
             alt={photo.alt}
             loading="lazy"
-            className="h-28 w-full rounded-md object-cover"
+            className="h-28 w-48 shrink-0 snap-start rounded-md object-cover sm:w-full"
           />
         ))}
       </div>
@@ -82,17 +84,59 @@ const contactTypes: { value: ContactType; label: string }[] = [
   { value: "outro", label: "Outro" },
 ];
 
-/** Sheet lateral com o detalhe da empresa/lead selecionado. */
+/** Barra de ação fixa (mobile): as três ações mais usadas sempre ao alcance do dedo. */
+function LeadActionBar({ business }: { business: Business | Lead }) {
+  const [msgFor, setMsgFor] = useState<Business | null>(null);
+  const [siteFor, setSiteFor] = useState<Business | null>(null);
+  const wa = whatsappLink(business.phone);
+
+  return (
+    <div className="flex shrink-0 gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+      {wa ? (
+        <Button className="h-12 flex-1" asChild>
+          <a href={wa} target="_blank" rel="noreferrer">
+            <MessageCircle className="size-4" aria-hidden />
+            WhatsApp
+          </a>
+        </Button>
+      ) : (
+        <Button
+          className="h-12 flex-1"
+          variant="secondary"
+          onClick={() => toast.info("Telefone não disponível.")}
+        >
+          <MessageCircle className="size-4" aria-hidden />
+          WhatsApp
+        </Button>
+      )}
+      <Button className="h-12 flex-1" variant="outline" onClick={() => setMsgFor(business)}>
+        Mensagem
+      </Button>
+      <Button className="h-12 flex-1" variant="outline" onClick={() => setSiteFor(business)}>
+        Criar site
+      </Button>
+
+      <MessageDialog business={msgFor} onOpenChange={(open) => !open && setMsgFor(null)} />
+      <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
+    </div>
+  );
+}
+
+/** Detalhe da empresa/lead: painel lateral no desktop, tela cheia no celular. */
 export function LeadWorkspace() {
   const { openId, openLead, findById } = useProspector();
+  const isMobile = useIsMobile();
   const business = openId ? findById(openId) : undefined;
 
   return (
     <Sheet open={!!business} onOpenChange={(open) => !open && openLead(null)}>
-      <SheetContent className="w-full gap-0 p-0 sm:max-w-xl">
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className="flex h-[96dvh] w-full flex-col gap-0 rounded-t-2xl p-0 md:h-full md:rounded-none sm:max-w-xl"
+      >
         {business ? (
           <>
-            <SheetHeader className="border-b border-border">
+            <SheetHeader className="shrink-0 border-b border-border p-4 sm:p-6">
               <SheetTitle className="pr-8 leading-tight">{business.name}</SheetTitle>
               <SheetDescription>
                 {business.category}
@@ -100,9 +144,10 @@ export function LeadWorkspace() {
                 {business.state ? ` - ${business.state}` : ""}
               </SheetDescription>
             </SheetHeader>
-            <ScrollArea className="h-[calc(100vh-5.5rem)]">
+            <ScrollArea className="min-h-0 flex-1">
               <LeadDetail business={business} />
             </ScrollArea>
+            <LeadActionBar business={business} />
           </>
         ) : null}
       </SheetContent>
@@ -158,7 +203,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
 
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
