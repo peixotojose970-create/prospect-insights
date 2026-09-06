@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
 import { LeadCard } from "@/components/prospector/LeadCard";
+import { SelectionBar, selectionLabel } from "@/components/prospector/SelectionBar";
 
 import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
 import { parseQuery } from "@/features/prospector/queryParse";
@@ -146,7 +147,19 @@ function FilterFields(p: FilterProps) {
 }
 
 function Prospeccao() {
-  const { search, runSearch, loadMore, loadingMore, savedSearches, removeSavedSearch, openLead } = useProspector();
+  const {
+    search,
+    runSearch,
+    loadMore,
+    loadingMore,
+    savedSearches,
+    removeSavedSearch,
+    openLead,
+    selection,
+    isSelected,
+    selectMany,
+    deselectMany,
+  } = useProspector();
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
@@ -166,6 +179,8 @@ function Prospeccao() {
       .filter((b) => b.score >= minScore)
       .sort((a, b) => b.score - a.score);
   }, [search.results, onlyNoSite, onlyPhone, minScore]);
+
+  const allVisibleSelected = results.length > 0 && results.every((b) => isSelected(b.id));
 
   const filterProps: FilterProps = {
     idPrefix: "desktop",
@@ -203,7 +218,7 @@ function Prospeccao() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
       <PageHeader
         title="Prospecção"
         subtitle="Estabelecimentos reais do Google Maps, filtradas pelo potencial de fechar um site."
@@ -373,8 +388,21 @@ function Prospeccao() {
                   {search.outcome?.truncated ? " (lista limitada)" : ""}
                   {search.outcome?.cached ? " · cache" : ""}
                 </span>
+                {selection.length > 0 ? (
+                  <span className="ml-2 font-normal text-primary">· {selectionLabel(selection.length)}</span>
+                ) : null}
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={allVisibleSelected ? "secondary" : "outline"}
+                  onClick={() =>
+                    allVisibleSelected ? deselectMany(results.map((b) => b.id)) : selectMany(results)
+                  }
+                >
+                  <CheckSquare className="size-4" aria-hidden />
+                  {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
+                </Button>
                 <Button size="sm" variant="outline" asChild>
                   <Link to="/rapido">
                     <Zap className="size-4" aria-hidden />
@@ -399,7 +427,7 @@ function Prospeccao() {
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {results.map((b) => (
-                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} />
+                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} selectable />
               ))}
             </div>
 
@@ -417,6 +445,7 @@ function Prospeccao() {
 
       <SourceNotice />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
+      <SelectionBar />
     </div>
   );
 }

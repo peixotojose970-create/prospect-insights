@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +33,15 @@ import { toast } from "sonner";
 export function LeadCard({
   business,
   onCreateSite,
+  selectable = false,
 }: {
   business: Business | Lead;
   onCreateSite: (business: Business) => void;
+  /** Mostra o checkbox de seleção múltipla (tela de Prospecção). */
+  selectable?: boolean;
 }) {
-  const { openLead, saveLead, isSaved, toggleFavorite } = useProspector();
+  const { openLead, saveLead, isSaved, toggleFavorite, isSelected, toggleSelected } = useProspector();
+  const selected = selectable && isSelected(business.id);
   const [analyze, setAnalyze] = useState(false);
   const [approach, setApproach] = useState(false);
   const saved = isSaved(business.id);
@@ -46,9 +51,25 @@ export function LeadCard({
   const wa = whatsappLink(business.phone);
 
   return (
-    <Card className="gap-3 p-4">
+    <Card
+      className={
+        selected
+          ? "gap-3 border-primary bg-primary/5 p-4 ring-1 ring-primary/30 transition-colors"
+          : "gap-3 p-4 transition-colors"
+      }
+    >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        {selectable ? (
+          <label className="-m-2 flex shrink-0 cursor-pointer items-start p-2">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={() => toggleSelected(business as Business)}
+              aria-label={`Selecionar ${business.name}`}
+              className="size-5"
+            />
+          </label>
+        ) : null}
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-foreground sm:truncate">
             {priority.emoji} {business.name}
           </h3>

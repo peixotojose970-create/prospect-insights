@@ -29,7 +29,25 @@ type Persisted = {
   followUps: FollowUp[];
   activities: Activity[];
   savedSearches: SavedSearch[];
+  /** Seleção temporária de empresas (persiste entre pesquisas e recarregamentos). */
+  selection: Business[];
 };
+
+export type BatchSaveOptions = { tag?: string | undefined; status?: LeadStatus | undefined };
+export type BatchSaveResult = {
+  selected: number;
+  created: number;
+  duplicates: number;
+  failed: { id: string; name: string }[];
+};
+
+/** Chave de deduplicação: Place ID quando existir; senão nome + endereço + cidade + telefone. */
+export function dedupeKey(b: Business) {
+  const place = b.placeId || b.externalId || b.id;
+  if (place) return `place:${place}`;
+  return `mix:${[b.name, b.address, b.city, b.phone].map((v) => (v ?? "").toLowerCase().trim()).join("|")}`;
+}
+
 
 type SearchState = {
   status: "idle" | "loading" | "success" | "error";
@@ -67,11 +85,26 @@ type Store = {
   setNextAction: (id: string, action: string) => void;
   setTags: (id: string, tags: string[]) => void;
   removeSavedSearch: (id: string) => void;
+
+  /** Seleção múltipla temporária. */
+  selection: Business[];
+  isSelected: (id: string) => boolean;
+  toggleSelected: (business: Business) => void;
+  selectMany: (businesses: Business[]) => void;
+  deselectMany: (ids: string[]) => void;
+  clearSelection: () => void;
+  saveSelected: (options?: BatchSaveOptions) => BatchSaveResult;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
-const emptyState: Persisted = { leads: [], followUps: [], activities: [], savedSearches: [] };
+const emptyState: Persisted = {
+  leads: [],
+  followUps: [],
+  activities: [],
+  savedSearches: [],
+  selection: [],
+};
 
 function load(): Persisted {
   if (typeof window === "undefined") return emptyState;
@@ -84,7 +117,9 @@ function load(): Persisted {
       followUps: parsed.followUps ?? [],
       activities: parsed.activities ?? [],
       savedSearches: parsed.savedSearches ?? [],
+      selection: parsed.selection ?? [],
     };
+
   } catch {
     return emptyState;
   }
@@ -226,12 +261,110 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
 
   const value = useMemo<Store>(() => {
-    const { leads, followUps, activities, savedSearches } = state;
+    const { leads, followUps, activities, savedSearches, selection } = state;
+    const selectedIds = new Set(selection.map((b) => b.id));
     return {
       leads,
       followUps,
       activities,
       savedSearches,
+      selection,
+      isSelected: (id) => selectedIds.has(id),
+      toggleSelected: (business) =>
+        setState((prev) => {
+          const key = dedupeKey(business);
+          const exists = prev.selection.some((b) => b.id === business.id || dedupeKey(b) === key);
+          return {
+            ...prev,
+            selection: exists
+              ? prev.selection.filter((b) => b.id !== business.id && dedupeKey(b) !== key)
+              : [...prev.selection, business],
+          };
+        }),
+      selectMany: (businesses) =>
+        setState((prev) => {
+          const keys = new Set(prev.selection.map(dedupeKey));
+          const add: Business[] = [];
+          for (const b of businesses) {
+            const key = dedupeKey(b);
+            if (keys.has(key)) continue;
+            keys.add(key);
+            add.push(b);
+          }
+          return add.length ? { ...prev, selection: [...prev.selection, ...add] } : prev;
+        }),
+      deselectMany: (ids) => {
+        const remove = new Set(ids);
+        setState((prev) => ({ ...prev, selection: prev.selection.filter((b) => !remove.has(b.id)) }));
+      },
+      clearSelection: () => setState((prev) => ({ ...prev, selection: [] })),
+      saveSelected: (options) => {
+        const status: LeadStatus = options?.status ?? "novo";
+        const tag = options?.tag?.trim();
+        const existing = new Set(leads.map(dedupeKey));
+        const created: Lead[] = [];
+        let duplicates = 0;
+        const failed: { id: string; name: string }[] = [];
+
+        for (const business of selection) {
+          try {
+            const key = dedupeKey(business);
+            if (existing.has(key)) {
+              duplicates += 1;
+              continue;
+            }
+            existing.add(key);
+            created.push({
+              ...business,
+              status,
+              savedAt: stamp(),
+              notes: "",
+              lastContact: null,
+              nextFollowUp: null,
+              ...(tag ? { tags: [tag] } : {}),
+              history: [
+                {
+                  id: `${Date.now()}-${Math.random()}`,
+                  date: stamp(),
+                  label: "Lead salvo em lote a partir do Google Maps",
+                },
+              ],
+            });
+          } catch {
+            failed.push({ id: business.id, name: business.name });
+          }
+        }
+
+        if (created.length) {
+          // Uma única gravação em lote — sem requisições por empresa.
+          setState((prev) => {
+            const known = new Set(prev.leads.map(dedupeKey));
+            const fresh = created.filter((l) => !known.has(dedupeKey(l)));
+            return {
+              ...prev,
+              leads: [...fresh, ...prev.leads],
+              selection: prev.selection.filter((b) => failed.some((f) => f.id === b.id)),
+              activities: [
+                {
+                  id: `${Date.now()}-batch`,
+                  label: `${fresh.length} leads salvos em lote`,
+                  lead: fresh[0]?.name ?? "Leads",
+                  at: stamp(),
+                },
+                ...prev.activities,
+              ].slice(0, 20),
+            };
+          });
+        } else {
+          setState((prev) => ({
+            ...prev,
+            selection: prev.selection.filter((b) => failed.some((f) => f.id === b.id)),
+          }));
+        }
+
+        return { selected: selection.length, created: created.length, duplicates, failed };
+      },
+
       search,
       runSearch,
       loadMore,
