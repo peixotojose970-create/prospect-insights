@@ -127,8 +127,9 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
   const historyEntry = (label: string) => ({ id: `${Date.now()}-${Math.random()}`, date: stamp(), label });
 
-  const runSearch = useCallback(async (criteria: SearchCriteria) => {
-    setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
+  const runSearch = useCallback(async (criteria: SearchCriteria, append = false) => {
+    if (append) setLoadingMore(true);
+    else setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
 
     let result: Awaited<ReturnType<typeof businessSearchRepository.search>>;
     try {
@@ -141,43 +142,55 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       ]);
     } catch (error) {
       const timeout = (error as Error)?.message === "timeout-cliente";
-      setSearch({
+      setLoadingMore(false);
+      setSearch((prev) => ({
         status: "error",
-        results: [],
-        outcome: null,
+        results: append ? prev.results : [],
+        outcome: append ? prev.outcome : null,
         error: {
           code: timeout ? "timeout" : "rede",
           message: timeout
             ? "A pesquisa demorou mais que o esperado."
-            : "Não foi possível concluir a busca.",
+            : "Não foi possível consultar o Google Maps.",
           detail: (error as Error)?.message,
         },
         criteria,
-      });
+      }));
       return;
+    } finally {
+      setLoadingMore(false);
     }
 
     if (!result.ok) {
-      setSearch({
+      setSearch((prev) => ({
         status: "error",
-        results: [],
-        outcome: null,
+        results: append ? prev.results : [],
+        outcome: append ? prev.outcome : null,
         error: {
-          code: result.code,
-          message: result.message,
-          ...(result.detail ? { detail: result.detail } : {}),
+          code: result.ok ? "rede" : result.code,
+          message: result.ok ? "" : result.message,
+          ...(!result.ok && result.detail ? { detail: result.detail } : {}),
         },
         criteria,
-      });
+      }));
       return;
     }
-    setSearch({
-      status: "success",
-      results: result.outcome.businesses,
-      outcome: result.outcome,
-      error: null,
-      criteria,
+
+    const outcome = result.outcome;
+    setSearch((prev) => {
+      const results = append ? [...prev.results, ...outcome.businesses] : outcome.businesses;
+      const seen = new Set<string>();
+      const unique = results.filter((b) => (seen.has(b.id) ? false : (seen.add(b.id), true)));
+      return {
+        status: "success",
+        results: unique,
+        outcome: { ...outcome, total: unique.length },
+        error: null,
+        criteria,
+      };
     });
+
+    if (append) return;
     setState((prev) => ({
       ...prev,
       savedSearches: [
@@ -188,7 +201,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
           state: criteria.state,
           query: `${criteria.category} em ${criteria.city} - ${criteria.state}`,
           at: stamp(),
-          results: result.outcome.total,
+          results: outcome.total,
         },
         ...prev.savedSearches.filter(
           (s) => !(s.category === criteria.category && s.city === criteria.city && s.state === criteria.state),
@@ -196,6 +209,13 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       ].slice(0, 15),
     }));
   }, []);
+
+  const loadMore = useCallback(async () => {
+    const token = search.outcome?.nextPageToken;
+    if (!token || !search.criteria || loadingMore) return;
+    await runSearch({ ...search.criteria, pageToken: token }, true);
+  }, [search.outcome, search.criteria, loadingMore, runSearch]);
+
 
   const value = useMemo<Store>(() => {
     const { leads, followUps, activities, savedSearches } = state;
