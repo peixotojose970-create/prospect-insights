@@ -128,6 +128,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   const historyEntry = (label: string) => ({ id: `${Date.now()}-${Math.random()}`, date: stamp(), label });
 
   const runSearch = useCallback(async (criteria: SearchCriteria) => {
+    console.log("[SEARCH] consulta iniciada", criteria);
     setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
 
     let result: Awaited<ReturnType<typeof businessSearchRepository.search>>;
@@ -157,6 +158,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    console.log("[SEARCH] resposta", result);
     if (!result.ok) {
       setSearch({
         status: "error",
