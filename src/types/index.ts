@@ -70,6 +70,9 @@ export type LeadCrm = {
   lastContact: string | null;
   nextFollowUp: string | null;
   history: HistoryEntry[];
+  favorite?: boolean;
+  tags?: string[];
+  nextAction?: string | null;
 };
 
 export type Lead = Business & LeadCrm;

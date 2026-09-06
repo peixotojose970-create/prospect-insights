@@ -1,8 +1,20 @@
-import { BookmarkCheck, BookmarkPlus, Globe, MapPin, MessageCircle, Phone, Star } from "lucide-react";
+import { useState } from "react";
+import {
+  BookmarkCheck,
+  BookmarkPlus,
+  Globe,
+  MessageCircle,
+  MapPin,
+  Phone,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatPhone, fullAddress, ratingLabel, whatsappLabel, whatsappLink } from "@/features/prospector/format";
-
+import { MessageDialog } from "@/components/prospector/MessageDialog";
+import { OpportunityDialog } from "@/components/prospector/OpportunityDialog";
+import { formatPhone, fullAddress, ratingLabel } from "@/features/prospector/format";
+import { opportunityHeadline, priorityFor } from "@/features/prospector/scoring";
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, ScorePill, SiteBadge, StatusBadge } from "@/features/prospector/ui";
 import type { Business, Lead } from "@/types";
@@ -14,10 +26,13 @@ export function LeadCard({
   business: Business | Lead;
   onCreateSite: (business: Business) => void;
 }) {
-  const { openLead, saveLead, isSaved } = useProspector();
+  const { openLead, saveLead, isSaved, toggleFavorite } = useProspector();
+  const [analyze, setAnalyze] = useState(false);
+  const [approach, setApproach] = useState(false);
   const saved = isSaved(business.id);
-  const status = (business as Lead).status;
-  const wa = whatsappLink(business.phone);
+  const lead = business as Lead;
+  const status = lead.status;
+  const priority = priorityFor(business.score);
 
   return (
     <Card className="gap-3 p-4">
@@ -36,7 +51,13 @@ export function LeadCard({
         </div>
       </div>
 
-      <ScoreBar score={business.score} />
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-foreground">
+          {priority.emoji} {priority.label}
+        </p>
+        <ScoreBar score={business.score} />
+        <p className="text-xs text-muted-foreground">{opportunityHeadline(business)}</p>
+      </div>
 
       <ul className="space-y-1.5 text-xs text-muted-foreground">
         <li className="flex items-start gap-2">
@@ -57,34 +78,46 @@ export function LeadCard({
         </li>
       </ul>
 
-
       <div className="flex flex-wrap gap-2 pt-1">
-        <Button size="sm" variant="outline" onClick={() => openLead(business.id)}>
+        <Button size="sm" variant="outline" onClick={() => setAnalyze(true)}>
+          <Sparkles className="size-4" aria-hidden />
+          Analisar
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setApproach(true)}>
+          <MessageCircle className="size-4" aria-hidden />
+          Abordar
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => openLead(business.id)}>
           Abrir
         </Button>
         {saved ? (
-          <Button size="sm" variant="ghost" disabled>
-            <BookmarkCheck className="size-4" aria-hidden />
-            Salvo
-          </Button>
+          <>
+            <Button size="sm" variant="ghost" disabled>
+              <BookmarkCheck className="size-4" aria-hidden />
+              Salvo
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => toggleFavorite(business.id)}
+              title={lead.favorite ? "Remover dos favoritos" : "Marcar como favorito"}
+            >
+              <Star className={lead.favorite ? "size-4 fill-warning text-warning" : "size-4"} aria-hidden />
+            </Button>
+          </>
         ) : (
           <Button size="sm" variant="ghost" onClick={() => saveLead(business)}>
             <BookmarkPlus className="size-4" aria-hidden />
             Salvar lead
           </Button>
         )}
-        {wa ? (
-          <Button size="sm" variant="ghost" asChild title={whatsappLabel(business.phone)}>
-            <a href={wa} target="_blank" rel="noreferrer">
-              <MessageCircle className="size-4" aria-hidden />
-              WhatsApp
-            </a>
-          </Button>
-        ) : null}
         <Button size="sm" onClick={() => onCreateSite(business)}>
           Criar Site
         </Button>
       </div>
+
+      <OpportunityDialog business={analyze ? business : null} onOpenChange={(open) => setAnalyze(open)} />
+      <MessageDialog business={approach ? business : null} onOpenChange={(open) => setApproach(open)} />
     </Card>
   );
 }

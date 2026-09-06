@@ -63,6 +63,9 @@ type Store = {
   logHistory: (id: string, label: string) => void;
   completeFollowUp: (id: string) => void;
   createFollowUp: (leadId: string, label: string, date: string) => void;
+  toggleFavorite: (id: string) => void;
+  setNextAction: (id: string, action: string) => void;
+  setTags: (id: string, tags: string[]) => void;
   removeSavedSearch: (id: string) => void;
 };
 
@@ -311,6 +314,14 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
         const lead = leads.find((l) => l.id === leadId);
         if (lead) pushActivity("Follow-up criado", lead.name);
       },
+      toggleFavorite: (id) => patchLead(id, (l) => ({ ...l, favorite: !l.favorite })),
+      setNextAction: (id, action) =>
+        patchLead(id, (l) => ({
+          ...l,
+          nextAction: action,
+          history: [historyEntry(`Próxima ação: ${action}`), ...l.history],
+        })),
+      setTags: (id, tags) => patchLead(id, (l) => ({ ...l, tags })),
       removeSavedSearch: (id) =>
         setState((prev) => ({ ...prev, savedSearches: prev.savedSearches.filter((s) => s.id !== id) })),
     };
