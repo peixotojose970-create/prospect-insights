@@ -85,11 +85,26 @@ type Store = {
   setNextAction: (id: string, action: string) => void;
   setTags: (id: string, tags: string[]) => void;
   removeSavedSearch: (id: string) => void;
+
+  /** Seleção múltipla temporária. */
+  selection: Business[];
+  isSelected: (id: string) => boolean;
+  toggleSelected: (business: Business) => void;
+  selectMany: (businesses: Business[]) => void;
+  deselectMany: (ids: string[]) => void;
+  clearSelection: () => void;
+  saveSelected: (options?: BatchSaveOptions) => BatchSaveResult;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
-const emptyState: Persisted = { leads: [], followUps: [], activities: [], savedSearches: [] };
+const emptyState: Persisted = {
+  leads: [],
+  followUps: [],
+  activities: [],
+  savedSearches: [],
+  selection: [],
+};
 
 function load(): Persisted {
   if (typeof window === "undefined") return emptyState;
@@ -102,7 +117,9 @@ function load(): Persisted {
       followUps: parsed.followUps ?? [],
       activities: parsed.activities ?? [],
       savedSearches: parsed.savedSearches ?? [],
+      selection: parsed.selection ?? [],
     };
+
   } catch {
     return emptyState;
   }
