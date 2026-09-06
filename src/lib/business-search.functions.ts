@@ -11,6 +11,10 @@ export type SearchResult =
 
 /** Endpoint configurável — fácil trocar de servidor Overpass no futuro. */
 const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+const FALLBACK_OVERPASS_ENDPOINTS = [
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+];
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const USER_AGENT = "Prospector/0.2 (prospeccao B2B; contato via app Lovable)";
 
@@ -47,8 +51,47 @@ class SearchError extends Error {
   }
 }
 
-function endpoint() {
-  return process.env["OVERPASS_ENDPOINT"] ?? DEFAULT_OVERPASS_ENDPOINT;
+function endpoints(): string[] {
+  const configured = process.env["OVERPASS_ENDPOINT"];
+  return configured ? [configured, ...FALLBACK_OVERPASS_ENDPOINTS] : [DEFAULT_OVERPASS_ENDPOINT, ...FALLBACK_OVERPASS_ENDPOINTS];
+}
+
+/** Tenta os espelhos Overpass em sequência; só falha quando todos recusam. */
+async function fetchOverpass(query: string): Promise<Response> {
+  let lastError: SearchError = new SearchError("rede", "Não foi possível concluir a pesquisa.");
+
+  for (const url of endpoints()) {
+    let response: Response;
+    try {
+      response = await withRateLimit(() =>
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": USER_AGENT,
+          },
+          body: new URLSearchParams({ data: query }),
+          signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
+        }),
+      );
+    } catch (error) {
+      const name = (error as Error)?.name;
+      lastError =
+        name === "TimeoutError" || name === "AbortError"
+          ? new SearchError("timeout", "A pesquisa demorou além do esperado.")
+          : new SearchError("rede", "Não foi possível concluir a pesquisa.");
+      continue;
+    }
+
+    if (response.ok) return response;
+
+    lastError =
+      response.status === 429 || response.status === 504
+        ? new SearchError("rate-limit", "Servidor de dados temporariamente ocupado.")
+        : new SearchError("rede", `A fonte respondeu com erro (${response.status}).`);
+  }
+
+  throw lastError;
 }
 
 function normalize(value: string) {
