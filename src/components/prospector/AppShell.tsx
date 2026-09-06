@@ -194,6 +194,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          <InstallAppMenuItem className="hidden px-3 pt-3 lg:block" />
           <div className="hidden px-4 pt-4 text-xs text-muted-foreground lg:block">
             <p className="font-medium text-foreground">Atalhos</p>
             <p className="mt-1">Ctrl + K — buscar</p>
