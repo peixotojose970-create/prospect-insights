@@ -103,12 +103,15 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </ul>
       </section>
 
+      <PlaceGallery business={business} />
+
       <section className="space-y-2 rounded-lg border border-border p-4">
         <Row icon={<MapPin className="size-3.5" />} value={fullAddress(business)} />
+        <Row icon={<Star className="size-3.5" />} value={ratingLabel(business)} />
         <Row icon={<Phone className="size-3.5" />} value={formatPhone(business.phone)} />
         <Row
           icon={<Globe className="size-3.5" />}
-          value={business.website ?? "Sem site informado na fonte"}
+          value={business.website ?? "Site não informado (a verificar)"}
           href={business.website}
         />
         <Row
@@ -117,11 +120,31 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           href={business.instagram}
         />
         <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
-        <p className="pt-1 text-xs text-muted-foreground">Horário: {business.openingHours ?? "Não informado"}</p>
-        <p className="text-xs text-muted-foreground">Avaliações: {NAO_DISPONIVEL_FONTE}</p>
-        {business.sourceUrl ? (
+        <p className="pt-1 text-xs text-muted-foreground">
+          Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
+        </p>
+        <p className="text-xs text-muted-foreground">Place ID: {business.placeId}</p>
+        <p className="text-xs text-muted-foreground">
+          Coordenadas: {business.latitude.toFixed(5)}, {business.longitude.toFixed(5)}
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {business.phone ? (
+            <Button size="sm" variant="outline" onClick={() => void copyText(business.phone!, "Telefone copiado.")}>
+              <Copy className="size-4" aria-hidden />
+              Copiar telefone
+            </Button>
+          ) : null}
+          {wa ? (
+            <Button size="sm" variant="outline" asChild title={whatsappLabel(business.phone)}>
+              <a href={wa} target="_blank" rel="noreferrer">
+                Abrir WhatsApp
+              </a>
+            </Button>
+          ) : null}
+        </div>
+        {business.mapsUrl ? (
           <a
-            href={business.sourceUrl}
+            href={business.mapsUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-block text-xs text-primary underline underline-offset-2"
@@ -130,6 +153,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           </a>
         ) : null}
       </section>
+
 
       <div className="flex flex-wrap gap-2">
         {saved ? (
