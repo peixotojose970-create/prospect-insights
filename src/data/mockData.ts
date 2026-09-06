@@ -60,7 +60,7 @@ const dddByCity: Record<string, string> = {
   Florianópolis: "48",
 };
 
-function buildScore(seed: Seed): { score: number; factors: ScoreFactor[] } {
+function buildScore(seed: Seed, index: number): { score: number; factors: ScoreFactor[] } {
   const factors: ScoreFactor[] = [];
   if (!seed.hasSite) factors.push({ label: "Sem site", points: 30 });
   factors.push({ label: "Telefone encontrado", points: 15 });
@@ -69,7 +69,7 @@ function buildScore(seed: Seed): { score: number; factors: ScoreFactor[] } {
   if (seed.reviews >= 150) factors.push({ label: "Muitas avaliações", points: 10 });
   if (seed.instagram) factors.push({ label: "Instagram ativo", points: 5 });
   factors.push({ label: "Localização em praça-alvo", points: 5 });
-  factors.push({ label: "Outros fatores de qualificação", points: 7 });
+  factors.push({ label: "Outros fatores de qualificação", points: (index * 3) % 8 });
   const score = Math.min(100, factors.reduce((sum, f) => sum + f.points, 0));
   return { score, factors };
 }
@@ -84,7 +84,7 @@ function slug(name: string) {
 }
 
 export const mockLeads: Lead[] = seeds.map((seed, i) => {
-  const { score, factors } = buildScore(seed);
+  const { score, factors } = buildScore(seed, i);
   const ddd = dddByCity[seed.city] ?? "11";
   const num = `9${String(1000 + i * 137).slice(0, 4)}-${String(2000 + i * 311).slice(0, 4)}`;
   const site = seed.hasSite ? `www.${slug(seed.name)}.com.br` : null;
