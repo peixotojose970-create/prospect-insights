@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FollowUpsRouteImport } from './routes/follow-ups'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as OportunidadesRouteImport } from './routes/oportunidades'
 import { Route as PipelineRouteImport } from './routes/pipeline'
@@ -18,6 +19,11 @@ import { Route as ProspeccaoRouteImport } from './routes/prospeccao'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowUpsRoute = FollowUpsRouteImport.update({
+  id: '/follow-ups',
+  path: '/follow-ups',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeadsRoute = LeadsRouteImport.update({
@@ -43,6 +49,7 @@ const ProspeccaoRoute = ProspeccaoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/follow-ups': typeof FollowUpsRoute
   '/leads': typeof LeadsRoute
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/follow-ups': typeof FollowUpsRoute
   '/leads': typeof LeadsRoute
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/follow-ups': typeof FollowUpsRoute
   '/leads': typeof LeadsRoute
   '/oportunidades': typeof OportunidadesRoute
   '/pipeline': typeof PipelineRoute
@@ -65,15 +74,34 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/leads' | '/oportunidades' | '/pipeline' | '/prospeccao'
+  fullPaths:
+    | '/'
+    | '/follow-ups'
+    | '/leads'
+    | '/oportunidades'
+    | '/pipeline'
+    | '/prospeccao'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/leads' | '/oportunidades' | '/pipeline' | '/prospeccao'
+  to:
+    | '/'
+    | '/follow-ups'
+    | '/leads'
+    | '/oportunidades'
+    | '/pipeline'
+    | '/prospeccao'
   id:
-    '__root__' | '/' | '/leads' | '/oportunidades' | '/pipeline' | '/prospeccao'
+    | '__root__'
+    | '/'
+    | '/follow-ups'
+    | '/leads'
+    | '/oportunidades'
+    | '/pipeline'
+    | '/prospeccao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FollowUpsRoute: typeof FollowUpsRoute
   LeadsRoute: typeof LeadsRoute
   OportunidadesRoute: typeof OportunidadesRoute
   PipelineRoute: typeof PipelineRoute
@@ -87,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/follow-ups': {
+      id: '/follow-ups'
+      path: '/follow-ups'
+      fullPath: '/follow-ups'
+      preLoaderRoute: typeof FollowUpsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leads': {
@@ -122,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FollowUpsRoute: FollowUpsRoute,
   LeadsRoute: LeadsRoute,
   OportunidadesRoute: OportunidadesRoute,
   PipelineRoute: PipelineRoute,
