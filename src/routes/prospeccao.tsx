@@ -276,7 +276,17 @@ function Prospeccao() {
                 <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} />
               ))}
             </div>
+
+            {search.outcome?.nextPageToken ? (
+              <div className="flex justify-center">
+                <Button variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
+                  {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                  Carregar mais
+                </Button>
+              </div>
+            ) : null}
           </>
+
         )
       ) : null}
 
