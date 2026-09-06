@@ -44,16 +44,19 @@ export const Route = createFileRoute("/prospeccao")({
 });
 
 const errorHints: Record<string, string> = {
-  vazio: "Nenhuma empresa encontrada nessa cidade para essa categoria. Tente outra categoria ou uma cidade maior.",
-  amplo: "A busca ficou ampla demais. Informe cidade e categoria mais específicas.",
-  timeout: "A fonte de dados demorou para responder. Tente novamente em alguns segundos.",
-  "rate-limit": "Muitas buscas em sequência. Aguarde alguns segundos antes de buscar de novo.",
-  rede: "Não foi possível falar com a fonte de dados agora.",
+  vazio: "O Google Maps não retornou estabelecimentos para essa combinação. Tente outra categoria ou cidade.",
+  amplo: "Informe uma categoria e uma cidade brasileira para pesquisar.",
+  timeout: "A pesquisa demorou mais que o esperado.",
+  "rate-limit": "Limite de consultas atingido. Aguarde alguns instantes e tente novamente.",
+  rede: "Não foi possível consultar o Google Maps.",
   local: "Não encontramos essa cidade. Confira o nome e o estado.",
+  config: "Google Maps não está configurado.",
+  permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
 function Prospeccao() {
-  const { search, runSearch, savedSearches, removeSavedSearch, openLead } = useProspector();
+  const { search, runSearch, loadMore, loadingMore, savedSearches, removeSavedSearch, openLead } = useProspector();
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
   const [city, setCity] = useState("");
