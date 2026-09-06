@@ -225,7 +225,9 @@ function Prospeccao() {
       {search.status === "error" && search.error ? (
         <EmptyState
           title="Não foi possível concluir a busca"
-          description={errorHints[search.error.code] ?? search.error.message}
+          description={`${errorHints[search.error.code] ?? search.error.message}${
+            import.meta.env.DEV && search.error.detail ? ` (detalhe técnico: ${search.error.detail})` : ""
+          }`}
           action={
             search.criteria ? (
               <Button variant="outline" onClick={() => void runSearch(search.criteria!)}>

@@ -7,7 +7,7 @@ import type { Business, SearchOutcome } from "@/types";
 export type SearchErrorCode = "vazio" | "amplo" | "timeout" | "rate-limit" | "rede" | "local";
 export type SearchResult =
   | { ok: true; outcome: SearchOutcome }
-  | { ok: false; code: SearchErrorCode; message: string };
+  | { ok: false; code: SearchErrorCode; message: string; detail?: string };
 
 /** Endpoint configurável — fácil trocar de servidor Overpass no futuro. */
 const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
@@ -26,7 +26,7 @@ const MIN_INTERVAL_MS = 1500; // 1 consulta por vez, com espaçamento
 type CacheEntry = { at: number; value: SearchOutcome };
 
 const searchCache = new Map<string, CacheEntry>();
-const areaCache = new Map<string, { at: number; areaId: number | null }>();
+const areaCache = new Map<string, { at: number; bbox: BBox | null }>();
 let lastRequestAt = 0;
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -46,10 +46,13 @@ class SearchError extends Error {
   constructor(
     public code: SearchErrorCode,
     message: string,
+    public detail?: string,
   ) {
     super(message);
   }
 }
+
+type BBox = { south: number; west: number; north: number; east: number };
 
 function endpoints(): string[] {
   const configured = process.env["OVERPASS_ENDPOINT"];
@@ -102,11 +105,11 @@ function normalize(value: string) {
     .trim();
 }
 
-/** Busca pontual no Nominatim para descobrir a relação administrativa da cidade. */
-async function resolveAreaId(city: string, state: string): Promise<number | null> {
+/** Busca pontual no Nominatim para descobrir a caixa geográfica da cidade. */
+async function resolveBBox(city: string, state: string): Promise<BBox | null> {
   const key = `${normalize(city)}|${normalize(state)}`;
   const hit = areaCache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS * 8) return hit.areaId;
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS * 8) return hit.bbox;
 
   const url = new URL(NOMINATIM_ENDPOINT);
   url.searchParams.set("q", `${city}, ${state}, Brasil`);
@@ -122,34 +125,42 @@ async function resolveAreaId(city: string, state: string): Promise<number | null
     }),
   );
 
+  console.log("[SEARCH] geocodificação", city, state, response.status);
   if (response.status === 429) throw new SearchError("rate-limit", "Servidor de geocodificação ocupado.");
   if (!response.ok) throw new SearchError("rede", `Geocodificação falhou (${response.status}).`);
 
-  const data = (await response.json()) as Array<{ osm_type?: string; osm_id?: number }>;
-  const first = data[0];
-  let areaId: number | null = null;
-  if (first?.osm_id && first.osm_type === "relation") areaId = 3_600_000_000 + first.osm_id;
-  else if (first?.osm_id && first.osm_type === "way") areaId = 2_400_000_000 + first.osm_id;
+  const data = (await response.json()) as Array<{ boundingbox?: [string, string, string, string] }>;
+  const raw = data[0]?.boundingbox;
+  let bbox: BBox | null = null;
+  if (raw && raw.length === 4) {
+    const [south, north, west, east] = raw.map(Number) as [number, number, number, number];
+    if ([south, north, west, east].every((n) => Number.isFinite(n))) {
+      bbox = { south, west, north, east };
+    }
+  }
 
-  areaCache.set(key, { at: Date.now(), areaId });
-  return areaId;
+  areaCache.set(key, { at: Date.now(), bbox });
+  return bbox;
 }
 
-function buildQuery(tags: string[], areaId: number, limit: number) {
+/**
+ * Consulta por caixa geográfica (bbox). Consultas por `area(...)` do Overpass
+ * estouram o tempo limite em cidades médias; a bbox responde em segundos.
+ */
+function buildQuery(tags: string[], bbox: BBox, limit: number) {
+  const box = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
   const body = tags
-    .flatMap((tag) => {
+    .map((tag) => {
       const [key, value] = tag.split("=");
-      const filter = `["${key}"="${value}"]["name"]`;
-      return [`node${filter}(area.a);`, `way${filter}(area.a);`];
+      return `nwr["${key}"="${value}"]["name"](${box});`;
     })
     .join("\n  ");
 
   return `[out:json][timeout:25];
-area(${areaId})->.a;
 (
   ${body}
 );
-out center tags ${limit};`;
+out tags center ${limit};`;
 }
 
 type OverpassElement = {
@@ -241,11 +252,21 @@ export const searchBusinesses = createServerFn({ method: "POST" })
       return { ok: true, outcome: await runSearch(data) };
     } catch (error) {
       if (error instanceof SearchError) {
-        console.error("Busca sem resultado utilizável", error.code, error.message);
-        return { ok: false, code: error.code, message: error.message };
+        console.error("[SEARCH] falha", error.code, error.message, error.detail ?? "");
+        return {
+          ok: false,
+          code: error.code,
+          message: error.message,
+          ...(error.detail ? { detail: error.detail } : {}),
+        };
       }
-      console.error("Falha na busca de empresas", error);
-      return { ok: false, code: "rede", message: "Não foi possível concluir a pesquisa." };
+      console.error("[SEARCH] erro inesperado", error);
+      return {
+        ok: false,
+        code: "rede",
+        message: "Não foi possível concluir a pesquisa.",
+        detail: (error as Error)?.message ?? String(error),
+      };
     }
   });
 
@@ -271,15 +292,44 @@ async function runSearch(data: z.infer<typeof inputSchema>): Promise<SearchOutco
       return { ...cached.value, cached: true };
     }
 
-    const areaId = await resolveAreaId(data.city, data.state);
-    if (!areaId) {
-      throw new SearchError("vazio", "Cidade não localizada na fonte. Confira o nome e o estado.");
+    const bbox = await resolveBBox(data.city, data.state);
+    if (!bbox) {
+      throw new SearchError("local", "Cidade não localizada na fonte. Confira o nome e o estado.");
     }
 
-    const query = buildQuery(category.tags, areaId, limit + 20);
+    const query = buildQuery(category.tags, bbox, limit + 20);
+    const startedAt = Date.now();
     const response = await fetchOverpass(query);
 
-    const payload = (await response.json()) as { elements?: OverpassElement[] };
+    let payload: { elements?: OverpassElement[]; remark?: string };
+    try {
+      payload = (await response.json()) as { elements?: OverpassElement[]; remark?: string };
+    } catch {
+      throw new SearchError("rede", "A fonte devolveu uma resposta inválida.", "JSON inválido");
+    }
+    console.log(
+      "[SEARCH]",
+      category.label,
+      `${data.city}/${data.state}`,
+      "status",
+      response.status,
+      `${Date.now() - startedAt}ms`,
+      "elementos",
+      payload.elements?.length ?? 0,
+    );
+
+    // O Overpass devolve HTTP 200 com "remark" quando a consulta estoura o tempo.
+    if (payload.remark && (payload.elements?.length ?? 0) === 0) {
+      const timedOut = /timed out|timeout/i.test(payload.remark);
+      throw new SearchError(
+        timedOut ? "timeout" : "rede",
+        timedOut
+          ? "A pesquisa demorou mais que o esperado."
+          : "A fonte de dados recusou a consulta.",
+        payload.remark,
+      );
+    }
+
     const parsed = (payload.elements ?? [])
       .map((el) => toBusiness(el, data.city, data.state.toUpperCase()))
       .filter((b): b is Business => b !== null);
