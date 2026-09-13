@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Flame, Kanban, LayoutDashboard, Mail, Moon, MoreVertical, Search, Settings, Sun, Target, Users, Zap } from "lucide-react";
+import { Bell, Flame, Kanban, LayoutDashboard, Moon, MoreVertical, Search, Settings, Sun, Target, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/prospeccao", label: "Prospecção", icon: Search },
-  { to: "/us-contact", label: "EUA", icon: Mail },
   { to: "/rapido", label: "Modo rápido", icon: Zap },
   { to: "/oportunidades", label: "Oportunidades", icon: Flame },
   { to: "/leads", label: "Leads", icon: Users },
@@ -40,7 +39,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="icon" className="hidden size-10 md:inline-flex" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}</Button>
         <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="Notificações" className="relative size-10" asChild><Link to="/follow-ups"><Bell className="size-4" />{alerts > 0 ? <span className="absolute top-2 right-2 size-1.5 rounded-full bg-danger" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-56"><DropdownMenuLabel>Prospector</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/us-contact"><Mail className="size-4" />Prospecção EUA</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/leads"><Search className="size-4" />Buscar leads salvos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/rapido"><Zap className="size-4" />Prospecção rápida</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/pipeline"><Kanban className="size-4" />Pipeline</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/configuracoes"><Settings className="size-4" />Configurações</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setDark(!dark)}>{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}Tema {dark ? "escuro" : "claro"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-56"><DropdownMenuLabel>Prospector</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/leads"><Search className="size-4" />Buscar leads salvos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/rapido"><Zap className="size-4" />Prospecção rápida</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/pipeline"><Kanban className="size-4" />Pipeline</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/configuracoes"><Settings className="size-4" />Configurações</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setDark(!dark)}>{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}Tema {dark ? "escuro" : "claro"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         <span className="ml-1 hidden size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground sm:grid">JP</span>
       </div>
     </header>
