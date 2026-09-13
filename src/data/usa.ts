@@ -25,3 +25,22 @@ export const US_CITY_SUGGESTIONS = [
   "San Francisco",
   "Charlotte",
 ] as const;
+
+/** Tipos de negócio mais buscados na prospecção nos EUA. */
+export const US_CATEGORY_LABELS = [
+  "barbershop",
+  "hair salon",
+  "nail salon",
+  "dentist",
+  "auto repair",
+  "landscaping",
+  "roofing contractor",
+  "plumber",
+  "electrician",
+  "gym",
+  "restaurant",
+  "coffee shop",
+  "pet grooming",
+  "cleaning service",
+  "real estate agency",
+] as const;
