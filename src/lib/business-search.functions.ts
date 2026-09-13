@@ -358,7 +358,7 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
         details: {
           openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
           phone: place.nationalPhoneNumber ?? null,
-          website: place.websiteUri ?? null,
+          website: classifyWebsite(place.websiteUri).website,
           photoRefs: (place.photos ?? []).map((p) => p.name).filter((n): n is string => !!n).slice(0, 6),
           photoAttributions: Array.from(
             new Set(
