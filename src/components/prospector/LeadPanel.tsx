@@ -230,14 +230,20 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         <Row icon={<Phone className="size-3.5" />} value={formatPhone(business.phone)} />
         <Row
           icon={<Globe className="size-3.5" />}
-          value={business.website ?? "Site não informado (a verificar)"}
-          href={business.website}
+          value={
+            business.website ??
+            (business.socialUrl
+              ? `Sem site próprio — só ${business.socialUrl}`
+              : "Sem site informado (a verificar)")
+          }
+          href={business.website ?? business.socialUrl ?? null}
         />
         <Row
           icon={<Instagram className="size-3.5" />}
           value={business.instagram ?? "Não informado"}
           href={business.instagram}
         />
+
         <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
         <p className="pt-1 text-xs text-muted-foreground">
           Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
