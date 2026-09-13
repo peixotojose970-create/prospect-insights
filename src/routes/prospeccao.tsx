@@ -376,7 +376,12 @@ function Prospeccao() {
                   setCategory(s.category);
                   setCity(s.city);
                   setState(s.state);
-                  void runSearch({ category: s.category, city: s.city, state: s.state });
+                  void runSearch({
+                    category: s.category,
+                    city: s.city,
+                    state: s.state,
+                    ...(isUS ? { country: "US" as const } : {}),
+                  });
                 }}
               >
                 {s.query} ({s.results})
@@ -486,7 +491,15 @@ function Prospeccao() {
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {results.map((b) => (
-                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} selectable />
+                <div key={b.id} className="space-y-2">
+                  <LeadCard business={b} onCreateSite={setSiteFor} selectable />
+                  {isUS ? (
+                    <Button variant="outline" className="h-11 w-full" onClick={() => setEmailFor(b)}>
+                      <Mail className="size-4" aria-hidden />
+                      E-mail pronto
+                    </Button>
+                  ) : null}
+                </div>
               ))}
             </div>
 
