@@ -43,6 +43,10 @@ export type Business = {
   /** Link de terceiros (Instagram, WhatsApp, Linktree...) quando não há site próprio. */
   socialUrl?: string | null;
   instagram: string | null;
+  /** País do estabelecimento (ex.: "US"), quando identificado. */
+  country?: ProspectCountry | null;
+  /** E-mail comercial encontrado no site da empresa (leads dos EUA). */
+  email?: string | null;
 
   openingHours: string | null;
   latitude: number;

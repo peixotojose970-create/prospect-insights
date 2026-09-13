@@ -5,6 +5,7 @@ import {
   Copy,
   Globe,
   MapPin,
+  Mail,
   MessageCircle,
   MoreVertical,
   Monitor,
@@ -25,6 +26,7 @@ import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { OpportunityDialog } from "@/components/prospector/OpportunityDialog";
 import { formatPhone, fullAddress, ratingLabel, whatsappLink } from "@/features/prospector/format";
 import { opportunityHeadline, priorityFor } from "@/features/prospector/scoring";
+import { usEmailMailto } from "@/features/prospector/us-messages";
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, ScorePill, SiteBadge, StatusBadge, copyText } from "@/features/prospector/ui";
 import type { Business, Lead } from "@/types";
@@ -40,7 +42,7 @@ export function LeadCard({
   /** Mostra o checkbox de seleção múltipla (tela de Prospecção). */
   selectable?: boolean;
 }) {
-  const { openLead, saveLead, isSaved, toggleFavorite, isSelected, toggleSelected } = useProspector();
+  const { openLead, saveLead, isSaved, toggleFavorite, isSelected, toggleSelected, profile } = useProspector();
   const selected = selectable && isSelected(business.id);
   const [analyze, setAnalyze] = useState(false);
   const [approach, setApproach] = useState(false);
@@ -49,6 +51,7 @@ export function LeadCard({
   const status = lead.status;
   const priority = priorityFor(business.score);
   const wa = whatsappLink(business.phone);
+  const usMailto = business.country === "US" ? usEmailMailto(business as Business, profile) : null;
 
   return (
     <Card
@@ -108,6 +111,15 @@ export function LeadCard({
           <SiteBadge business={business} />
         </li>
       </ul>
+
+      {usMailto ? (
+        <Button size="sm" variant="secondary" className="h-10 w-full" asChild>
+          <a href={usMailto}>
+            <Mail className="size-4" aria-hidden />
+            Enviar e-mail ({business.email})
+          </a>
+        </Button>
+      ) : null}
 
       {/* Ações principais: sempre visíveis, com área de toque confortável. */}
       <div className="flex items-center gap-2 pt-1">

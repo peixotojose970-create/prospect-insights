@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookmarkPlus, Copy, Globe, Instagram, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
+import { BookmarkPlus, Copy, Globe, Instagram, Mail, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   whatsappLabel,
   whatsappLink,
 } from "@/features/prospector/format";
+import { usEmailMailto } from "@/features/prospector/us-messages";
 import { useProspector } from "@/features/prospector/store";
 import { ScoreBar, SourceNotice, StatusBadge, copyText } from "@/features/prospector/ui";
 import { LEAD_STATUSES, type Business, type ContactType, type Lead, type LeadStatus } from "@/types";
@@ -166,6 +167,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
     followUps,
     createFollowUp,
     openLead,
+    profile,
   } = useProspector();
   const saved = isSaved(business.id);
   const lead = saved ? (business as Lead) : null;
@@ -245,6 +247,16 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         />
 
         <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
+        {business.country === "US" && business.email ? (
+          <div className="pt-1">
+            <Button size="sm" variant="secondary" className="h-10 w-full" asChild>
+              <a href={usEmailMailto(business as Business, profile) ?? "#"}>
+                <Mail className="size-4" aria-hidden />
+                Enviar e-mail ({business.email})
+              </a>
+            </Button>
+          </div>
+        ) : null}
         <p className="pt-1 text-xs text-muted-foreground">
           Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
         </p>
