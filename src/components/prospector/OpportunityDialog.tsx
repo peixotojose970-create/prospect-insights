@@ -115,13 +115,13 @@ export function OpportunityDialog({
 
   return (
     <Dialog open={!!business} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[92dvh] w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:w-full sm:max-w-xl sm:p-6">
         <DialogHeader>
           <DialogTitle>Analisar oportunidade</DialogTitle>
           <DialogDescription>{business.name}</DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[65vh] pr-3">
+        <ScrollArea className="max-h-[60dvh] pr-2 sm:max-h-[65vh] sm:pr-3">
           <div className="space-y-5">
             <section className="space-y-2">
               <div className="flex items-center justify-between gap-3">
@@ -175,10 +175,11 @@ export function OpportunityDialog({
         </ScrollArea>
 
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
         </div>
+
       </DialogContent>
     </Dialog>
   );
