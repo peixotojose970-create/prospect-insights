@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,8 @@ import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
+import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
+import { USEmailDialog } from "@/components/prospector/USEmailDialog";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
 
@@ -56,8 +58,19 @@ const errorHints: Record<string, string> = {
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
+type Country = "BR" | "US";
+
+const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Unidos" };
+const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL" };
+const DEFAULT_CATEGORY: Record<Country, string> = {
+  BR: CATEGORY_LABELS[0] ?? "Restaurante",
+  US: US_CATEGORY_LABELS[0],
+};
+
 type FilterProps = {
   idPrefix: string;
+  country: Country;
+  setCountry: (v: Country) => void;
   category: string;
   setCategory: (v: string) => void;
   city: string;
@@ -74,17 +87,32 @@ type FilterProps = {
 
 /** Campos de refinamento — reutilizados no painel desktop e no bottom sheet mobile. */
 function FilterFields(p: FilterProps) {
+  const isUS = p.country === "US";
+  const states: readonly string[] = isUS ? US_STATES : STATES;
+  const categories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
-          <Label>Categoria</Label>
+          <Label>País</Label>
+          <Select value={p.country} onValueChange={(v) => p.setCountry(v as Country)}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BR">🇧🇷 {COUNTRY_LABELS.BR}</SelectItem>
+              <SelectItem value="US">🇺🇸 {COUNTRY_LABELS.US}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
           <Select value={p.category} onValueChange={p.setCategory}>
             <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORY_LABELS.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c}
                 </SelectItem>
@@ -99,8 +127,8 @@ function FilterFields(p: FilterProps) {
             className="h-11"
             value={p.city}
             onChange={(e) => p.setCity(e.target.value)}
-            placeholder="Ex.: Campinas"
-            list="cidades-sugeridas"
+            placeholder={isUS ? "Ex.: Miami" : "Ex.: Campinas"}
+            list={isUS ? "cidades-eua" : "cidades-sugeridas"}
           />
         </div>
         <div className="space-y-2">
@@ -110,7 +138,7 @@ function FilterFields(p: FilterProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {STATES.map((s) => (
+              {states.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
                 </SelectItem>
@@ -146,6 +174,7 @@ function FilterFields(p: FilterProps) {
   );
 }
 
+
 function Prospeccao() {
   const {
     search,
@@ -162,15 +191,29 @@ function Prospeccao() {
   } = useProspector();
 
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
+  const [country, setCountryState] = useState<Country>("BR");
+  const [category, setCategory] = useState(DEFAULT_CATEGORY.BR);
   const [city, setCity] = useState("");
-  const [state, setState] = useState("SP");
+  const [state, setState] = useState(DEFAULT_STATE.BR);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
+  const [emailFor, setEmailFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+
+  // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
+  const setCountry = (next: Country) => {
+    if (next === country) return;
+    setCountryState(next);
+    setCategory(DEFAULT_CATEGORY[next]);
+    setState(DEFAULT_STATE[next]);
+    setCity("");
+    setQuery("");
+  };
+
+  const isUS = country === "US";
 
   const results = useMemo(() => {
     return search.results
@@ -184,6 +227,8 @@ function Prospeccao() {
 
   const filterProps: FilterProps = {
     idPrefix: "desktop",
+    country,
+    setCountry,
     category,
     setCategory,
     city,
@@ -202,9 +247,10 @@ function Prospeccao() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
+    // A leitura livre ("Clínicas Curitiba") só vale para o Brasil.
+    const parsed = !isUS && query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
     const finalCategory = parsed.category || category;
-    const finalCity = parsed.city || city;
+    const finalCity = parsed.city || (isUS ? city : city);
     const finalState = parsed.state || state;
     if (!finalCity.trim()) {
       setFiltersOpen(true);
@@ -214,18 +260,29 @@ function Prospeccao() {
     setCity(finalCity);
     setState(finalState);
     setFiltersOpen(false);
-    void runSearch({ category: finalCategory, city: finalCity, state: finalState });
+    void runSearch({
+      category: finalCategory,
+      city: finalCity,
+      state: finalState,
+      ...(isUS ? { country: "US" as const } : {}),
+    });
   };
+
 
   return (
     <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
       <PageHeader
         title="Prospecção"
-        subtitle="Estabelecimentos reais do Google Maps, filtradas pelo potencial de fechar um site."
+        subtitle={`Estabelecimentos reais do Google Maps ${isUS ? "nos Estados Unidos" : "no Brasil"}, filtrados pelo potencial de fechar um site.`}
       />
 
       <datalist id="cidades-sugeridas">
         {CITY_SUGGESTIONS.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      <datalist id="cidades-eua">
+        {US_CITY_SUGGESTIONS.map((c) => (
           <option key={c} value={c} />
         ))}
       </datalist>
@@ -241,8 +298,9 @@ function Prospeccao() {
               className="h-12 text-base"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex.: Clínicas Curitiba"
+              placeholder={isUS ? "Use os filtros: tipo · cidade · estado" : "Ex.: Clínicas Curitiba"}
             />
+
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -294,7 +352,8 @@ function Prospeccao() {
               className="h-12 flex-1"
               onClick={() => {
                 setFiltersOpen(false);
-                if (city.trim()) void runSearch({ category, city, state });
+                if (city.trim())
+                  void runSearch({ category, city, state, ...(isUS ? { country: "US" as const } : {}) });
               }}
             >
               Aplicar
@@ -317,7 +376,12 @@ function Prospeccao() {
                   setCategory(s.category);
                   setCity(s.city);
                   setState(s.state);
-                  void runSearch({ category: s.category, city: s.city, state: s.state });
+                  void runSearch({
+                    category: s.category,
+                    city: s.city,
+                    state: s.state,
+                    ...(isUS ? { country: "US" as const } : {}),
+                  });
                 }}
               >
                 {s.query} ({s.results})
@@ -427,7 +491,15 @@ function Prospeccao() {
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {results.map((b) => (
-                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} selectable />
+                <div key={b.id} className="space-y-2">
+                  <LeadCard business={b} onCreateSite={setSiteFor} selectable />
+                  {isUS ? (
+                    <Button variant="outline" className="h-11 w-full" onClick={() => setEmailFor(b)}>
+                      <Mail className="size-4" aria-hidden />
+                      E-mail pronto
+                    </Button>
+                  ) : null}
+                </div>
               ))}
             </div>
 
@@ -444,6 +516,7 @@ function Prospeccao() {
       ) : null}
 
       <SourceNotice />
+      <USEmailDialog business={emailFor} onOpenChange={(open) => !open && setEmailFor(null)} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>
