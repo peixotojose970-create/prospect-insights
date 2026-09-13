@@ -3,7 +3,22 @@ import { NAO_DISPONIVEL_FONTE, formatPhone, fullAddress, orNotInformed, whatsapp
 
 const MISSING = "[CONFIRMAR COM O CLIENTE]";
 
-export function buildSitePrompt(business: Business) {
+type SenderProfile = { personalName: string; companyName: string };
+
+function senderIntroduction(profile?: SenderProfile) {
+  const name = profile?.personalName.trim();
+  const company = profile?.companyName.trim();
+  if (name && company) return `Me chamo ${name}, da ${company}`;
+  if (name) return `Me chamo ${name}`;
+  if (company) return `Falo em nome da ${company}`;
+  return "Trabalho com criação de sites";
+}
+
+function senderSignature(profile?: SenderProfile) {
+  return [profile?.personalName.trim(), profile?.companyName.trim()].filter(Boolean).join(" — ");
+}
+
+export function buildSitePrompt(business: Business, profile?: SenderProfile) {
   return `# PAPEL
 Você é um designer e desenvolvedor web sênior especializado em sites institucionais para empresas locais brasileiras.
 
@@ -20,6 +35,7 @@ Instagram: ${business.instagram ?? "não informado"}
 Horário de funcionamento: ${business.openingHours ?? "não informado"}
 Avaliações / nota: ${NAO_DISPONIVEL_FONTE}
 Fonte: ${business.source} (${business.externalId})
+Responsável pelo projeto: ${senderSignature(profile) || "não informado"}
 
 # OBJETIVO DO SITE
 Criar uma presença digital profissional, transmitindo credibilidade local e convertendo
@@ -59,7 +75,7 @@ Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser
 }
 
 /** Mensagens montadas a partir da situação real da empresa (nada inventado). */
-export function buildMessages(business: Business) {
+export function buildMessages(business: Business, profile?: SenderProfile) {
   const semSite = !business.website;
   const cidade = business.city ?? "sua região";
   const categoria = business.category.toLowerCase();
@@ -67,24 +83,27 @@ export function buildMessages(business: Business) {
   const notaTxt = business.rating !== null ? `nota ${business.rating.toFixed(1)}` : null;
   const avaliacoesTxt = business.reviews !== null ? `${business.reviews} avaliações` : null;
   const reputacao = [notaTxt, avaliacoesTxt].filter(Boolean).join(" e ");
+  const apresentacao = senderIntroduction(profile);
+  const assinatura = senderSignature(profile);
+  const fechar = assinatura ? `\n\n${assinatura}` : "";
 
   const curta = semSite
-    ? `Oi! Vi a ${business.name} no Google e achei o trabalho bem interessante. Percebi que não encontrei um site informado para vocês e tive uma ideia de como poderia ficar a presença online da empresa. Posso te mostrar?`
-    : `Oi! Encontrei a ${business.name} no Google e dei uma olhada na presença online de vocês. Trabalho com criação e melhoria de sites e tive algumas ideias que poderiam valorizar ainda mais a apresentação da empresa. Posso te mostrar?`;
+    ? `Oi! ${apresentacao}. Vi a ${business.name} no Google e achei o trabalho bem interessante. Percebi que não encontrei um site informado para vocês e tive uma ideia de como poderia ficar a presença online da empresa. Posso te mostrar?${fechar}`
+    : `Oi! ${apresentacao}. Encontrei a ${business.name} no Google e dei uma olhada na presença online de vocês. Tive algumas ideias que poderiam valorizar ainda mais a apresentação da empresa. Posso te mostrar?${fechar}`;
 
   const natural = boaReputacao
-    ? `Oi! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Vi que a ${business.name} tem uma avaliação muito boa no Google${
+    ? `Oi! ${apresentacao} e crio sites para empresas de ${cidade}. Vi que a ${business.name} tem uma avaliação muito boa no Google${
         reputacao ? ` (${reputacao})` : ""
       } — bastante gente já conhece o trabalho de vocês. ${
         semSite
           ? "Como não encontrei um site informado, tive uma ideia de como transformar essa confiança em uma presença online ainda mais profissional."
           : "Tive algumas ideias de como transformar essa confiança em uma presença online ainda mais profissional."
-      } Posso te enviar?`
-    : `Olá! Me chamo [SEU NOME] e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
+      } Posso te enviar?${fechar}`
+    : `Olá! ${apresentacao} e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
         semSite
           ? "Não encontrei um site informado para vocês — pode existir e ainda não estar cadastrado, por isso queria confirmar."
           : "Vi a presença online atual e anotei pontos que podem aumentar os contatos."
-      } Montei uma ideia de presença online para ${categoria}. Posso te enviar?`;
+      } Montei uma ideia de presença online para ${categoria}. Posso te enviar?${fechar}`;
 
   const comercial = `Olá, falo com o responsável pela ${business.name}?
 
@@ -101,9 +120,11 @@ Observação: essas informações vêm do perfil público e podem estar incomple
 
 Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp.
 
-Posso te enviar uma prévia sem compromisso?`;
+Posso te enviar uma prévia sem compromisso?${fechar}`;
 
-  return { curta, natural, comercial };
+  const curiosidade = `Olá! Gostaria de falar com o responsável pela ${business.name} ou pela área de ${categoria}. ${apresentacao} e preparei uma ideia específica para o negócio de vocês. Com quem eu poderia conversar?${fechar}`;
+
+  return { curta, natural, comercial, curiosidade };
 }
 
 /** Follow-up considerando status, dias desde o último contato e contexto do lead. */

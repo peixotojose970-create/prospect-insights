@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { toCsv } from "@/features/prospector/generators";
@@ -59,7 +60,7 @@ function Pref({
 }
 
 function Configuracoes() {
-  const { leads } = useProspector();
+  const { leads, profile, setProfile } = useProspector();
 
   const setTheme = (dark: boolean) => {
     document.documentElement.classList.toggle("dark", dark);
@@ -110,6 +111,33 @@ function Configuracoes() {
           <Pref id="pref-telefone" label="Exigir telefone nos resultados" />
           <Pref id="pref-mapa" label="Mostrar mapa dos resultados" defaultChecked />
         </div>
+      </Section>
+
+      <Section
+        title="Identificação nas mensagens e sites"
+        description="Esses dados personalizam suas abordagens e os projetos de site gerados."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="personal-name">Nome pessoal</Label>
+            <Input
+              id="personal-name"
+              value={profile.personalName}
+              placeholder="Ex.: José Peixoto"
+              onChange={(event) => setProfile({ ...profile, personalName: event.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="company-name">Nome da empresa</Label>
+            <Input
+              id="company-name"
+              value={profile.companyName}
+              placeholder="Ex.: Nextor Studio"
+              onChange={(event) => setProfile({ ...profile, companyName: event.target.value })}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente neste navegador.</p>
       </Section>
 
       <Section title="Seus dados" description="Tudo fica salvo apenas neste navegador.">

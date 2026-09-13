@@ -31,6 +31,7 @@ type Persisted = {
   savedSearches: SavedSearch[];
   /** Seleção temporária de empresas (persiste entre pesquisas e recarregamentos). */
   selection: Business[];
+  profile: { personalName: string; companyName: string };
 };
 
 export type BatchSaveOptions = { tag?: string | undefined; status?: LeadStatus | undefined };
@@ -94,6 +95,8 @@ type Store = {
   deselectMany: (ids: string[]) => void;
   clearSelection: () => void;
   saveSelected: (options?: BatchSaveOptions) => BatchSaveResult;
+  profile: Persisted["profile"];
+  setProfile: (profile: Persisted["profile"]) => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -104,6 +107,7 @@ const emptyState: Persisted = {
   activities: [],
   savedSearches: [],
   selection: [],
+  profile: { personalName: "", companyName: "" },
 };
 
 function load(): Persisted {
@@ -118,6 +122,7 @@ function load(): Persisted {
       activities: parsed.activities ?? [],
       savedSearches: parsed.savedSearches ?? [],
       selection: parsed.selection ?? [],
+      profile: parsed.profile ?? { personalName: "", companyName: "" },
     };
 
   } catch {
@@ -261,7 +266,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
 
   const value = useMemo<Store>(() => {
-    const { leads, followUps, activities, savedSearches, selection } = state;
+    const { leads, followUps, activities, savedSearches, selection, profile } = state;
     const selectedIds = new Set(selection.map((b) => b.id));
     return {
       leads,
@@ -269,6 +274,8 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       activities,
       savedSearches,
       selection,
+      profile,
+      setProfile: (nextProfile) => setState((prev) => ({ ...prev, profile: nextProfile })),
       isSelected: (id) => selectedIds.has(id),
       toggleSelected: (business) =>
         setState((prev) => {

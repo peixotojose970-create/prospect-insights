@@ -21,15 +21,16 @@ export function MessageDialog({
   business: Business | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { logHistory, isSaved, saveLead, registerContact } = useProspector();
+  const { logHistory, isSaved, saveLead, registerContact, profile } = useProspector();
   if (!business) return null;
-  const messages = buildMessages(business);
+  const messages = buildMessages(business, profile);
   const wa = whatsappLink(business.phone);
   const digits = normalizePhone(business.phone);
   const tabs: [keyof typeof messages, string][] = [
     ["curta", "Curta"],
     ["natural", "Natural"],
     ["comercial", "Comercial"],
+    ["curiosidade", "Curiosidade"],
   ];
 
   const ensureSaved = () => {
