@@ -516,6 +516,7 @@ function Prospeccao() {
       ) : null}
 
       <SourceNotice />
+      <USEmailDialog business={emailFor} onOpenChange={(open) => !open && setEmailFor(null)} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>
