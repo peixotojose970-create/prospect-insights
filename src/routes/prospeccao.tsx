@@ -298,7 +298,7 @@ function Prospeccao() {
               className="h-12 text-base"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isUS ? "Ex.: barbershop Miami" : "Ex.: Clínicas Curitiba"}
+              placeholder={isUS ? "Use os filtros: tipo · cidade · estado" : "Ex.: Clínicas Curitiba"}
             />
 
             <div className="flex gap-2">
@@ -352,7 +352,8 @@ function Prospeccao() {
               className="h-12 flex-1"
               onClick={() => {
                 setFiltersOpen(false);
-                if (city.trim()) void runSearch({ category, city, state });
+                if (city.trim())
+                  void runSearch({ category, city, state, ...(isUS ? { country: "US" as const } : {}) });
               }}
             >
               Aplicar
