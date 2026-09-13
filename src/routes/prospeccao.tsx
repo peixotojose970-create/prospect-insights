@@ -191,15 +191,29 @@ function Prospeccao() {
   } = useProspector();
 
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(CATEGORY_LABELS[0] ?? "Restaurante");
+  const [country, setCountryState] = useState<Country>("BR");
+  const [category, setCategory] = useState(DEFAULT_CATEGORY.BR);
   const [city, setCity] = useState("");
-  const [state, setState] = useState("SP");
+  const [state, setState] = useState(DEFAULT_STATE.BR);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
+  const [emailFor, setEmailFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+
+  // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
+  const setCountry = (next: Country) => {
+    if (next === country) return;
+    setCountryState(next);
+    setCategory(DEFAULT_CATEGORY[next]);
+    setState(DEFAULT_STATE[next]);
+    setCity("");
+    setQuery("");
+  };
+
+  const isUS = country === "US";
 
   const results = useMemo(() => {
     return search.results
@@ -213,6 +227,8 @@ function Prospeccao() {
 
   const filterProps: FilterProps = {
     idPrefix: "desktop",
+    country,
+    setCountry,
     category,
     setCategory,
     city,
@@ -231,9 +247,10 @@ function Prospeccao() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
+    // A leitura livre ("Clínicas Curitiba") só vale para o Brasil.
+    const parsed = !isUS && query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
     const finalCategory = parsed.category || category;
-    const finalCity = parsed.city || city;
+    const finalCity = parsed.city || (isUS ? city : city);
     const finalState = parsed.state || state;
     if (!finalCity.trim()) {
       setFiltersOpen(true);
@@ -243,8 +260,14 @@ function Prospeccao() {
     setCity(finalCity);
     setState(finalState);
     setFiltersOpen(false);
-    void runSearch({ category: finalCategory, city: finalCity, state: finalState });
+    void runSearch({
+      category: finalCategory,
+      city: finalCity,
+      state: finalState,
+      ...(isUS ? { country: "US" as const } : {}),
+    });
   };
+
 
   return (
     <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
