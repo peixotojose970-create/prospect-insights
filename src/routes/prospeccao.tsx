@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,7 +19,6 @@ import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
-import { USEmailDialog } from "@/components/prospector/USEmailDialog";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
 
@@ -199,7 +198,6 @@ function Prospeccao() {
   const [onlyPhone, setOnlyPhone] = useState(false);
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
-  const [emailFor, setEmailFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
@@ -491,15 +489,7 @@ function Prospeccao() {
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {results.map((b) => (
-                <div key={b.id} className="space-y-2">
-                  <LeadCard business={b} onCreateSite={setSiteFor} selectable />
-                  {isUS ? (
-                    <Button variant="outline" className="h-11 w-full" onClick={() => setEmailFor(b)}>
-                      <Mail className="size-4" aria-hidden />
-                      E-mail pronto
-                    </Button>
-                  ) : null}
-                </div>
+                <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} selectable />
               ))}
             </div>
 
@@ -516,7 +506,6 @@ function Prospeccao() {
       ) : null}
 
       <SourceNotice />
-      <USEmailDialog business={emailFor} onOpenChange={(open) => !open && setEmailFor(null)} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>
