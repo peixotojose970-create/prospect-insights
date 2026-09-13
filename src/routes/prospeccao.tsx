@@ -18,6 +18,8 @@ import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
+import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
+import { USEmailDialog } from "@/components/prospector/USEmailDialog";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
 
@@ -56,8 +58,19 @@ const errorHints: Record<string, string> = {
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
+type Country = "BR" | "US";
+
+const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Unidos" };
+const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL" };
+const DEFAULT_CATEGORY: Record<Country, string> = {
+  BR: CATEGORY_LABELS[0] ?? "Restaurante",
+  US: US_CATEGORY_LABELS[0],
+};
+
 type FilterProps = {
   idPrefix: string;
+  country: Country;
+  setCountry: (v: Country) => void;
   category: string;
   setCategory: (v: string) => void;
   city: string;
@@ -74,17 +87,32 @@ type FilterProps = {
 
 /** Campos de refinamento — reutilizados no painel desktop e no bottom sheet mobile. */
 function FilterFields(p: FilterProps) {
+  const isUS = p.country === "US";
+  const states: readonly string[] = isUS ? US_STATES : STATES;
+  const categories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
-          <Label>Categoria</Label>
+          <Label>País</Label>
+          <Select value={p.country} onValueChange={(v) => p.setCountry(v as Country)}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BR">🇧🇷 {COUNTRY_LABELS.BR}</SelectItem>
+              <SelectItem value="US">🇺🇸 {COUNTRY_LABELS.US}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
           <Select value={p.category} onValueChange={p.setCategory}>
             <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORY_LABELS.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c}
                 </SelectItem>
@@ -99,8 +127,8 @@ function FilterFields(p: FilterProps) {
             className="h-11"
             value={p.city}
             onChange={(e) => p.setCity(e.target.value)}
-            placeholder="Ex.: Campinas"
-            list="cidades-sugeridas"
+            placeholder={isUS ? "Ex.: Miami" : "Ex.: Campinas"}
+            list={isUS ? "cidades-eua" : "cidades-sugeridas"}
           />
         </div>
         <div className="space-y-2">
@@ -110,7 +138,7 @@ function FilterFields(p: FilterProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {STATES.map((s) => (
+              {states.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
                 </SelectItem>
@@ -145,6 +173,7 @@ function FilterFields(p: FilterProps) {
     </div>
   );
 }
+
 
 function Prospeccao() {
   const {
