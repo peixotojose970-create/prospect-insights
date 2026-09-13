@@ -40,7 +40,10 @@ export type Business = {
   address: string | null;
   phone: string | null;
   website: string | null;
+  /** Link de terceiros (Instagram, WhatsApp, Linktree...) quando não há site próprio. */
+  socialUrl?: string | null;
   instagram: string | null;
+
   openingHours: string | null;
   latitude: number;
   longitude: number;

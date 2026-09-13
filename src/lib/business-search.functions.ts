@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
+import { classifyWebsite } from "@/features/prospector/website";
+
 import type { Business, SearchOutcome } from "@/types";
 
 /**
@@ -214,9 +216,11 @@ function toBusiness(place: PlaceResult): Business | null {
     postalCode: component(components, "postal_code"),
     address: place.formattedAddress ?? (street ? [street, houseNumber].filter(Boolean).join(", ") : null),
     phone: place.nationalPhoneNumber ?? null,
-    website: place.websiteUri ?? null,
-    // O Google Places não é fonte de Instagram: só quando o próprio site é um perfil.
-    instagram: /instagram\.com/i.test(place.websiteUri ?? "") ? (place.websiteUri as string) : null,
+    // Site próprio conta como site; Instagram/WhatsApp/Linktree contam como SEM SITE.
+    website: classifyWebsite(place.websiteUri).website,
+    socialUrl: classifyWebsite(place.websiteUri).socialUrl,
+    instagram: classifyWebsite(place.websiteUri).instagram,
+
     openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
     latitude: lat,
     longitude: lon,
@@ -354,7 +358,7 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
         details: {
           openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
           phone: place.nationalPhoneNumber ?? null,
-          website: place.websiteUri ?? null,
+          website: classifyWebsite(place.websiteUri).website,
           photoRefs: (place.photos ?? []).map((p) => p.name).filter((n): n is string => !!n).slice(0, 6),
           photoAttributions: Array.from(
             new Set(
