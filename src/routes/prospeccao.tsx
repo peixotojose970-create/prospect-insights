@@ -273,11 +273,16 @@ function Prospeccao() {
     <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
       <PageHeader
         title="Prospecção"
-        subtitle="Estabelecimentos reais do Google Maps, filtradas pelo potencial de fechar um site."
+        subtitle={`Estabelecimentos reais do Google Maps ${isUS ? "nos Estados Unidos" : "no Brasil"}, filtrados pelo potencial de fechar um site.`}
       />
 
       <datalist id="cidades-sugeridas">
         {CITY_SUGGESTIONS.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      <datalist id="cidades-eua">
+        {US_CITY_SUGGESTIONS.map((c) => (
           <option key={c} value={c} />
         ))}
       </datalist>
@@ -293,8 +298,9 @@ function Prospeccao() {
               className="h-12 text-base"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex.: Clínicas Curitiba"
+              placeholder={isUS ? "Ex.: barbershop Miami" : "Ex.: Clínicas Curitiba"}
             />
+
             <div className="flex gap-2">
               <Button
                 type="button"
