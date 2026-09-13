@@ -42,8 +42,11 @@ export function siteState(business: Business): SiteState {
 }
 
 export function siteLabel(business: Business) {
-  return business.website ? "Site encontrado" : "Site não informado (a verificar)";
+  if (business.website) return "Site próprio encontrado";
+  if (business.socialUrl) return "Sem site (só rede social/link)";
+  return "Sem site informado (a verificar)";
 }
+
 
 export function ratingLabel(business: Business) {
   if (business.rating === null) return "Sem avaliações no Google";
