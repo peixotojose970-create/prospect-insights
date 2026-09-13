@@ -22,7 +22,7 @@ const nav = [
 ] as const;
 const mobileNav = [
   { to: "/prospeccao", label: "Buscar", icon: Search },
-  { to: "/us-contact", label: "EUA", icon: Mail },
+  { to: "/oportunidades", label: "Oportun.", icon: Flame },
   { to: "/leads", label: "Leads", icon: Users },
   { to: "/follow-ups", label: "Follow-up", icon: Bell },
   { to: "/", label: "Painel", icon: LayoutDashboard },
