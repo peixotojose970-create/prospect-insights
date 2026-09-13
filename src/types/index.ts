@@ -18,20 +18,12 @@ export const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
 ];
 
 export type ScoreFactor = { label: string; points: number };
-
-export type HistoryEntry = {
-  id: string;
-  date: string;
-  label: string;
-};
-
+export type HistoryEntry = { id: string; date: string; label: string };
 export type ContactType = "whatsapp" | "ligacao" | "instagram" | "outro";
+export type ProspectCountry = "BR" | "US";
 
-/** Estabelecimento como veio da fonte oficial (Google Maps Platform — Places API). */
 export type Business = {
-  /** id interno estável (usa o Place ID) */
   id: string;
-  /** identificador na fonte (Place ID) */
   externalId: string;
   placeId: string;
   source: string;
@@ -54,15 +46,12 @@ export type Business = {
   longitude: number;
   rating: number | null;
   reviews: number | null;
-  /** nomes de recurso das fotos do Google (não são URLs) */
   photoRefs: string[];
   photoAttributions: string[];
   score: number;
   scoreFactors: ScoreFactor[];
 };
 
-
-/** Dados de CRM que o usuário adiciona ao salvar um lead. */
 export type LeadCrm = {
   status: LeadStatus;
   savedAt: string;
@@ -76,29 +65,15 @@ export type LeadCrm = {
 };
 
 export type Lead = Business & LeadCrm;
-
-export type FollowUp = {
-  id: string;
-  leadId: string;
-  /** ISO date (yyyy-mm-dd) */
-  date: string;
-  time: string;
-  label: string;
-  done: boolean;
-};
-
-export type Activity = {
-  id: string;
-  label: string;
-  lead: string;
-  at: string;
-};
+export type FollowUp = { id: string; leadId: string; date: string; time: string; label: string; done: boolean };
+export type Activity = { id: string; label: string; lead: string; at: string };
 
 export type SavedSearch = {
   id: string;
   category: string;
   city: string;
   state: string;
+  country?: ProspectCountry;
   query: string;
   at: string;
   results: number;
@@ -108,6 +83,7 @@ export type SearchCriteria = {
   category: string;
   city: string;
   state: string;
+  country?: ProspectCountry;
   limit?: number;
   pageToken?: string;
 };
@@ -118,7 +94,5 @@ export type SearchOutcome = {
   truncated: boolean;
   cached: boolean;
   areaLabel: string;
-  /** token do Google para "Carregar mais" */
   nextPageToken: string | null;
 };
-
