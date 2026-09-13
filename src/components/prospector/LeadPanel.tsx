@@ -167,6 +167,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
     followUps,
     createFollowUp,
     openLead,
+    profile,
   } = useProspector();
   const saved = isSaved(business.id);
   const lead = saved ? (business as Lead) : null;
