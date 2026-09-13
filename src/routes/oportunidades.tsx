@@ -77,14 +77,14 @@ function Oportunidades() {
         subtitle="Empresas com maior chance de fechar: pontuadas pelos dados disponíveis na fonte."
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {filters.map((f) => (
           <button
             key={f.key}
             type="button"
             onClick={() => toggle(f.key)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition-colors sm:min-h-0 sm:py-1.5",
               active.includes(f.key)
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -95,6 +95,9 @@ function Oportunidades() {
           </button>
         ))}
       </div>
+
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+
 
       {items.length === 0 ? (
         <EmptyState
