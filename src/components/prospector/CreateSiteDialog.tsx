@@ -22,9 +22,9 @@ export function CreateSiteDialog({
   business: Business | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { logHistory, isSaved } = useProspector();
+  const { logHistory, isSaved, profile } = useProspector();
   if (!business) return null;
-  const prompt = buildSitePrompt(business);
+  const prompt = buildSitePrompt(business, profile);
 
   const fields: [string, string][] = [
     ["Nome", business.name],
