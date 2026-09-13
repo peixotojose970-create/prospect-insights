@@ -40,7 +40,7 @@ export function CreateSiteDialog({
 
   return (
     <Dialog open={!!business} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden sm:max-w-3xl">
+      <DialogContent className="max-h-[92dvh] w-[calc(100vw-1.5rem)] gap-0 overflow-hidden p-4 sm:w-full sm:max-w-3xl sm:p-6">
         <DialogHeader>
           <DialogTitle>Preparar projeto do site</DialogTitle>
           <DialogDescription>
@@ -48,8 +48,9 @@ export function CreateSiteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="-mx-6 max-h-[60vh] px-6">
+        <ScrollArea className="-mx-4 max-h-[58dvh] px-4 sm:-mx-6 sm:max-h-[60vh] sm:px-6">
           <dl className="grid grid-cols-2 gap-3 border-b border-border py-4 sm:grid-cols-3">
+
             {fields.map(([k, v]) => (
               <div key={k} className="min-w-0">
                 <dt className="text-xs text-muted-foreground">{k}</dt>
@@ -66,6 +67,7 @@ export function CreateSiteDialog({
 
         <DialogFooter className="border-t border-border pt-4">
           <Button
+            className="h-11 w-full sm:h-9 sm:w-auto"
             onClick={() => {
               copyText(prompt, "Prompt copiado.");
               if (isSaved(business.id)) logHistory(business.id, "Prompt de site gerado");
@@ -74,6 +76,7 @@ export function CreateSiteDialog({
             <Copy className="size-4" aria-hidden />
             Copiar prompt
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
