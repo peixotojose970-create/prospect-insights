@@ -116,12 +116,13 @@ function Leads() {
         subtitle="Tudo que você salvou, com status e contato — armazenado no seu navegador."
         actions={
           <>
-            <Button variant="outline" onClick={() => fileRef.current?.click()}>
+            <Button variant="outline" className="h-11 sm:h-9" onClick={() => fileRef.current?.click()}>
               <Upload className="size-4" aria-hidden />
               Importar CSV
             </Button>
             <Button
               variant="outline"
+              className="h-11 sm:h-9"
               disabled={leads.length === 0}
               onClick={() => download("leads-prospector.csv", toCsv(leads))}
             >
@@ -145,16 +146,16 @@ function Leads() {
 
       <Card className="grid gap-3 p-4 sm:grid-cols-3">
         <div className="relative sm:col-span-1">
-          <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" aria-hidden />
+          <Search className="absolute top-3.5 left-3 size-4 text-muted-foreground sm:top-2.5" aria-hidden />
           <Input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Buscar por nome, categoria ou cidade"
-            className="pl-9"
+            className="h-11 pl-9 sm:h-9"
           />
         </div>
         <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus | "todos")}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11 sm:h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -167,7 +168,7 @@ function Leads() {
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11 sm:h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -177,6 +178,7 @@ function Leads() {
           </SelectContent>
         </Select>
       </Card>
+
 
       {rows.length === 0 ? (
         <EmptyState

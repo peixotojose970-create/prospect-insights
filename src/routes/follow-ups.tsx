@@ -59,11 +59,11 @@ function FollowUps() {
                     if (!lead) return null;
                     const wa = whatsappLink(lead.phone);
                     return (
-                      <Card key={f.id} className="flex-row items-start justify-between gap-3 p-4">
+                      <Card key={f.id} className="gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <button
                             type="button"
-                            className="truncate text-sm font-medium text-foreground hover:underline"
+                            className="block max-w-full truncate text-left text-sm font-medium text-foreground hover:underline"
                             onClick={() => openLead(lead.id)}
                           >
                             {lead.name}
@@ -73,7 +73,7 @@ function FollowUps() {
                           </p>
                           <StatusBadge status={lead.status} className="mt-1" />
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:flex-wrap [&_button]:h-11 sm:[&_button]:h-8">
                           <Button
                             size="sm"
                             variant="outline"
@@ -98,12 +98,13 @@ function FollowUps() {
                               </a>
                             </Button>
                           ) : null}
-                          <Button size="sm" onClick={() => completeFollowUp(f.id)}>
+                          <Button size="sm" className="col-span-2 sm:col-span-1" onClick={() => completeFollowUp(f.id)}>
                             <Check className="size-4" aria-hidden />
                             Concluir
                           </Button>
                         </div>
                       </Card>
+
                     );
                   })}
               </div>

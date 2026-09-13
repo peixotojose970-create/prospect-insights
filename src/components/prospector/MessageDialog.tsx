@@ -39,15 +39,15 @@ export function MessageDialog({
 
   return (
     <Dialog open={!!business} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[92dvh] w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:w-full sm:max-w-xl sm:p-6">
         <DialogHeader>
           <DialogTitle>Abordar empresa</DialogTitle>
           <DialogDescription>{business.name} — escolha o tom da abordagem.</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="curta">
-          <TabsList className="w-full">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:flex">
             {tabs.map(([key, label]) => (
-              <TabsTrigger key={key} value={key} className="flex-1">
+              <TabsTrigger key={key} value={key} className="min-h-9 sm:flex-1">
                 {label}
               </TabsTrigger>
             ))}
@@ -57,7 +57,8 @@ export function MessageDialog({
               <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                 {messages[key]}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:flex sm:flex-wrap [&_button]:h-11 sm:[&_button]:h-9">
+
                 <Button
                   onClick={() => {
                     copyText(messages[key], "Mensagem copiada.");
