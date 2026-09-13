@@ -122,10 +122,10 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center sm:px-6 sm:py-14">
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
-      {action ? <div className="mt-4">{action}</div> : null}
+      {action ? <div className="mt-4 w-full sm:w-auto">{action}</div> : null}
     </div>
   );
 }
@@ -140,12 +140,17 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-border pb-5 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+    <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:pb-5">
       <div className="min-w-0">
-        <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground sm:truncate sm:text-3xl">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [&>*]:shrink-0 sm:mx-0 sm:shrink-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+          {actions}
+        </div>
+      ) : null}
     </header>
   );
 }
+
