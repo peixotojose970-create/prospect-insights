@@ -328,6 +328,50 @@ function Prospeccao() {
         </form>
       </Card>
 
+      <Card className="gap-3 p-4">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">Categorias → Empresas</h2>
+          <p className="text-xs text-muted-foreground">
+            Segmentos com maior chance de fechar um site. Ao escolher um, listamos primeiro as empresas
+            marcadas como <span className="font-medium text-foreground">SEM SITE</span>.
+          </p>
+        </div>
+        <div className="-mx-1 flex flex-wrap gap-2 px-1">
+          {PROSPECT_SEGMENTS.map((s) => {
+            const term = isUS ? s.us : s.br;
+            const active = category === term;
+            return (
+              <Button
+                key={s.label}
+                type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                className="h-10"
+                onClick={() => {
+                  setCategory(term);
+                  setOnlyNoSite(true);
+                  if (!city.trim()) {
+                    setFiltersOpen(true);
+                    return;
+                  }
+                  void runSearch({
+                    category: term,
+                    city,
+                    state,
+                    ...(isUS ? { country: "US" as const } : {}),
+                  });
+                }}
+              >
+                {s.label}
+              </Button>
+            );
+          })}
+        </div>
+        {!city.trim() ? (
+          <p className="text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
+        ) : null}
+      </Card>
+
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl p-5 md:hidden">
           <SheetHeader className="p-0 pb-4">
