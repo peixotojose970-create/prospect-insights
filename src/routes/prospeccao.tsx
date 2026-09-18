@@ -18,6 +18,7 @@ import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
+import { PROSPECT_SEGMENTS } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
@@ -326,6 +327,50 @@ function Prospeccao() {
             <FilterFields {...filterProps} />
           </div>
         </form>
+      </Card>
+
+      <Card className="gap-3 p-4">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">Categorias → Empresas</h2>
+          <p className="text-xs text-muted-foreground">
+            Segmentos com maior chance de fechar um site. Ao escolher um, listamos primeiro as empresas
+            marcadas como <span className="font-medium text-foreground">SEM SITE</span>.
+          </p>
+        </div>
+        <div className="-mx-1 flex flex-wrap gap-2 px-1">
+          {PROSPECT_SEGMENTS.map((s) => {
+            const term = isUS ? s.us : s.br;
+            const active = category === term;
+            return (
+              <Button
+                key={s.label}
+                type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                className="h-10"
+                onClick={() => {
+                  setCategory(term);
+                  setOnlyNoSite(true);
+                  if (!city.trim()) {
+                    setFiltersOpen(true);
+                    return;
+                  }
+                  void runSearch({
+                    category: term,
+                    city,
+                    state,
+                    ...(isUS ? { country: "US" as const } : {}),
+                  });
+                }}
+              >
+                {s.label}
+              </Button>
+            );
+          })}
+        </div>
+        {!city.trim() ? (
+          <p className="text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
+        ) : null}
       </Card>
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
