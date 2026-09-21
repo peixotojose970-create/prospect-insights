@@ -247,6 +247,8 @@ function Prospeccao() {
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
+  const activeSegment = segmentByTerm(category, isUS);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     // A leitura livre ("Clínicas Curitiba") só vale para o Brasil.
