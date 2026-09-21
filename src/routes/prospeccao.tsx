@@ -248,6 +248,7 @@ function Prospeccao() {
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
   const activeSegment = segmentByTerm(category, isUS);
+  if (typeof window !== "undefined") console.log("[SEGDBG]", category, activeSegment?.label ?? "null");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
