@@ -17,6 +17,7 @@ import { Route as OportunidadesRouteImport } from './routes/oportunidades'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as ProspeccaoRouteImport } from './routes/prospeccao'
 import { Route as RapidoRouteImport } from './routes/rapido'
+import { Route as TrabalharLeadsRouteImport } from './routes/trabalhar-leads'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const RapidoRoute = RapidoRouteImport.update({
   path: '/rapido',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrabalharLeadsRoute = TrabalharLeadsRouteImport.update({
+  id: '/trabalhar-leads',
+  path: '/trabalhar-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
   '/rapido': typeof RapidoRoute
+  '/trabalhar-leads': typeof TrabalharLeadsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
   '/rapido': typeof RapidoRoute
+  '/trabalhar-leads': typeof TrabalharLeadsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/pipeline': typeof PipelineRoute
   '/prospeccao': typeof ProspeccaoRoute
   '/rapido': typeof RapidoRoute
+  '/trabalhar-leads': typeof TrabalharLeadsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/prospeccao'
     | '/rapido'
+    | '/trabalhar-leads'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/prospeccao'
     | '/rapido'
+    | '/trabalhar-leads'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/prospeccao'
     | '/rapido'
+    | '/trabalhar-leads'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   PipelineRoute: typeof PipelineRoute
   ProspeccaoRoute: typeof ProspeccaoRoute
   RapidoRoute: typeof RapidoRoute
+  TrabalharLeadsRoute: typeof TrabalharLeadsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RapidoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trabalhar-leads': {
+      id: '/trabalhar-leads'
+      path: '/trabalhar-leads'
+      fullPath: '/trabalhar-leads'
+      preLoaderRoute: typeof TrabalharLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   PipelineRoute: PipelineRoute,
   ProspeccaoRoute: ProspeccaoRoute,
   RapidoRoute: RapidoRoute,
+  TrabalharLeadsRoute: TrabalharLeadsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
