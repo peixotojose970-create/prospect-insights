@@ -18,7 +18,7 @@ import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
-import { PROSPECT_SEGMENTS } from "@/data/segments";
+import { PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
@@ -89,7 +89,10 @@ type FilterProps = {
 function FilterFields(p: FilterProps) {
   const isUS = p.country === "US";
   const states: readonly string[] = isUS ? US_STATES : STATES;
-  const categories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
+  const baseCategories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
+  // Termos vindos dos segmentos não estão na lista fixa: incluímos para o seletor
+  // sempre refletir a categoria que será realmente pesquisada.
+  const categories = baseCategories.includes(p.category) ? baseCategories : [p.category, ...baseCategories];
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,7 +110,9 @@ function FilterFields(p: FilterProps) {
         </div>
         <div className="space-y-2">
           <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
-          <Select value={p.category} onValueChange={p.setCategory}>
+          {/* Radix limpa o valor quando o item sai da lista: nunca aceitar vazio,
+              senão a categoria/segmento escolhido se perde antes da próxima busca. */}
+          <Select value={p.category} onValueChange={(v) => v && p.setCategory(v)}>
             <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
@@ -244,6 +249,8 @@ function Prospeccao() {
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
+  const activeSegment = segmentByTerm(category, isUS);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     // A leitura livre ("Clínicas Curitiba") só vale para o Brasil.
@@ -350,6 +357,8 @@ function Prospeccao() {
                 className="h-10"
                 onClick={() => {
                   setCategory(term);
+                  // A busca livre não pode sobrescrever o segmento escolhido.
+                  setQuery("");
                   setOnlyNoSite(true);
                   if (!city.trim()) {
                     setFiltersOpen(true);
@@ -368,6 +377,13 @@ function Prospeccao() {
             );
           })}
         </div>
+        {activeSegment ? (
+          <p className="text-xs text-muted-foreground">
+            Segmento ativo: <span className="font-medium text-foreground">{activeSegment.label}</span> — busca
+            enviada como “{category}”
+            {city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : ""}.
+          </p>
+        ) : null}
         {!city.trim() ? (
           <p className="text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
