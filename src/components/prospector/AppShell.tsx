@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Flame, Kanban, LayoutDashboard, Moon, MoreVertical, Search, Settings, Sun, Target, Users, Zap } from "lucide-react";
+import { Bell, Flame, Kanban, LayoutDashboard, MessageCircle, Moon, MoreVertical, Search, Settings, Sun, Target, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
