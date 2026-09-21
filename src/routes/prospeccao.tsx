@@ -112,7 +112,7 @@ function FilterFields(p: FilterProps) {
           <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
           {/* Radix limpa o valor quando o item sai da lista: nunca aceitar vazio,
               senão a categoria/segmento escolhido se perde antes da próxima busca. */}
-          <Select value={p.category} onValueChange={(v) => v && p.setCategory(v)}>
+          <Select value={p.category} onValueChange={(v) => { console.log("[SEGDBG] onValueChange", JSON.stringify(v)); if (v) p.setCategory(v); }}>
             <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
