@@ -89,7 +89,10 @@ type FilterProps = {
 function FilterFields(p: FilterProps) {
   const isUS = p.country === "US";
   const states: readonly string[] = isUS ? US_STATES : STATES;
-  const categories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
+  const baseCategories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
+  // Termos vindos dos segmentos não estão na lista fixa: incluímos para o seletor
+  // sempre refletir a categoria que será realmente pesquisada.
+  const categories = baseCategories.includes(p.category) ? baseCategories : [p.category, ...baseCategories];
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
