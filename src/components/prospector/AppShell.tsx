@@ -14,6 +14,7 @@ const nav = [
   { to: "/rapido", label: "Modo rápido", icon: Zap },
   { to: "/oportunidades", label: "Oportunidades", icon: Flame },
   { to: "/leads", label: "Leads", icon: Users },
+  { to: "/trabalhar-leads", label: "Trabalhar leads", icon: MessageCircle },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/follow-ups", label: "Follow-ups", icon: Bell },
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
