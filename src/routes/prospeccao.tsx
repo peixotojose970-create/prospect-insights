@@ -375,6 +375,13 @@ function Prospeccao() {
             );
           })}
         </div>
+        {activeSegment ? (
+          <p className="text-xs text-muted-foreground">
+            Segmento ativo: <span className="font-medium text-foreground">{activeSegment.label}</span> — busca
+            enviada como “{category}”
+            {city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : ""}.
+          </p>
+        ) : null}
         {!city.trim() ? (
           <p className="text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
