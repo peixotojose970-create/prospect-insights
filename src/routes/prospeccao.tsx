@@ -18,7 +18,7 @@ import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
-import { PROSPECT_SEGMENTS } from "@/data/segments";
+import { PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
