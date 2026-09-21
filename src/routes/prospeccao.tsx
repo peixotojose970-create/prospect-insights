@@ -110,7 +110,9 @@ function FilterFields(p: FilterProps) {
         </div>
         <div className="space-y-2">
           <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
-          <Select value={p.category} onValueChange={p.setCategory}>
+          {/* Radix limpa o valor quando o item sai da lista: nunca aceitar vazio,
+              senão a categoria/segmento escolhido se perde antes da próxima busca. */}
+          <Select value={p.category} onValueChange={(v) => v && p.setCategory(v)}>
             <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
