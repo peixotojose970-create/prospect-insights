@@ -101,7 +101,11 @@ export function SelectionBar() {
             <Button size="sm" variant="outline" className="h-10" onClick={() => setListOpen(true)}>
               Ver
             </Button>
-            <Button size="sm" className="h-10" onClick={() => setSaveOpen(true)}>
+            <Button size="sm" className="h-10" onClick={() => setMessagesOpen(true)}>
+              <MessageCircle className="size-4" aria-hidden />
+              Enviar mensagens
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => setSaveOpen(true)}>
               <Save className="size-4" aria-hidden />
               Salvar {selection.length}
             </Button>
@@ -117,6 +121,7 @@ export function SelectionBar() {
         </div>
       </div>
 
+      <BulkMessagesDialog open={messagesOpen} onOpenChange={setMessagesOpen} />
       <SelectionSheet open={listOpen} onOpenChange={setListOpen} onSave={() => setSaveOpen(true)} />
       <SaveSelectionDialog open={saveOpen} onOpenChange={setSaveOpen} onDone={setResult} />
       <ResultDialog result={result} onOpenChange={() => setResult(null)} />
