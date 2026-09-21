@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Download, Loader2, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, Loader2, MessageCircle, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BulkMessagesDialog } from "@/components/prospector/BulkMessagesDialog";
 import { formatPhone, whatsappLink } from "@/features/prospector/format";
 import { useProspector, type BatchSaveResult } from "@/features/prospector/store";
 import type { Business, LeadStatus } from "@/types";
@@ -81,6 +82,7 @@ export function SelectionBar() {
   const [listOpen, setListOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   const [result, setResult] = useState<BatchSaveResult | null>(null);
 
   if (selection.length === 0) return null;
