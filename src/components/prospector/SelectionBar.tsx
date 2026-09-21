@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Download, Loader2, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, Loader2, MessageCircle, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BulkMessagesDialog } from "@/components/prospector/BulkMessagesDialog";
 import { formatPhone, whatsappLink } from "@/features/prospector/format";
 import { useProspector, type BatchSaveResult } from "@/features/prospector/store";
 import type { Business, LeadStatus } from "@/types";
@@ -81,6 +82,7 @@ export function SelectionBar() {
   const [listOpen, setListOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   const [result, setResult] = useState<BatchSaveResult | null>(null);
 
   if (selection.length === 0) return null;
@@ -99,7 +101,11 @@ export function SelectionBar() {
             <Button size="sm" variant="outline" className="h-10" onClick={() => setListOpen(true)}>
               Ver
             </Button>
-            <Button size="sm" className="h-10" onClick={() => setSaveOpen(true)}>
+            <Button size="sm" className="h-10" onClick={() => setMessagesOpen(true)}>
+              <MessageCircle className="size-4" aria-hidden />
+              Enviar mensagens
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => setSaveOpen(true)}>
               <Save className="size-4" aria-hidden />
               Salvar {selection.length}
             </Button>
@@ -115,6 +121,7 @@ export function SelectionBar() {
         </div>
       </div>
 
+      <BulkMessagesDialog open={messagesOpen} onOpenChange={setMessagesOpen} />
       <SelectionSheet open={listOpen} onOpenChange={setListOpen} onSave={() => setSaveOpen(true)} />
       <SaveSelectionDialog open={saveOpen} onOpenChange={setSaveOpen} onDone={setResult} />
       <ResultDialog result={result} onOpenChange={() => setResult(null)} />
