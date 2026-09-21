@@ -116,6 +116,9 @@ function Leads() {
         subtitle="Tudo que você salvou, com status e contato — armazenado no seu navegador."
         actions={
           <>
+            <Button asChild className="h-11 sm:h-9" disabled={leads.length === 0}>
+              <Link to="/trabalhar-leads">Trabalhar leads salvos</Link>
+            </Button>
             <Button variant="outline" className="h-11 sm:h-9" onClick={() => fileRef.current?.click()}>
               <Upload className="size-4" aria-hidden />
               Importar CSV
