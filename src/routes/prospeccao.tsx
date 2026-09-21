@@ -355,6 +355,8 @@ function Prospeccao() {
                 className="h-10"
                 onClick={() => {
                   setCategory(term);
+                  // A busca livre não pode sobrescrever o segmento escolhido.
+                  setQuery("");
                   setOnlyNoSite(true);
                   if (!city.trim()) {
                     setFiltersOpen(true);
