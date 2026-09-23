@@ -74,55 +74,83 @@ Não afirmar quantidade de avaliações ou nota — esses dados não existem nes
 Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser confirmado.`;
 }
 
-/** Mensagens montadas a partir da situação real da empresa (nada inventado). */
-export function buildMessages(business: Business, profile?: SenderProfile) {
+function senderParts(profile?: SenderProfile) {
+  const name = profile?.personalName.trim() || "Alysson";
+  const company = profile?.companyName.trim() || "Nextor Studio";
+  return { name, company, signature: `${name} — ${company}` };
+}
+
+function shortName(business: Business) {
+  // Usa o nome completo do estabelecimento, sem inventar abreviações.
+  return business.name.trim();
+}
+
+/**
+ * ETAPA 1 — abertura. Curta, humana, sem vender: só confirma o responsável
+ * e desperta curiosidade. Cada estilo tem sua própria personalidade.
+ */
+export function buildMessages(business: Business, _profile?: SenderProfile) {
+  const nome = shortName(business);
+  const curta = `Olá! Tudo bem? Falo com o responsável pela ${nome}?`;
+  const natural = `Oi! Tudo bem? Falo com alguém responsável pela ${nome}?`;
+  const comercial = `Olá, boa tarde! Tudo bem? Falo com o responsável pela ${nome}?`;
+  const curiosidade = `Olá! Tudo bem? Falo com o responsável pela ${nome}? Tenho uma ideia específica para vocês.`;
+  return { curta, natural, comercial, curiosidade };
+}
+
+/**
+ * ETAPA 2 — apresentação, usada depois que a pessoa responde
+ * ("Sim", "Sou eu", "Pois não", "Como posso ajudar?"...).
+ * Usa apenas dados reais do lead. Não afirma que a prévia já existe:
+ * oferece prepará-la sem custo e sem compromisso.
+ */
+export function buildSecondMessages(business: Business, profile?: SenderProfile) {
+  const { name, company, signature } = senderParts(profile);
+  const nome = shortName(business);
   const semSite = !business.website;
-  const cidade = business.city ?? "sua região";
-  const categoria = business.category.toLowerCase();
-  const boaReputacao = business.rating !== null && business.rating >= 4.5;
-  const notaTxt = business.rating !== null ? `nota ${business.rating.toFixed(1)}` : null;
-  const avaliacoesTxt = business.reviews !== null ? `${business.reviews} avaliações` : null;
-  const reputacao = [notaTxt, avaliacoesTxt].filter(Boolean).join(" e ");
-  const apresentacao = senderIntroduction(profile);
-  const assinatura = senderSignature(profile);
-  const fechar = assinatura ? `\n\n${assinatura}` : "";
+  const categoria = business.category && business.category !== "Não informado" ? business.category.toLowerCase() : null;
+  const local = [business.neighborhood, business.city].filter(Boolean).join(", ");
+  const temNota = business.rating !== null;
+  const boaNota = temNota && business.rating! >= 4.5;
+  const reviewsTxt = business.reviews ? `${business.reviews} avaliações` : null;
+  const notaTxt = temNota ? `nota ${business.rating!.toFixed(1)}${reviewsTxt ? ` com ${reviewsTxt}` : ""}` : null;
 
-  const curta = semSite
-    ? `Oi! ${apresentacao}. Vi a ${business.name} no Google e achei o trabalho bem interessante. Percebi que não encontrei um site informado para vocês e tive uma ideia de como poderia ficar a presença online da empresa. Posso te mostrar?${fechar}`
-    : `Oi! ${apresentacao}. Encontrei a ${business.name} no Google e dei uma olhada na presença online de vocês. Tive algumas ideias que poderiam valorizar ainda mais a apresentação da empresa. Posso te mostrar?${fechar}`;
+  const curta = `Perfeito! Me chamo ${name}, sou da ${company}. Estava analisando a presença online de vocês e tive uma ideia de como poderia ficar um site profissional para a ${nome}. Posso preparar uma prévia específica para vocês, sem compromisso e sem cobrar nada por isso. Posso te enviar?
 
-  const natural = boaReputacao
-    ? `Oi! ${apresentacao} e crio sites para empresas de ${cidade}. Vi que a ${business.name} tem uma avaliação muito boa no Google${
-        reputacao ? ` (${reputacao})` : ""
-      } — bastante gente já conhece o trabalho de vocês. ${
-        semSite
-          ? "Como não encontrei um site informado, tive uma ideia de como transformar essa confiança em uma presença online ainda mais profissional."
-          : "Tive algumas ideias de como transformar essa confiança em uma presença online ainda mais profissional."
-      } Posso te enviar?${fechar}`
-    : `Olá! ${apresentacao} e crio sites para empresas de ${cidade}. Encontrei a ${business.name} no Google Maps. ${
-        semSite
-          ? "Não encontrei um site informado para vocês — pode existir e ainda não estar cadastrado, por isso queria confirmar."
-          : "Vi a presença online atual e anotei pontos que podem aumentar os contatos."
-      } Montei uma ideia de presença online para ${categoria}. Posso te enviar?${fechar}`;
+${signature}`;
 
-  const comercial = `Olá, falo com o responsável pela ${business.name}?
+  const presencaGoogle = boaNota
+    ? `vi que vocês têm uma reputação muito boa no Google (${notaTxt})`
+    : temNota
+      ? "vi que vocês já têm uma presença no Google"
+      : "encontrei vocês no Google";
+  const natural = `Legal! Me chamo ${name}, da ${company}. Estava conhecendo melhor a ${nome}${local ? ` aqui em ${local}` : ""} e ${presencaGoogle}. ${
+    semSite
+      ? "Como não encontrei um site informado, acabei tendo uma ideia de como poderia ficar a presença online de vocês."
+      : "Dei uma olhada no site atual e tive algumas ideias de como deixar a presença online ainda mais forte."
+  } Posso preparar uma prévia sem compromisso pra você ver como ficaria. Te mando?
 
-Sou especialista em sites para empresas de ${categoria} e atendo negócios em ${cidade}${
-    business.state ? ` - ${business.state}` : ""
-  }.
+${signature}`;
 
-O que encontrei nos dados públicos do Google:
-• ${semSite ? "Nenhum site informado no perfil" : `Site informado: ${business.website}`}
-• Contato listado: ${formatPhone(business.phone)}
-• Endereço: ${fullAddress(business)}${reputacao ? `\n• Reputação: ${reputacao}` : ""}
+  const pontos: string[] = [];
+  if (semSite) pontos.push("não encontrei um site informado no perfil do Google");
+  else pontos.push("o site atual pode ser modernizado e pensado para o celular");
+  if (notaTxt) pontos.push(`vocês já têm ${notaTxt}, o que passa confiança para quem pesquisa`);
+  const comercial = `Perfeito, obrigado pelo retorno! Me chamo ${name}, sou da ${company} e trabalho com sites para ${
+    categoria ? `empresas de ${categoria}` : "negócios locais"
+  }${business.city ? ` em ${business.city}` : ""}.
 
-Observação: essas informações vêm do perfil público e podem estar incompletas — se algo estiver desatualizado, me corrija.
+Analisei a ${nome} e vi que ${pontos.join(", e ")}. A ideia é um site rápido, que aparece bem nas buscas da região e leva o cliente direto para o WhatsApp de vocês.
 
-Proposta: um site rápido, otimizado para buscas locais e com contato direto no WhatsApp.
+Posso montar uma prévia gratuita e sem compromisso para você avaliar. Faz sentido eu te enviar?
 
-Posso te enviar uma prévia sem compromisso?${fechar}`;
+${signature}`;
 
-  const curiosidade = `Olá! Gostaria de falar com o responsável pela ${business.name} ou pela área de ${categoria}. ${apresentacao} e preparei uma ideia específica para o negócio de vocês. Com quem eu poderia conversar?${fechar}`;
+  const curiosidade = `Perfeito! Me chamo ${name}, sou da ${company}. Estive analisando a presença online da ${nome} e tive uma ideia específica para o negócio de vocês${
+    semSite ? " — principalmente porque não encontrei um site informado" : ""
+  }. Posso preparar uma prévia de como ficaria um site profissional para a ${nome}. Não tem custo nenhum e não existe compromisso — a ideia é você só ver como poderia ficar e decidir se faz sentido. Posso te enviar?
+
+${signature}`;
 
   return { curta, natural, comercial, curiosidade };
 }
