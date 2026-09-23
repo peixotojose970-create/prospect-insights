@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatPhone, whatsappLink } from "@/features/prospector/format";
-import { buildMessages } from "@/features/prospector/generators";
+import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
+import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
 import type { Business } from "@/types";
 
@@ -52,10 +53,31 @@ export function BulkMessagesDialog({
     for (const b of selection) map[b.id] = buildMessages(b, profile)[style];
     return map;
   }, [selection, profile, style]);
+  const seconds = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of selection) map[b.id] = buildSecondMessages(b, profile)[style];
+    return map;
+  }, [selection, profile, style]);
+  const [secondEdits, setSecondEdits] = useState<Record<string, string>>({});
+  const secondFor = (b: Business) => secondEdits[b.id] ?? seconds[b.id] ?? "";
+  const SecondBlock = ({ b }: { b: Business }) => (
+    <div className="space-y-2 border-t border-border pt-2">
+      <p className="text-xs font-semibold text-muted-foreground">2ª mensagem — depois que a pessoa responder</p>
+      <Textarea
+        value={secondFor(b)}
+        onChange={(e) => setSecondEdits((prev) => ({ ...prev, [b.id]: e.target.value }))}
+        className="min-h-28 text-sm"
+      />
+      <Button size="sm" variant="outline" className="h-10" onClick={() => void copyText(secondFor(b), "2ª mensagem copiada.")}>
+        Copiar 2ª mensagem
+      </Button>
+    </div>
+  );
 
   useEffect(() => {
     if (!open) return;
     setTexts({});
+    setSecondEdits({});
     setChosen(selection.filter((b) => whatsappLink(b.phone)).map((b) => b.id));
     setStatus({});
     setQueueOn(false);
@@ -126,6 +148,7 @@ export function BulkMessagesDialog({
               </span>
             </div>
             <Progress value={queue.length ? (done / queue.length) * 100 : 0} />
+            <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
             <Textarea
               value={textFor(current)}
               onChange={(e) => setTexts((prev) => ({ ...prev, [current.id]: e.target.value }))}
@@ -162,6 +185,7 @@ export function BulkMessagesDialog({
                 Pausar fila
               </Button>
             </div>
+            {SecondBlock({ b: current })}
           </div>
         ) : null}
 
@@ -198,6 +222,7 @@ export function BulkMessagesDialog({
                     {st === "enviado" ? "aberto" : st}
                   </span>
                 </div>
+                <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
                 <Textarea
                   value={textFor(b)}
                   onChange={(e) => setTexts((prev) => ({ ...prev, [b.id]: e.target.value }))}
