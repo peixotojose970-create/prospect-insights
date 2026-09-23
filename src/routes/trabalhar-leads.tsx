@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { buildMessages } from "@/features/prospector/generators";
+import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
 import { formatPhone, ratingLabel, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SiteBadge, SourceNotice, copyText } from "@/features/prospector/ui";
@@ -50,6 +50,7 @@ function WorkSavedLeads() {
   const [index, setIndex] = useState(0);
   const [style, setStyle] = useState<Style>("natural");
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [secondEdits, setSecondEdits] = useState<Record<string, string>>({});
 
   const queue = useMemo(() => leads.filter((l) => picked[l.id]), [leads, picked]);
   const selectedCount = queue.length;
@@ -138,6 +139,7 @@ function WorkSavedLeads() {
 
   const generated = buildMessages(current, profile)[style];
   const text = edits[current.id] ?? generated;
+  const second = secondEdits[current.id] ?? buildSecondMessages(current, profile)[style];
   const wa = whatsappLink(current.phone);
 
   return (
@@ -194,6 +196,7 @@ function WorkSavedLeads() {
               ))}
             </SelectContent>
           </Select>
+          <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
           <Textarea
             value={text}
             rows={7}
@@ -203,7 +206,7 @@ function WorkSavedLeads() {
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="outline" className="h-11" onClick={() => void copyText(text, "Mensagem copiada.")}>
               <Copy className="size-4" aria-hidden />
-              Copiar mensagem
+              Copiar 1ª mensagem
             </Button>
             {wa ? (
               <Button
@@ -222,6 +225,22 @@ function WorkSavedLeads() {
               </Button>
             )}
           </div>
+        </div>
+
+        <div className="space-y-2 border-t border-border pt-3">
+          <p className="text-xs font-semibold text-muted-foreground">
+            2ª mensagem — envie depois que a pessoa responder ("Sim", "Sou eu", "Pois não"...)
+          </p>
+          <Textarea
+            value={second}
+            rows={7}
+            onChange={(e) => setSecondEdits((prev) => ({ ...prev, [current.id]: e.target.value }))}
+            aria-label="Segunda mensagem deste lead"
+          />
+          <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => void copyText(second, "2ª mensagem copiada.")}>
+            <Copy className="size-4" aria-hidden />
+            Copiar 2ª mensagem
+          </Button>
         </div>
 
         <Button variant="ghost" className="h-11" onClick={() => openLead(current.id)}>

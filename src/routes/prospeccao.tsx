@@ -224,7 +224,7 @@ function Prospeccao() {
       .filter((b) => (onlyNoSite ? !b.website : true))
       .filter((b) => (onlyPhone ? !!b.phone : true))
       .filter((b) => b.score >= minScore)
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => Number(!!a.website) - Number(!!b.website) || b.score - a.score);
   }, [search.results, onlyNoSite, onlyPhone, minScore]);
 
   const allVisibleSelected = results.length > 0 && results.every((b) => isSelected(b.id));
@@ -359,7 +359,6 @@ function Prospeccao() {
                   setCategory(term);
                   // A busca livre não pode sobrescrever o segmento escolhido.
                   setQuery("");
-                  setOnlyNoSite(true);
                   if (!city.trim()) {
                     setFiltersOpen(true);
                     return;
@@ -517,8 +516,10 @@ function Prospeccao() {
               </p>
               {search.outcome?.coverage ? (
                 <p className="w-full text-xs text-muted-foreground">
-                  {search.outcome.coverage.queries} consultas do segmento · {search.outcome.coverage.requests} páginas no Google ·{" "}
-                  {search.outcome.coverage.duplicatesRemoved} repetidos removidos
+                  {search.outcome.coverage.queries} consultas · {search.outcome.coverage.requests} páginas ·{" "}
+                  {search.outcome.coverage.rawResults} encontrados · {search.outcome.coverage.duplicatesRemoved} duplicados ·{" "}
+                  {search.results.length} únicas · {search.results.filter((b) => !b.website).length} sem site ·{" "}
+                  {search.results.filter((b) => !!b.website).length} com site · {results.length} exibidas
                   {search.outcome.coverage.notes.length ? ` · ${search.outcome.coverage.notes.join(" ")}` : ""}
                 </p>
               ) : null}
