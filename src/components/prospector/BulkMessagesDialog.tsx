@@ -243,7 +243,7 @@ export function BulkMessagesDialog({
                     }}
                   >
                     <Check className="size-4" aria-hidden />
-                    Copiar
+                    Copiar 1ª mensagem
                   </Button>
                   <Button
                     size="sm"
@@ -255,6 +255,7 @@ export function BulkMessagesDialog({
                     Pular
                   </Button>
                 </div>
+                {SecondBlock({ b })}
               </li>
             );
           })}
