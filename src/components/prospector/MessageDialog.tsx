@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildMessages } from "@/features/prospector/generators";
+import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
 import { normalizePhone, whatsappLabel, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
@@ -24,6 +24,7 @@ export function MessageDialog({
   const { logHistory, isSaved, saveLead, registerContact, profile } = useProspector();
   if (!business) return null;
   const messages = buildMessages(business, profile);
+  const seconds = buildSecondMessages(business, profile);
   const wa = whatsappLink(business.phone);
   const digits = normalizePhone(business.phone);
   const tabs: [keyof typeof messages, string][] = [
@@ -54,6 +55,7 @@ export function MessageDialog({
           </TabsList>
           {tabs.map(([key]) => (
             <TabsContent key={key} value={key} className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
               <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                 {messages[key]}
               </p>
@@ -106,6 +108,25 @@ export function MessageDialog({
                   }}
                 >
                   Registrar contato
+                </Button>
+              </div>
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  2ª mensagem — envie depois que a pessoa responder ("Sim", "Sou eu", "Pois não"...)
+                </p>
+                <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                  {seconds[key]}
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-11 w-full sm:h-9 sm:w-auto"
+                  onClick={() => {
+                    copyText(seconds[key], "2ª mensagem copiada.");
+                    if (isSaved(business.id)) logHistory(business.id, "2ª mensagem copiada");
+                  }}
+                >
+                  <Copy className="size-4" aria-hidden />
+                  Copiar 2ª mensagem
                 </Button>
               </div>
             </TabsContent>
