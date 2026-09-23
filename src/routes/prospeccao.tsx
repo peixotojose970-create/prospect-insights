@@ -508,13 +508,20 @@ function Prospeccao() {
                 {results.length} resultados
                 <span className="font-normal text-muted-foreground">
                   {search.outcome?.areaLabel ? ` em ${search.outcome.areaLabel}` : ""}
-                  {search.outcome?.truncated ? " (lista limitada)" : ""}
+                  {search.outcome?.truncated ? " (limite do Google atingido)" : ""}
                   {search.outcome?.cached ? " · cache" : ""}
                 </span>
                 {selection.length > 0 ? (
                   <span className="ml-2 font-normal text-primary">· {selectionLabel(selection.length)}</span>
                 ) : null}
               </p>
+              {search.outcome?.coverage ? (
+                <p className="w-full text-xs text-muted-foreground">
+                  {search.outcome.coverage.queries} consultas do segmento · {search.outcome.coverage.requests} páginas no Google ·{" "}
+                  {search.outcome.coverage.duplicatesRemoved} repetidos removidos
+                  {search.outcome.coverage.notes.length ? ` · ${search.outcome.coverage.notes.join(" ")}` : ""}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
