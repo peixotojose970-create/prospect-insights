@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import { classifyWebsite } from "@/features/prospector/website";
+import { relatedTerms } from "@/data/segments";
 
 import type { Business, SearchOutcome } from "@/types";
 
@@ -274,22 +275,12 @@ export const searchBusinesses = createServerFn({ method: "POST" })
     }
   });
 
-async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutcome> {
-  if (!data.category.trim() || !data.city.trim()) {
-    throw new SearchError("amplo", "Escolha uma categoria e uma cidade para realizar uma busca.");
-  }
+/** Text Search entrega no máximo 20 por página e ~60 (3 páginas) por consulta. */
+const MAX_PAGES_PER_QUERY = 3;
+const MAX_REQUESTS_PER_SEARCH = 9;
 
-  const areaLabel = [data.city, data.state].filter(Boolean).join(" - ");
-  const textQuery = `${data.category} em ${areaLabel}, Brasil`;
-  const pageSize = data.limit ?? MAX_PAGE_SIZE;
-  const cacheKey = `${textQuery}|${pageSize}|${data.pageToken ?? ""}`.toLowerCase();
-
-  const hit = searchCache.get(cacheKey);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
-    return { ...hit.value, cached: true };
-  }
-
-  const payload = (await callPlaces("places/v1/places:searchText", {
+async function fetchPage(textQuery: string, pageSize: number, pageToken?: string) {
+  return (await callPlaces("places/v1/places:searchText", {
     method: "POST",
     fieldMask: SEARCH_FIELD_MASK,
     body: {
@@ -297,28 +288,110 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
       languageCode: "pt-BR",
       regionCode: "BR",
       pageSize,
-      ...(data.pageToken ? { pageToken: data.pageToken } : {}),
+      ...(pageToken ? { pageToken } : {}),
     },
   })) as { places?: PlaceResult[]; nextPageToken?: string };
+}
 
-  const places = payload.places ?? [];
-  const businesses = places.map(toBusiness).filter((b): b is Business => b !== null);
-  console.log("[SEARCH]", textQuery, "resultados", places.length, "parseados", businesses.length);
+async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutcome> {
+  if (!data.category.trim() || !data.city.trim()) {
+    throw new SearchError("amplo", "Escolha uma categoria e uma cidade para realizar uma busca.");
+  }
 
-  if (businesses.length === 0 && !data.pageToken) {
+  const areaLabel = [data.city, data.state].filter(Boolean).join(" - ");
+  const pageSize = data.limit ?? MAX_PAGE_SIZE;
+  const primaryQuery = `${data.category} em ${areaLabel}, Brasil`;
+  const cacheKey = `${primaryQuery}|${pageSize}|${data.pageToken ?? ""}|v2`.toLowerCase();
+
+  const hit = searchCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return { ...hit.value, cached: true };
+  }
+
+  // Continuação manual (token antigo): apenas uma página.
+  if (data.pageToken) {
+    const payload = await fetchPage(primaryQuery, pageSize, data.pageToken);
+    const businesses = (payload.places ?? []).map(toBusiness).filter((b): b is Business => b !== null);
+    const outcome: SearchOutcome = {
+      businesses,
+      total: businesses.length,
+      truncated: !!payload.nextPageToken,
+      cached: false,
+      areaLabel,
+      nextPageToken: payload.nextPageToken ?? null,
+    };
+    searchCache.set(cacheKey, { at: Date.now(), value: outcome });
+    return outcome;
+  }
+
+  // Consulta principal + consultas complementares do mesmo segmento, sempre na mesma cidade.
+  const queries = [data.category, ...relatedTerms(data.category, false)].map(
+    (term) => `${term} em ${areaLabel}, Brasil`,
+  );
+
+  const byId = new Map<string, Business>();
+  const notes: string[] = [];
+  let requests = 0;
+  let rawCount = 0;
+  let apiLimited = false;
+  let firstError: SearchError | null = null;
+
+  outer: for (const [qi, textQuery] of queries.entries()) {
+    let token: string | undefined;
+    for (let page = 0; page < MAX_PAGES_PER_QUERY; page++) {
+      if (requests >= MAX_REQUESTS_PER_SEARCH) {
+        apiLimited = true;
+        break outer;
+      }
+      requests++;
+      let payload: { places?: PlaceResult[]; nextPageToken?: string };
+      try {
+        payload = await fetchPage(textQuery, pageSize, token);
+      } catch (error) {
+        if (!(error instanceof SearchError)) throw error;
+        // Falha na consulta principal sem nada coletado: repassa o erro real.
+        if (qi === 0 && page === 0) throw error;
+        firstError ??= error;
+        if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config") {
+          notes.push(`Busca interrompida: ${error.message}`);
+          break outer;
+        }
+        notes.push(`Uma página adicional falhou (${error.message}); resultados parciais mantidos.`);
+        break;
+      }
+      const places = payload.places ?? [];
+      rawCount += places.length;
+      for (const place of places) {
+        const b = toBusiness(place);
+        // Deduplicação pelo identificador único do Google (place id).
+        if (b && !byId.has(b.id)) byId.set(b.id, b);
+      }
+      console.log("[SEARCH]", textQuery, "página", page + 1, "resultados", places.length);
+      token = payload.nextPageToken;
+      if (!token) break;
+      if (page === MAX_PAGES_PER_QUERY - 1) apiLimited = true;
+    }
+  }
+
+  const businesses = [...byId.values()];
+  console.log("[SEARCH] total", { requests, rawCount, unique: businesses.length, notes, apiLimited });
+
+  if (businesses.length === 0) {
     throw new SearchError(
       "vazio",
       "O Google Maps não retornou estabelecimentos para essa busca no Brasil.",
+      firstError?.detail,
     );
   }
 
   const outcome: SearchOutcome = {
     businesses,
     total: businesses.length,
-    truncated: !!payload.nextPageToken,
+    truncated: apiLimited,
     cached: false,
     areaLabel,
-    nextPageToken: payload.nextPageToken ?? null,
+    nextPageToken: null,
+    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, notes },
   };
 
   searchCache.set(cacheKey, { at: Date.now(), value: outcome });

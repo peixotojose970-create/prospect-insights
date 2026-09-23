@@ -102,4 +102,12 @@ export type SearchOutcome = {
   cached: boolean;
   areaLabel: string;
   nextPageToken: string | null;
+  /** Diagnóstico da cobertura da busca (consultas, páginas e duplicados removidos). */
+  coverage?: {
+    queries: number;
+    requests: number;
+    rawResults: number;
+    duplicatesRemoved: number;
+    notes: string[];
+  };
 };

@@ -22,7 +22,7 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "prospector:v1";
-const CLIENT_TIMEOUT_MS = 32_000;
+const CLIENT_TIMEOUT_MS = 90_000;
 
 type Persisted = {
   leads: Lead[];
