@@ -70,7 +70,8 @@ type Store = {
   clearSearch: () => void;
 
   openId: string | null;
-  openLead: (id: string | null) => void;
+  openedBusiness: Business | Lead | null;
+  openLead: (leadOrId: string | Business | Lead | null) => void;
   findById: (id: string) => Business | Lead | undefined;
   isSaved: (id: string) => boolean;
   sourceName: string;
@@ -142,6 +143,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(emptyState);
   const [hydrated, setHydrated] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openedBusiness, setOpenedBusiness] = useState<Business | Lead | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [search, setSearch] = useState<SearchState>({
@@ -380,8 +382,33 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       clearSearch: () =>
         setSearch({ status: "idle", results: [], outcome: null, error: null, criteria: null }),
       openId,
-      openLead: setOpenId,
-      findById: (id) => leads.find((l) => l.id === id) ?? search.results.find((b) => b.id === id),
+      openedBusiness,
+      openLead: (leadOrId: string | Business | Lead | null) => {
+        if (!leadOrId) {
+          setOpenId(null);
+          setOpenedBusiness(null);
+          return;
+        }
+        if (typeof leadOrId === "string") {
+          setOpenId(leadOrId);
+          const found =
+            leads.find((l) => l.id === leadOrId || l.placeId === leadOrId) ??
+            search.results.find((b) => b.id === leadOrId || b.placeId === leadOrId);
+          setOpenedBusiness(found ?? null);
+        } else {
+          setOpenId(leadOrId.id);
+          setOpenedBusiness(leadOrId);
+        }
+      },
+      findById: (id: string) => {
+        if (openedBusiness && (openedBusiness.id === id || openedBusiness.placeId === id)) {
+          return openedBusiness;
+        }
+        return (
+          leads.find((l) => l.id === id || l.placeId === id) ??
+          search.results.find((b) => b.id === id || b.placeId === id)
+        );
+      },
       isSaved: (id) => leads.some((l) => l.id === id),
       sourceName: businessSearchRepository.sourceName,
       saveLead: (business) => {
@@ -465,7 +492,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       removeSavedSearch: (id) =>
         setState((prev) => ({ ...prev, savedSearches: prev.savedSearches.filter((s) => s.id !== id) })),
     };
-  }, [state, search, openId, runSearch, loadMore, loadingMore, patchLead, pushActivity]);
+  }, [state, search, openId, openedBusiness, runSearch, loadMore, loadingMore, patchLead, pushActivity]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

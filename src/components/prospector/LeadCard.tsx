@@ -144,7 +144,7 @@ export function LeadCard({
             WhatsApp
           </Button>
         )}
-        <Button size="sm" variant="outline" className="h-10 flex-1" onClick={() => openLead(business.id)}>
+        <Button size="sm" variant="outline" className="h-10 flex-1" onClick={() => openLead(business)}>
           Abrir
         </Button>
         {saved ? (

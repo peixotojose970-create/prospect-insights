@@ -38,21 +38,25 @@ type PlaceDetails = {
 /** Galeria de fotos do Google (URLs temporárias, nada é armazenado). */
 function PlaceGallery({ business }: { business: Business }) {
   const [photos, setPhotos] = useState<{ url: string; alt: string }[]>([]);
+  const photoRefs = Array.isArray(business.photoRefs) ? business.photoRefs : [];
+  const photoAttributions = Array.isArray(business.photoAttributions) ? business.photoAttributions : [];
 
   useEffect(() => {
     let alive = true;
     setPhotos([]);
-    if (business.photoRefs.length === 0) return;
+    if (photoRefs.length === 0) return;
     photoProvider
       .photosFor(business)
-      .then((list) => alive && setPhotos(list))
+      .then((list) => {
+        if (alive && Array.isArray(list)) setPhotos(list);
+      })
       .catch(() => undefined);
     return () => {
       alive = false;
     };
-  }, [business]);
+  }, [business, photoRefs.length]);
 
-  if (business.photoRefs.length === 0) {
+  if (photoRefs.length === 0) {
     return <p className="text-xs text-muted-foreground">Fotos: não informado</p>;
   }
   if (photos.length === 0) return <p className="text-xs text-muted-foreground">Carregando fotos do Google…</p>;
@@ -72,7 +76,7 @@ function PlaceGallery({ business }: { business: Business }) {
       </div>
       <p className="text-[11px] text-muted-foreground">
         Fotos © Google Maps
-        {business.photoAttributions.length > 0 ? ` · ${business.photoAttributions.join(", ")}` : ""}
+        {photoAttributions.length > 0 ? ` · ${photoAttributions.join(", ")}` : ""}
       </p>
     </section>
   );
@@ -128,9 +132,13 @@ function LeadActionBar({ business }: { business: Business | Lead }) {
 
 /** Detalhe da empresa/lead: painel lateral no desktop, tela cheia no celular. */
 export function LeadWorkspace() {
-  const { openId, openLead, findById } = useProspector();
+  const { openId, openedBusiness, openLead, findById } = useProspector();
   const isMobile = useIsMobile();
-  const business = openId ? findById(openId) : undefined;
+  const business = openId
+    ? openedBusiness && (openedBusiness.id === openId || openedBusiness.placeId === openId)
+      ? openedBusiness
+      : findById(openId)
+    : undefined;
 
   return (
     <Sheet open={!!business} onOpenChange={(open) => !open && openLead(null)}>
@@ -141,11 +149,9 @@ export function LeadWorkspace() {
         {business ? (
           <>
             <SheetHeader className="shrink-0 border-b border-border p-4 sm:p-6">
-              <SheetTitle className="pr-8 leading-tight">{business.name}</SheetTitle>
+              <SheetTitle className="pr-8 leading-tight">{business.name || "Não informado"}</SheetTitle>
               <SheetDescription>
-                {business.category}
-                {business.city ? ` · ${business.city}` : ""}
-                {business.state ? ` - ${business.state}` : ""}
+                {[business.category, business.city, business.state].filter(Boolean).join(" · ") || "Não informado"}
               </SheetDescription>
             </SheetHeader>
             <ScrollArea className="min-h-0 flex-1">
@@ -177,6 +183,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
 
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const [msgFor, setMsgFor] = useState<Business | null>(null);
+  const [callFor, setCallFor] = useState<Business | null>(null);
   const [contactType, setContactType] = useState<ContactType>("whatsapp");
   const [contactNote, setContactNote] = useState("");
   const [fuLabel, setFuLabel] = useState("");
@@ -184,19 +191,22 @@ function LeadDetail({ business }: { business: Business | Lead }) {
   const [details, setDetails] = useState<PlaceDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // Place Details é consultado apenas quando o estabelecimento é aberto.
+  // Place Details é consultado apenas quando o estabelecimento é aberto e possui placeId válido.
   useEffect(() => {
     let alive = true;
     setDetails(null);
-    if (business.openingHours) return;
+    const pid = business.placeId?.trim() || "";
+    if (business.openingHours || !pid || pid.length < 3) return;
     setLoadingDetails(true);
     placeDetailsRepository
       .detailsFor(business)
       .then((result) => {
-        if (alive && result.ok) setDetails(result.details);
+        if (alive && result?.ok && result.details) setDetails(result.details);
       })
       .catch(() => undefined)
-      .finally(() => alive && setLoadingDetails(false));
+      .finally(() => {
+        if (alive) setLoadingDetails(false);
+      });
     return () => {
       alive = false;
     };
@@ -204,8 +214,18 @@ function LeadDetail({ business }: { business: Business | Lead }) {
 
   const wa = whatsappLink(business.phone);
   const kit = buildKit(business);
-  const leadFollowUps = followUps.filter((f) => f.leadId === business.id);
+  const leadFollowUps = (followUps ?? []).filter((f) => f.leadId === business.id);
+  const score = typeof business.score === "number" && !isNaN(business.score) ? business.score : 0;
+  const scoreFactors = Array.isArray(business.scoreFactors) ? business.scoreFactors : [];
+  const leadHistory = lead && Array.isArray(lead.history) ? lead.history : [];
+  const leadNotes = lead?.notes ?? "";
+  const leadStatus = lead?.status ?? "novo";
 
+  const hasCoords =
+    typeof business.latitude === "number" &&
+    typeof business.longitude === "number" &&
+    !isNaN(business.latitude) &&
+    !isNaN(business.longitude);
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -213,87 +233,172 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground">Lead Score</p>
-            <p className="text-3xl font-bold tabular-nums text-foreground">{business.score}</p>
+            <p className="text-3xl font-bold tabular-nums text-foreground">{score}</p>
           </div>
-          {lead ? <StatusBadge status={lead.status} /> : null}
+          {lead ? <StatusBadge status={leadStatus} /> : null}
         </div>
-        <ScoreBar score={business.score} />
-        <ul className="space-y-1 text-xs text-muted-foreground">
-          {business.scoreFactors.map((f) => (
-            <li key={f.label}>
-              +{f.points} · {f.label}
-            </li>
-          ))}
-        </ul>
+        <ScoreBar score={score} />
+        {scoreFactors.length > 0 ? (
+          <ul className="space-y-1 text-xs text-muted-foreground">
+            {scoreFactors.map((f) => (
+              <li key={f.label}>
+                +{f.points} · {f.label}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <PlaceGallery business={business} />
 
-      <section className="space-y-2 rounded-lg border border-border p-4">
-        <Row icon={<MapPin className="size-3.5" />} value={fullAddress(business)} />
-        <Row icon={<Star className="size-3.5" />} value={ratingLabel(business)} />
-        <Row icon={<Phone className="size-3.5" />} value={formatPhone(business.phone)} />
-        <Row
-          icon={<Globe className="size-3.5" />}
-          value={
-            business.website ??
-            (business.socialUrl
-              ? `Sem site próprio — só ${business.socialUrl}`
-              : "Sem site informado (a verificar)")
-          }
-          href={business.website ?? business.socialUrl ?? null}
-        />
-        <Row
-          icon={<Instagram className="size-3.5" />}
-          value={business.instagram ?? "Não informado"}
-          href={business.instagram}
-        />
-
-        <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
-        {business.country === "US" && business.email ? (
-          <div className="pt-1">
-            <Button size="sm" variant="secondary" className="h-10 w-full" asChild>
-              <a href={usEmailMailto(business as Business, profile) ?? "#"}>
-                <Mail className="size-4" aria-hidden />
-                Enviar e-mail ({business.email})
-              </a>
-            </Button>
+      {/* Detalhes da empresa com dados reais */}
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Detalhes da empresa
+        </h4>
+        <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-sm">
+          <div className="space-y-0.5 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">Nome</dt>
+            <dd className="font-semibold text-foreground break-words">
+              {business.name?.trim() || "Não informado"}
+            </dd>
           </div>
-        ) : null}
-        <p className="pt-1 text-xs text-muted-foreground">
-          Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
-        </p>
-        <p className="text-xs text-muted-foreground">Place ID: {business.placeId}</p>
-        <p className="text-xs text-muted-foreground">
-          Coordenadas: {business.latitude.toFixed(5)}, {business.longitude.toFixed(5)}
-        </p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          {business.phone ? (
-            <Button size="sm" variant="outline" onClick={() => void copyText(business.phone!, "Telefone copiado.")}>
-              <Copy className="size-4" aria-hidden />
-              Copiar telefone
-            </Button>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Categoria</dt>
+            <dd className="font-medium text-foreground break-words">
+              {business.category?.trim() || "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Place ID</dt>
+            <dd className="font-mono text-xs text-foreground break-all">
+              {business.placeId?.trim() || business.id?.trim() || "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">Endereço</dt>
+            <dd className="text-foreground break-words">
+              {business.address?.trim() || fullAddress(business)}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Cidade</dt>
+            <dd className="text-foreground break-words">
+              {business.city?.trim() || "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Estado</dt>
+            <dd className="text-foreground break-words">
+              {business.state?.trim() || "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Telefone</dt>
+            <dd className="text-foreground">
+              {business.phone ? formatPhone(business.phone) : "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Website</dt>
+            <dd className="break-all">
+              {business.website ? (
+                <a
+                  href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  {business.website}
+                </a>
+              ) : (
+                <span className="text-muted-foreground">Não informado</span>
+              )}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Avaliação</dt>
+            <dd className="text-foreground font-medium">
+              {typeof business.rating === "number" && !isNaN(business.rating)
+                ? `★ ${business.rating.toFixed(1)}`
+                : "Não informado"}
+            </dd>
+          </div>
+
+          <div className="space-y-0.5">
+            <dt className="text-xs text-muted-foreground">Número de avaliações</dt>
+            <dd className="text-foreground">
+              {typeof business.reviews === "number" && !isNaN(business.reviews)
+                ? `${business.reviews} avaliações`
+                : "Não informado"}
+            </dd>
+          </div>
+        </dl>
+
+        {/* Informações complementares */}
+        <div className="space-y-2 pt-2 border-t border-border/60">
+          <Row
+            icon={<Instagram className="size-3.5" />}
+            value={business.instagram ?? "Não informado"}
+            href={business.instagram}
+          />
+          <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
+
+          {business.country === "US" && business.email ? (
+            <div className="pt-1">
+              <Button size="sm" variant="secondary" className="h-10 w-full" asChild>
+                <a href={usEmailMailto(business as Business, profile) ?? "#"}>
+                  <Mail className="size-4" aria-hidden />
+                  Enviar e-mail ({business.email})
+                </a>
+              </Button>
+            </div>
           ) : null}
-          {wa ? (
-            <Button size="sm" variant="outline" asChild title={whatsappLabel(business.phone)}>
-              <a href={wa} target="_blank" rel="noreferrer">
-                Abrir WhatsApp
-              </a>
-            </Button>
+
+          <p className="text-xs text-muted-foreground">
+            Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
+          </p>
+
+          <p className="text-xs text-muted-foreground">
+            Coordenadas: {hasCoords ? `${business.latitude.toFixed(5)}, ${business.longitude.toFixed(5)}` : "Não informado"}
+          </p>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {business.phone ? (
+              <Button size="sm" variant="outline" onClick={() => void copyText(business.phone!, "Telefone copiado.")}>
+                <Copy className="size-4" aria-hidden />
+                Copiar telefone
+              </Button>
+            ) : null}
+            {wa ? (
+              <Button size="sm" variant="outline" asChild title={whatsappLabel(business.phone)}>
+                <a href={wa} target="_blank" rel="noreferrer">
+                  Abrir WhatsApp
+                </a>
+              </Button>
+            ) : null}
+          </div>
+
+          {business.mapsUrl ? (
+            <a
+              href={business.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-xs text-primary underline underline-offset-2"
+            >
+              Ver no Google Maps
+            </a>
           ) : null}
         </div>
-        {business.mapsUrl ? (
-          <a
-            href={business.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block text-xs text-primary underline underline-offset-2"
-          >
-            Ver no Google Maps
-          </a>
-        ) : null}
       </section>
-
 
       <div className="flex flex-wrap gap-2">
         {saved ? (
@@ -351,7 +456,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
             <>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={lead.status} onValueChange={(v) => setStatus(lead.id, v as LeadStatus)}>
+                <Select value={leadStatus} onValueChange={(v) => setStatus(lead.id, v as LeadStatus)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -370,7 +475,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
                 <Textarea
                   id="notas"
                   rows={4}
-                  value={lead.notes}
+                  value={leadNotes}
                   onChange={(e) => setNotes(lead.id, e.target.value)}
                   placeholder="O que foi conversado, objeções, próximos passos…"
                 />
@@ -472,9 +577,9 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </TabsContent>
 
         <TabsContent value="historico" className="pt-4">
-          {lead && lead.history.length > 0 ? (
+          {leadHistory.length > 0 ? (
             <ol className="space-y-3 border-l border-border pl-4">
-              {lead.history.map((h) => (
+              {leadHistory.map((h) => (
                 <li key={h.id} className="relative text-sm">
                   <span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-primary" aria-hidden />
                   <p className="text-foreground">{h.label}</p>

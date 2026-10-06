@@ -8,30 +8,32 @@ export function orNotInformed(value: string | null | undefined) {
 }
 
 /** Retorna somente os dígitos de um telefone brasileiro plausível, ou null. */
-export function normalizePhone(phone: string | null): string | null {
+export function normalizePhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
-  const first = phone.split(/[;,/]/)[0] ?? phone;
+  const raw = String(phone);
+  const first = raw.split(/[;,/]/)[0] ?? raw;
   let digits = first.replace(/\D/g, "");
   if (digits.startsWith("55") && digits.length >= 12) digits = digits.slice(2);
   if (digits.length === 10 || digits.length === 11) return digits;
   return null;
 }
 
-export function formatPhone(phone: string | null) {
+export function formatPhone(phone: string | null | undefined) {
+  if (!phone) return NAO_INFORMADO;
   const digits = normalizePhone(phone);
-  if (!digits) return orNotInformed(phone);
+  if (!digits) return orNotInformed(String(phone));
   const ddd = digits.slice(0, 2);
   const rest = digits.slice(2);
   const half = rest.length === 9 ? 5 : 4;
   return `(${ddd}) ${rest.slice(0, half)}-${rest.slice(half)}`;
 }
 
-export function whatsappLink(phone: string | null) {
+export function whatsappLink(phone: string | null | undefined) {
   const digits = normalizePhone(phone);
   return digits ? `https://wa.me/55${digits}` : null;
 }
 
-export function whatsappLabel(phone: string | null) {
+export function whatsappLabel(phone: string | null | undefined) {
   return normalizePhone(phone) ? "WhatsApp provável (não verificado)" : "WhatsApp não verificado";
 }
 
@@ -49,9 +51,11 @@ export function siteLabel(business: Business) {
 
 
 export function ratingLabel(business: Business) {
-  if (business.rating === null) return "Sem avaliações no Google";
-  const reviews = business.reviews !== null ? ` · ${business.reviews} avaliações` : "";
-  return `★ ${business.rating.toFixed(1)}${reviews}`;
+  if (business.rating === null || business.rating === undefined) return "Sem avaliações no Google";
+  const num = typeof business.rating === "number" ? business.rating : Number(business.rating);
+  if (isNaN(num)) return "Sem avaliações no Google";
+  const reviews = typeof business.reviews === "number" && !isNaN(business.reviews) ? ` · ${business.reviews} avaliações` : "";
+  return `★ ${num.toFixed(1)}${reviews}`;
 }
 
 

@@ -223,21 +223,23 @@ ${p(input.notes)}`;
 
 export function buildKit(business: Business) {
   const messages = buildMessages(business);
+  const scoreFactors = Array.isArray(business.scoreFactors) ? business.scoreFactors : [];
+  const scoreVal = typeof business.score === "number" && !isNaN(business.score) ? business.score : 0;
   return [
     {
       title: "Resumo da empresa",
-      content: `${business.name} — ${business.category}
+      content: `${business.name || "Não informado"} — ${business.category || "Não informado"}
 ${fullAddress(business)}
 Telefone: ${formatPhone(business.phone)}
 Site: ${business.website ?? "sem site informado na fonte"}
 Instagram: ${business.instagram ?? "não informado"}
 Avaliações: ${NAO_DISPONIVEL_FONTE}
-Fonte: ${business.source} · ${business.externalId}`,
+Fonte: ${business.source || "Google Maps"} · ${business.externalId || "Não informado"}`,
     },
     {
       title: "Score e motivos",
-      content: `Lead Score ${business.score}/100
-${business.scoreFactors.map((f) => `+${f.points} ${f.label}`).join("\n")}
+      content: `Lead Score ${scoreVal}/100
+${scoreFactors.map((f) => `+${f.points} ${f.label}`).join("\n")}
 Potencial baseado nos dados disponíveis na fonte.`,
     },
     { title: "Mensagem curta", content: messages.curta },

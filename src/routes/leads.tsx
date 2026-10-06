@@ -224,7 +224,7 @@ function Leads() {
               {l.nextAction ? (
                 <p className="text-xs font-medium text-foreground">Próxima ação: {l.nextAction}</p>
               ) : null}
-              <Button variant="outline" className="mt-1 h-11 w-full" onClick={() => openLead(l.id)}>
+              <Button variant="outline" className="mt-1 h-11 w-full" onClick={() => openLead(l)}>
                 Abrir lead
               </Button>
             </Card>
@@ -265,7 +265,7 @@ function Leads() {
                     <ScorePill score={l.score} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="outline" onClick={() => openLead(l.id)}>
+                    <Button size="sm" variant="outline" onClick={() => openLead(l)}>
                       Abrir
                     </Button>
                   </td>
