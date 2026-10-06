@@ -1,483 +1,334 @@
 import type { Business } from "@/types";
-import { formatPhone, fullAddress } from "./format";
+import { formatPhone } from "./format";
 
-export type CallBranchId =
-  | "abertura"
-  | "gk_quem_fala"
-  | "gk_sobre_o_que"
-  | "gk_quer_quem"
-  | "gk_nao_esta"
-  | "gk_deixar_recado"
-  | "gk_mandar_whats"
-  | "resp_abertura"
-  | "descoberta"
-  | "desc_so_instagram"
-  | "desc_so_whats"
-  | "desc_ja_pensamos"
-  | "desc_nao_precisamos"
-  | "desc_ja_tem_site"
-  | "solucao"
-  | "obj_sem_interesse"
-  | "obj_insta_resolve"
-  | "obj_whats_resolve"
-  | "obj_nao_preciso"
-  | "obj_esta_caro"
-  | "obj_preciso_pensar"
-  | "obj_falar_socio"
-  | "obj_agora_nao"
-  | "obj_ja_tenho_quem_faz"
-  | "obj_ja_tenho_site"
-  | "obj_manda_whats"
-  | "obj_estou_ocupado"
-  | "preco"
-  | "fechamento"
-  | "fechamento_alt";
+export type CallStageId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-export type CallChoice = {
-  label: string;
-  target: CallBranchId;
-  variant?: "default" | "outline" | "secondary" | "destructive";
+export type CustomerAlternative = {
+  customerSays: string;
+  recommendedReply: string;
+  nextStage?: CallStageId;
 };
 
-export type CallNode = {
-  id: CallBranchId;
-  stage: string;
-  speaker: "VOCÊ" | "ATENDENTE" | "RESPONSÁVEL" | "SITUAÇÃO";
-  speech: string;
-  contextNote?: string;
-  choices: CallChoice[];
+export type CallStageData = {
+  stageId: CallStageId;
+  stepNumber: string;
+  title: string;
+  mainSpeaker: "VOCÊ" | "CLIENTE";
+  mainSpeech: string;
+  contextTip?: string;
+  alternatives: CustomerAlternative[];
 };
 
-export type CallScriptData = {
+export type GeneratedCallScript = {
   companyName: string;
   category: string;
-  cityState: string;
+  city: string;
   phone: string;
   siteStatus: string;
-  website: string | null;
-  nodes: Record<CallBranchId, CallNode>;
+  hasWebsite: boolean;
+  stages: Record<CallStageId, CallStageData>;
 };
 
-export function generateCallScript(business: Business): CallScriptData {
-  const companyName = business.name?.trim() || "o estabelecimento";
-  const category = business.category && business.category !== "Não informado" ? business.category.trim() : "";
-  const categoryLower = category ? category.toLowerCase() : "";
-  const locationParts = [business.neighborhood, business.city, business.state].filter(Boolean);
-  const cityState = [business.city, business.state].filter(Boolean).join(" - ") || "Local não informado";
-  const formattedPhone = formatPhone(business.phone);
-  const hasSite = Boolean(business.website);
-  const siteStatus = hasSite
-    ? `Site informado: ${business.website}`
-    : business.socialUrl
-      ? `Sem site próprio (apenas link social informado: ${business.socialUrl})`
-      : "Sem site informado no cadastro";
+function getCategoryTone(category: string): {
+  vocative: string;
+  clientContext: string;
+  serviceExample: string;
+} {
+  const cat = (category || "").toLowerCase();
 
-  const empresaRef = `da ${companyName}`;
-  const empresaVocativo = `a ${companyName}`;
-  const categoryRef = categoryLower ? ` no ramo de ${categoryLower}` : "";
+  if (cat.includes("barbe") || cat.includes("cabel") || cat.includes("salao") || cat.includes("salão") || cat.includes("estetica") || cat.includes("estética")) {
+    return {
+      vocative: "do espaço",
+      clientContext: "clientes que querem agendar cortes e serviços sem precisar esperar retorno no WhatsApp",
+      serviceExample: "tabela de serviços, fotos dos cortes, horários e botão direto pro WhatsApp",
+    };
+  }
 
-  const nodes: Record<CallBranchId, CallNode> = {
-    abertura: {
-      id: "abertura",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `Boa tarde, é ${empresaRef}?`,
-      contextNote: "Primeiro contato. Fale com calma e clareza, confirmando se ligou no lugar certo.",
-      choices: [
-        { label: "SIM / POIS NÃO", target: "gk_quem_fala" },
-        { label: "QUEM FALA?", target: "gk_quem_fala" },
-        { label: "QUER FALAR COM QUEM?", target: "gk_quer_quem" },
-        { label: "SOBRE O QUE SERIA?", target: "gk_sobre_o_que" },
-        { label: "JÁ É O PRÓPRIO RESPONSÁVEL", target: "resp_abertura" },
-        { label: "ELE NÃO ESTÁ", target: "gk_nao_esta" },
+  if (cat.includes("oficina") || cat.includes("mecanic") || cat.includes("mecânic") || cat.includes("auto") || cat.includes("funilaria") || cat.includes("pneu")) {
+    return {
+      vocative: "da oficina",
+      clientContext: "motoristas que procuram socorro, revisão ou orçamento rápido pelo Google",
+      serviceExample: "serviços prestados, localização no mapa, fotos e botão de chamada e WhatsApp imediato",
+    };
+  }
+
+  if (cat.includes("clinic") || cat.includes("clínic") || cat.includes("odonto") || cat.includes("dentist") || cat.includes("saude") || cat.includes("saúde") || cat.includes("med") || cat.includes("méd")) {
+    return {
+      vocative: "da clínica",
+      clientContext: "pacientes que buscam especialidades, convênios ou agendamento de consultas com confiança",
+      serviceExample: "especialidades, equipe, localização, convênios e botão rápido de agendamento",
+    };
+  }
+
+  if (cat.includes("restaur") || cat.includes("pizz") || cat.includes("lanch") || cat.includes("hamburg") || cat.includes("bar") || cat.includes("café") || cat.includes("cafe")) {
+    return {
+      vocative: "do restaurante",
+      clientContext: "clientes que querem ver o cardápio atualizado e fazer pedidos ou reservas sem complicação",
+      serviceExample: "cardápio, fotos dos pratos, endereço e botão direto de pedidos no WhatsApp",
+    };
+  }
+
+  return {
+    vocative: "do negócio",
+    clientContext: "clientes que pesquisam no Google e precisam de informações rápidas e confiáveis",
+    serviceExample: "informações, serviços, imagens, localização e WhatsApp da empresa organizados em um lugar só",
+  };
+}
+
+export function generateCallScript(business?: Business | null): GeneratedCallScript {
+  const companyName = business?.name?.trim() || "Não informado";
+  const categoryRaw = business?.category?.trim();
+  const category = categoryRaw && categoryRaw !== "Não informado" ? categoryRaw : "Não informado";
+
+  const cityParts = [business?.city?.trim(), business?.state?.trim()].filter(Boolean);
+  const city = cityParts.length > 0 ? cityParts.join(" - ") : "Não informado";
+
+  const rawPhone = business?.phone?.trim();
+  const phone = rawPhone ? formatPhone(rawPhone) : "Não informado";
+
+  const websiteRaw = business?.website?.trim();
+  const hasWebsite = Boolean(websiteRaw);
+  const siteStatus = hasWebsite ? websiteRaw : "Não encontrado";
+
+  const tone = getCategoryTone(category !== "Não informado" ? category : "");
+  const targetName = companyName !== "Não informado" ? companyName : "o estabelecimento";
+
+  const stages: Record<CallStageId, CallStageData> = {
+    1: {
+      stageId: 1,
+      stepNumber: "1",
+      title: "PRIMEIRO CONTATO",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Boa tarde, é da ${targetName}?`,
+      contextTip: "Fale com naturalidade, segurança e ritmo tranquilo. O foco desta etapa é apenas passar pelo atendimento e falar com o responsável.",
+      alternatives: [
+        {
+          customerSays: '"Quem fala?"',
+          recommendedReply: `É o Alysson, da NEXORA. Eu queria falar rapidinho com o responsável pelo negócio.`,
+        },
+        {
+          customerSays: '"Sobre o que seria?"',
+          recommendedReply: `É uma proposta rápida sobre a presença digital e atendimento de vocês. Leva menos de 1 minuto.`,
+        },
+        {
+          customerSays: '"Quem você quer falar?"',
+          recommendedReply: `Com a pessoa que toma as decisões comerciais da ${targetName}, por favor.`,
+        },
+        {
+          customerSays: '"Ele não está."',
+          recommendedReply: `Entendi. Qual é o melhor horário pra eu ligar de volta e encontrar ele? Ou teria um contato direto dele no WhatsApp?`,
+        },
+        {
+          customerSays: '"Pode deixar recado."',
+          recommendedReply: `Perfeito. Pode avisar que o Alysson da NEXORA ligou sobre o site de vocês? Qual o melhor WhatsApp pra eu mandar uma prévia?`,
+        },
+        {
+          customerSays: '"Pode mandar mensagem."',
+          recommendedReply: `Maravilha! Esse número que estou ligando já é o WhatsApp direto dele, ou teria outro contato?`,
+        },
       ],
     },
 
-    gk_quem_fala: {
-      id: "gk_quem_fala",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `É o Alysson, da NEXORA. Eu queria falar rapidinho com o responsável pelo negócio.`,
-      contextNote: "Objetivo direto: chegar em quem toma decisão sem parecer invasivo.",
-      choices: [
-        { label: "TRANSFERIU / RESPONSÁVEL ATENDEU", target: "resp_abertura" },
-        { label: "SOBRE O QUÊ?", target: "gk_sobre_o_que" },
-        { label: "ELE NÃO ESTÁ", target: "gk_nao_esta" },
-        { label: "PODE DEIXAR RECADO", target: "gk_deixar_recado" },
-        { label: "PODE MANDAR NO WHATSAPP", target: "gk_mandar_whats" },
+    2: {
+      stageId: 2,
+      stepNumber: "2",
+      title: "ABERTURA COM O RESPONSÁVEL",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Meu nome é Alysson, eu vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
+      contextTip: "Seja direto, simpático e sem rodeios. Desarma a defensiva inicial de ligações de telemarketing.",
+      alternatives: [
+        {
+          customerSays: "SE ELE ACEITAR (Pode falar / Diga)",
+          recommendedReply: `Perfeito, vou direto ao ponto.`,
+          nextStage: 3,
+        },
+        {
+          customerSays: "SE ELE RECUSAR / HESITAR (\"Tô sem tempo / É venda?\")",
+          recommendedReply: `Tranquilo! Sei que você tá na correria ${tone.vocative}. É só 30 segundos mesmo, se não fizer sentido a gente encerra na hora.`,
+          nextStage: 3,
+        },
+        {
+          customerSays: "\"Do que se trata primeiro?\"",
+          recommendedReply: `É sobre como novos clientes encontram a ${targetName} na internet e chegam no seu WhatsApp hoje.`,
+          nextStage: 3,
+        },
       ],
     },
 
-    gk_sobre_o_que: {
-      id: "gk_sobre_o_que",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `É uma proposta comercial relacionada à presença digital da empresa. É bem rapidinho.`,
-      contextNote: "Curto, sem enrolar. Transmite profissionalismo.",
-      choices: [
-        { label: "TRANSFERIU / RESPONSÁVEL ATENDEU", target: "resp_abertura" },
-        { label: "ELE NÃO ESTÁ", target: "gk_nao_esta" },
-        { label: "PODE DEIXAR RECADO", target: "gk_deixar_recado" },
-        { label: "PODE MANDAR NO WHATSAPP", target: "gk_mandar_whats" },
+    3: {
+      stageId: 3,
+      stepNumber: "3",
+      title: "DESCOBRIR A SITUAÇÃO",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Hoje vocês já têm algum site ou trabalham mais pelo Instagram e WhatsApp?`,
+      contextTip: "Faça a pergunta e ouça atentamente a resposta sem interromper.",
+      alternatives: [
+        {
+          customerSays: '"A gente só usa Instagram."',
+          recommendedReply: `Entendi. E vocês nunca chegaram a pensar em ter um site ou nunca viram muita necessidade?`,
+          nextStage: 4,
+        },
+        {
+          customerSays: '"Trabalhamos só pelo WhatsApp e indicação."',
+          recommendedReply: `Indicação é o melhor canal mesmo. Mas vocês sentem que às vezes perdem cliente que procura no Google e vai pro concorrente?`,
+          nextStage: 4,
+        },
+        {
+          customerSays: '"A gente já pensou em fazer, mas não foi pra frente."',
+          recommendedReply: `Imagino, agência costuma cobrar caro e demorar muito. A ideia aqui é ser prático e acessível.`,
+          nextStage: 4,
+        },
+        {
+          customerSays: '"Já temos um site."',
+          recommendedReply: `Bacana! Ele tá atualizado e convertendo bem no celular, ou tá mais parado hoje em dia?`,
+          nextStage: 4,
+        },
+        {
+          customerSays: '"Não vemos muita necessidade."',
+          recommendedReply: `Compreendo. É porque vocês já têm bastante movimento ou porque acham que no ramo de vocês não traz cliente?`,
+          nextStage: 4,
+        },
       ],
     },
 
-    gk_quer_quem: {
-      id: "gk_quer_quem",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `Com a pessoa responsável pela parte comercial e decisões da ${companyName}, por favor.`,
-      contextNote: "Foque na pessoa que tem autonomia para decidir.",
-      choices: [
-        { label: "TRANSFERIU / RESPONSÁVEL ATENDEU", target: "resp_abertura" },
-        { label: "SOBRE O QUÊ?", target: "gk_sobre_o_que" },
-        { label: "ELE NÃO ESTÁ", target: "gk_nao_esta" },
+    4: {
+      stageId: 4,
+      stepNumber: "4",
+      title: "APRESENTAR A PROPOSTA",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Entendi. Foi justamente por isso que eu entrei em contato. Eu trabalho com criação de sites profissionais para negócios. A ideia é deixar as informações, serviços, imagens, localização e WhatsApp da empresa organizados em um lugar só.\n\nE normalmente consigo deixar tudo pronto em 1 a 2 dias.\n\nVocê acha que um site assim ajudaria o negócio?`,
+      contextTip: `Fala curta e pontual. Personalizada para o ramo (${category !== "Não informado" ? category : "comércio/serviço"}). Deixe o cliente responder.`,
+      alternatives: [
+        {
+          customerSays: '"Acho que ajudaria sim / Faz sentido."',
+          recommendedReply: `Legal. A ideia é justamente facilitar a vida do cliente e passar mais credibilidade na hora que ele pesquisa ${targetName}.`,
+          nextStage: 6,
+        },
+        {
+          customerSays: '"Talvez, depende do preço / de como funciona."',
+          recommendedReply: `Total razão. Já te passo o valor de forma bem transparente.`,
+          nextStage: 6,
+        },
+        {
+          customerSays: '"Acho que pra nós não faz muita diferença."',
+          recommendedReply: `Entendo. Mas se o cliente pesquisa no Google hoje e acha o concorrente organizado e vocês não, faz diferença na escolha dele?`,
+          nextStage: 5,
+        },
       ],
     },
 
-    gk_nao_esta: {
-      id: "gk_nao_esta",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `Entendi. Qual é o melhor horário pra eu conseguir falar direto com ele?`,
-      contextNote: "Pegue o melhor período ou dia para tentar novamente.",
-      choices: [
-        { label: "DEU HORÁRIO / TENTAR DEPOIS", target: "fechamento_alt" },
-        { label: "DISSE PRA MANDAR NO WHATSAPP", target: "gk_mandar_whats" },
-        { label: "DISSE PRA DEIXAR RECADO", target: "gk_deixar_recado" },
+    5: {
+      stageId: 5,
+      stepNumber: "5",
+      title: "SE O CLIENTE RESISTIR",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Tranquilo. Só pra eu entender: você não vê necessidade de um site ou é porque não quer investir nisso agora?`,
+      contextTip: "Nunca discuta ou force. Mantenha o diálogo leve e compreensivo, respondendo de forma curta.",
+      alternatives: [
+        {
+          customerSays: '"Não tenho interesse."',
+          recommendedReply: `Tranquilo. Só pra eu entender: você não vê necessidade de um site ou é porque não quer investir nisso agora?`,
+        },
+        {
+          customerSays: '"Instagram já resolve."',
+          recommendedReply: `O Instagram é ótimo pra engajamento. Mas quem busca no Google geralmente tá querendo contratar agora e não quer ficar caçando telefone em post.`,
+        },
+        {
+          customerSays: '"WhatsApp já resolve."',
+          recommendedReply: `Com certeza, o WhatsApp fecha a venda. O site serve justamente pra colocar gente qualificada direto dentro do seu WhatsApp.`,
+        },
+        {
+          customerSays: '"Não preciso de site."',
+          recommendedReply: `Compreendo. Se vocês já tão com a agenda 100% cheia, realmente faz sentido segurar. Mas se quiser crescer, é o canal mais barato.`,
+        },
+        {
+          customerSays: '"Está caro."',
+          recommendedReply: `Comparado a agências normais que cobram R$2.000, o nosso modelo é muito acessível. Um cliente novo que o site traz no mês já paga a conta.`,
+          nextStage: 6,
+        },
+        {
+          customerSays: '"Preciso pensar."',
+          recommendedReply: `Claro, sem problemas. Qual é a sua principal dúvida hoje pra gente já clarear agora?`,
+        },
+        {
+          customerSays: '"Tenho que falar com meu sócio."',
+          recommendedReply: `Perfeito. Inclusive fica até mais fácil pra você mostrar pra ele se tiver uma versão pronta. Posso montar uma demonstração sem custo pra vocês olharem juntos?`,
+          nextStage: 7,
+        },
+        {
+          customerSays: '"Agora não."',
+          recommendedReply: `Sem problemas. Qual época do mês ou ano costuma ser mais tranquila pra vocês avaliarem isso?`,
+        },
+        {
+          customerSays: '"Já tenho alguém que faz isso."',
+          recommendedReply: `Ótimo! E vocês tão satisfeitos com a velocidade dele de atualizar ou às vezes demora pra dar retorno?`,
+        },
+        {
+          customerSays: '"Já tenho site."',
+          recommendedReply: `Maravilha. Ele funciona rápido no celular e recebe contatos todo mês, ou tá meio parado precisando de uma renovada?`,
+        },
+        {
+          customerSays: '"Me manda no WhatsApp."',
+          recommendedReply: `Mando sim com o maior prazer! Esse número aqui mesmo é o seu WhatsApp? Como é seu nome pra eu salvar certinho?`,
+        },
+        {
+          customerSays: '"Estou ocupado."',
+          recommendedReply: `Imagino a correria! Te dou um toque no final da tarde ou prefere amanhã de manhã?`,
+        },
       ],
     },
 
-    gk_deixar_recado: {
-      id: "gk_deixar_recado",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `Perfeito. Pode avisar que o Alysson da NEXORA ligou sobre a presença digital da empresa? Qual o melhor canal pra eu dar um alô direto pra ele?`,
-      contextNote: "Tente colher contato direto ou horário ideal.",
-      choices: [
-        { label: "PASSOU CONTATO / WHATSAPP", target: "gk_mandar_whats" },
-        { label: "ENCERRAR E RETORNAR MAIS TARDE", target: "fechamento_alt" },
+    6: {
+      stageId: 6,
+      stepNumber: "6",
+      title: "SE PERGUNTAR O PREÇO",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Pra criar o site são R$300. Depois fica R$50 por mês pra manter o site no ar e fazer as atualizações.`,
+      contextTip: "Diga o preço com naturalidade e PARE DE FALAR. Deixe o cliente digerir e responder primeiro.",
+      alternatives: [
+        {
+          customerSays: '"Achei bom o valor / Justo."',
+          recommendedReply: `Legal! A gente fez pensado pra caber fácil no caixa de qualquer empresa.`,
+          nextStage: 7,
+        },
+        {
+          customerSays: '"O que tá incluso nos R$50?"',
+          recommendedReply: `Hospedagem rápida, segurança, domínio e alterações quando você precisar mudar telefone, fotos, horários ou serviços.`,
+          nextStage: 7,
+        },
+        {
+          customerSays: '"Quanto tempo demora?"',
+          recommendedReply: `Normalmente de 1 a 2 dias úteis eu já entrego funcionando.`,
+          nextStage: 7,
+        },
+        {
+          customerSays: '"Ainda tá pesado pra mim."',
+          recommendedReply: `Entendo. Vamos fazer assim: eu monto a primeira versão sem você pagar nada. Se você gostar, a gente fecha.`,
+          nextStage: 7,
+        },
       ],
     },
 
-    gk_mandar_whats: {
-      id: "gk_mandar_whats",
-      stage: "1. Gatekeeper / Quem atendeu",
-      speaker: "VOCÊ",
-      speech: `Combinado! Esse próprio número aqui recebe WhatsApp, ou teria um contato direto com ele?`,
-      contextNote: "Confirma se o número da ligação é o WhatsApp que o tomador de decisão lê.",
-      choices: [
-        { label: "É ESSE MESMO (ENVIAR MENSAGEM)", target: "fechamento_alt" },
-        { label: "PASSOU OUTRO NÚMERO", target: "fechamento_alt" },
-        { label: "RESPONSÁVEL ACABOU ATENDENDO", target: "resp_abertura" },
-      ],
-    },
-
-    resp_abertura: {
-      id: "resp_abertura",
-      stage: "2. Responsável atendeu",
-      speaker: "VOCÊ",
-      speech: `Boa tarde, tudo certo? Meu nome é Alysson, da NEXORA. Vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
-      contextNote: "Abertura direta, sem enrolação. Dá controle pro cliente nos 30 segundos.",
-      choices: [
-        { label: "SIM / PODE FALAR (30s)", target: "descoberta" },
-        { label: "DO QUE SE TRATA?", target: "descoberta" },
-        { label: "ESTOU OCUPADO AGORA", target: "obj_estou_ocupado" },
-        { label: "NÃO TENHO INTERESSE", target: "obj_sem_interesse" },
-      ],
-    },
-
-    descoberta: {
-      id: "descoberta",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: hasSite
-        ? `Hoje vi que vocês já possuem um site para a ${companyName}. Vocês sentem que ele realmente traz novos clientes, ou o forte de vocês continua sendo WhatsApp e Instagram?`
-        : `Hoje vocês já têm algum site próprio da ${companyName} ou trabalham mais pelo Instagram e WhatsApp?`,
-      contextNote: hasSite
-        ? `Lead tem site informado (${business.website}). Verifique se gera resultado.`
-        : `Lead sem site próprio informado no cadastro. Não invente nada, descubra a realidade.`,
-      choices: [
-        { label: "SÓ USAMOS INSTAGRAM", target: "desc_so_instagram" },
-        { label: "SÓ USAMOS WHATSAPP", target: "desc_so_whats" },
-        { label: "JÁ PENSAMOS EM TER SITE", target: "desc_ja_pensamos" },
-        { label: "NÃO PRECISAMOS DE SITE", target: "desc_nao_precisamos" },
-        { label: "JÁ TEMOS SITE", target: "desc_ja_tem_site" },
-        { label: "PERGUNTOU QUANTO CUSTA?", target: "preco" },
-      ],
-    },
-
-    desc_so_instagram: {
-      id: "desc_so_instagram",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: `Entendi. E vocês nunca chegaram a pensar em ter um site ou nunca viram muita necessidade?`,
-      contextNote: "Pergunta aberta e neutra. Deixa a pessoa explicar o motivo real.",
-      choices: [
-        { label: "NUNCA VIMOS NECESSIDADE", target: "obj_insta_resolve" },
-        { label: "ATÉ PENSAMOS, MAS FICOU PRA DEPOIS", target: "solucao" },
-        { label: "ACHA QUE SAI CARO OU DÁ TRABALHO", target: "solucao" },
-        { label: "APRESENTAR A SOLUÇÃO", target: "solucao" },
-      ],
-    },
-
-    desc_so_whats: {
-      id: "desc_so_whats",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: `O WhatsApp é essencial mesmo. Mas quando alguém procura por ${categoryLower || "serviços como o seu"} no Google aqui na região, vocês chegam a perder clientes por não terem uma página própria com todas as informações organizadas?`,
-      contextNote: "Mostra o ponto cego: clientes do Google que não acham a empresa.",
-      choices: [
-        { label: "FAZ SENTIDO / NUNCA PENSEI NISSO", target: "solucao" },
-        { label: "WHATSAPP JÁ RESOLVE PRA MIM", target: "obj_whats_resolve" },
-        { label: "APRESENTAR A SOLUÇÃO", target: "solucao" },
-      ],
-    },
-
-    desc_ja_pensamos: {
-      id: "desc_ja_pensamos",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: `Legal! E o que acabou travando na época? Foi mais questão de tempo, custo ou não acharam alguém de confiança?`,
-      contextNote: "Identifica a dor que impediu o fechamento anterior.",
-      choices: [
-        { label: "FALTOU TEMPO / DÁ TRABALHO", target: "solucao" },
-        { label: "ACHOU MUITO CARO", target: "solucao" },
-        { label: "APRESENTAR A SOLUÇÃO", target: "solucao" },
-      ],
-    },
-
-    desc_nao_precisamos: {
-      id: "desc_nao_precisamos",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: `Tranquilo, compreendo perfeitamente. Vocês têm uma demanda boa por indicação, né? Só pra eu entender: hoje quem pesquisa no Google sobre ${categoryLower || "o negócio de vocês"} consegue encontrar tudo fácil num lugar só?`,
-      contextNote: "Valida a força do negócio e planta a semente do Google sem confronto.",
-      choices: [
-        { label: "NÃO ENCONTRAM / PODERIA SER MELHOR", target: "solucao" },
-        { label: "NÃO PRECISO MESMO", target: "obj_nao_preciso" },
-        { label: "APRESENTAR A SOLUÇÃO", target: "solucao" },
-      ],
-    },
-
-    desc_ja_tem_site: {
-      id: "desc_ja_tem_site",
-      stage: "3. Descoberta",
-      speaker: "VOCÊ",
-      speech: `Perfeito! E esse site hoje tá atualizado e moderno no celular, ou é daquele tipo que vocês quase não mexem?`,
-      contextNote: "Maioria dos sites locais é antigo ou não funciona bem no celular.",
-      choices: [
-        { label: "ESTÁ ANTIGO / PRECISA ATUALIZAR", target: "solucao" },
-        { label: "JÁ TENHO QUEM CUIDA DISSO", target: "obj_ja_tenho_quem_faz" },
-        { label: "ESTÁ ÓTIMO / SATISFEITO", target: "obj_ja_tenho_site" },
-      ],
-    },
-
-    solucao: {
-      id: "solucao",
-      stage: "4. Apresentação da Solução",
-      speaker: "VOCÊ",
-      speech: `A NEXORA cria sites profissionais rápidos, direto ao ponto e otimizados para o celular. A gente entrega tudo pronto em 1 a 2 dias, sem você perder tempo nem esquentar a cabeça.`,
-      contextNote: "Apresentação curta e objetiva. Não cuspa o preço ainda; espere a reação.",
-      choices: [
-        { label: "GOSTOU / COMO FUNCIONA?", target: "fechamento" },
-        { label: "QUANTO CUSTA?", target: "preco" },
-        { label: "NÃO TENHO INTERESSE", target: "obj_sem_interesse" },
-        { label: "INSTAGRAM JÁ RESOLVE", target: "obj_insta_resolve" },
-        { label: "WHATSAPP JÁ RESOLVE", target: "obj_whats_resolve" },
-        { label: "ME MANDA NO WHATSAPP", target: "obj_manda_whats" },
-        { label: "PROPOR VERSÃO TESTE (FECHAMENTO)", target: "fechamento" },
-      ],
-    },
-
-    preco: {
-      id: "preco",
-      stage: "6. Preço",
-      speaker: "VOCÊ",
-      speech: `Pra criar o site são R$300. Depois fica R$50 por mês pra manter o site no ar e fazer as atualizações.`,
-      contextNote: "PARE E ESPERE O CLIENTE FALAR. Não fique se justificando nem abaixando preço.",
-      choices: [
-        { label: "ACHOU BOM / GOSTOU", target: "fechamento" },
-        { label: "ESTÁ CARO", target: "obj_esta_caro" },
-        { label: "PRECISO PENSAR", target: "obj_preciso_pensar" },
-        { label: "TENHO QUE FALAR COM SÓCIO", target: "obj_falar_socio" },
-        { label: "ME MANDA NO WHATSAPP", target: "obj_manda_whats" },
-        { label: "IR PARA O FECHAMENTO", target: "fechamento" },
-      ],
-    },
-
-    fechamento: {
-      id: "fechamento",
-      stage: "7. Fechamento (Demonstração)",
-      speaker: "VOCÊ",
-      speech: `Vamos fazer o seguinte: eu monto uma primeira versão pra vocês sem compromisso. Você olha como ficou, me fala o que achou e aí decide. Pode ser?`,
-      contextNote: "Proposta de baixíssimo atrito: remove o risco para o cliente.",
-      choices: [
-        { label: "ACEITOU / PODE MONTAR", target: "fechamento_alt" },
-        { label: "ME MANDA NO WHATSAPP", target: "obj_manda_whats" },
-        { label: "PRECISO PENSAR", target: "obj_preciso_pensar" },
-        { label: "TENHO QUE FALAR COM MEU SÓCIO", target: "obj_falar_socio" },
-      ],
-    },
-
-    fechamento_alt: {
-      id: "fechamento_alt",
-      stage: "7. Fechamento — Próximo Passo",
-      speaker: "VOCÊ",
-      speech: `Perfeito! Vou te mandar um alô agora no WhatsApp com o meu contato. Assim que eu colocar a prévia no ar, já te envio o link pra você dar uma olhada. Valeu pela atenção!`,
-      contextNote: "Finalização educada e compromisso assumido.",
-      choices: [
-        { label: "VOLTAR AO INÍCIO DO ROTEIRO", target: "abertura" },
-        { label: "VER OBJEÇÕES", target: "obj_sem_interesse" },
-      ],
-    },
-
-    obj_sem_interesse: {
-      id: "obj_sem_interesse",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Tranquilo. Só pra eu entender: você não vê necessidade de um site ou é mais porque não quer investir nisso agora?`,
-      contextNote: "Desarma a objeção e descobre o verdadeiro obstáculo.",
-      choices: [
-        { label: "NÃO QUER INVESTIR AGORA", target: "preco" },
-        { label: "NÃO VÊ NECESSIDADE", target: "desc_nao_precisamos" },
-        { label: "OFERECER PRÉVIA SEM COMPROMISSO", target: "fechamento" },
-        { label: "AGORA NÃO", target: "obj_agora_nao" },
-      ],
-    },
-
-    obj_insta_resolve: {
-      id: "obj_insta_resolve",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `O Instagram de vocês é ótimo pra quem já conhece. A vantagem do site é pegar aquele cliente do Google que tá procurando ${categoryLower || "esse serviço"} agora e precisa de endereço, horário e botão direto pro WhatsApp.`,
-      contextNote: "O site e o Instagram se complementam, não disputam.",
-      choices: [
-        { label: "PROPOR VERSÃO SEM COMPROMISSO", target: "fechamento" },
-        { label: "QUANTO CUSTA?", target: "preco" },
-        { label: "ME MANDA NO WHATSAPP", target: "obj_manda_whats" },
-      ],
-    },
-
-    obj_whats_resolve: {
-      id: "obj_whats_resolve",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Com certeza, o WhatsApp é onde fecha a venda! O papel do site é justamente colocar mais pessoas qualificadas chamando no WhatsApp de vocês todos os dias.`,
-      contextNote: "Mostre que o site canaliza clientes para o WhatsApp dele.",
-      choices: [
-        { label: "PROPOR VERSÃO SEM COMPROMISSO", target: "fechamento" },
-        { label: "QUANTO CUSTA?", target: "preco" },
-      ],
-    },
-
-    obj_nao_preciso: {
-      id: "obj_nao_preciso",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Totalmente compreensível se vocês já estão com a agenda cheia. Posso só te mandar uma ideia no WhatsApp pra quando vocês forem expandir?`,
-      contextNote: "Não brigue. Mantenha a porta aberta.",
-      choices: [
-        { label: "PODE MANDAR", target: "obj_manda_whats" },
-        { label: "NÃO QUER RECEBER", target: "fechamento_alt" },
-      ],
-    },
-
-    obj_esta_caro: {
-      id: "obj_esta_caro",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Entendo. Comparado com uma agência que cobra R$2.000 ou R$3.000, R$300 cabe no orçamento de quase qualquer empresa. Com um cliente novo que o site trouxer, ele já se paga.`,
-      contextNote: "Âncora de preço com agências tradicionais e retorno sobre investimento.",
-      choices: [
-        { label: "FAZ SENTIDO / OFERECER PRÉVIA", target: "fechamento" },
-        { label: "AINDA ACHOU CARO", target: "fechamento_alt" },
-      ],
-    },
-
-    obj_preciso_pensar: {
-      id: "obj_preciso_pensar",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Claro, sem pressa. Qual é a sua principal dúvida hoje pra gente já tirar da frente?`,
-      contextNote: "Descubra qual é a dúvida oculta por trás do 'pensar'.",
-      choices: [
-        { label: "DÚVIDA DE PREÇO", target: "preco" },
-        { label: "PROPOR VER A PRÉVIA ANTES DE DECIDIR", target: "fechamento" },
-        { label: "MANDA NO WHATSAPP PRA EU PENSAR", target: "obj_manda_whats" },
-      ],
-    },
-
-    obj_falar_socio: {
-      id: "obj_falar_socio",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Perfeito. Fica até mais fácil pra você mostrar pra ele se já tiver uma versão pronta visual. Eu monto a prévia sem compromisso, você mostra pro sócio e vocês avaliam juntos. Pode ser?`,
-      contextNote: "Dá a ferramenta de venda na mão do sócio.",
-      choices: [
-        { label: "ACEITOU / MONTAR PRÉVIA", target: "fechamento_alt" },
-        { label: "MANDAR NO WHATSAPP", target: "obj_manda_whats" },
-      ],
-    },
-
-    obj_agora_nao: {
-      id: "obj_agora_nao",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Sem problemas. Qual mês ou época do ano costuma ser mais tranquilo pra vocês olharem isso?`,
-      contextNote: "Consegue a data exata de follow-up.",
-      choices: [
-        { label: "DEU DATA / AGENDAR CONTATO", target: "fechamento_alt" },
-        { label: "MANDA NO WHATSAPP", target: "obj_manda_whats" },
-      ],
-    },
-
-    obj_ja_tenho_quem_faz: {
-      id: "obj_ja_tenho_quem_faz",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Ótimo! E vocês estão satisfeitos com o suporte e a rapidez dele, ou às vezes demora pra atualizar?`,
-      contextNote: "Pontos fracos comuns: demora de resposta e suporte ruim.",
-      choices: [
-        { label: "DEMORA BASTANTE", target: "solucao" },
-        { label: "ESTÁ SATISFEITO", target: "fechamento_alt" },
-      ],
-    },
-
-    obj_ja_tenho_site: {
-      id: "obj_ja_tenho_site",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Maravilha ter o site! Ele hoje é rápido no celular e recebe contatos todo mês, ou tá mais paradinho?`,
-      contextNote: "Muitas empresas têm site abandonado que não converte.",
-      choices: [
-        { label: "TÁ PARADINHO / PODERIA MELHORAR", target: "solucao" },
-        { label: "CONVERTE BEM", target: "fechamento_alt" },
-      ],
-    },
-
-    obj_manda_whats: {
-      id: "obj_manda_whats",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Mando sim! Esse número aqui mesmo é o seu WhatsApp? Me diz só seu nome pra eu salvar aqui certinho.`,
-      contextNote: "Pega o nome da pessoa e confirma o número de contato direto.",
-      choices: [
-        { label: "CONFIRMOU NÚMERO E NOME", target: "fechamento_alt" },
-        { label: "PASSOU OUTRO NÚMERO", target: "fechamento_alt" },
-      ],
-    },
-
-    obj_estou_ocupado: {
-      id: "obj_estou_ocupado",
-      stage: "5. Objeções",
-      speaker: "VOCÊ",
-      speech: `Imagino a correria! Te dou um retorno no final da tarde ou prefere que eu te chame amanhã de manhã?`,
-      contextNote: "Dá duas opções fechadas para remarcar a ligação.",
-      choices: [
-        { label: "FINAL DA TARDE", target: "fechamento_alt" },
-        { label: "AMANHÃ DE MANHÃ", target: "fechamento_alt" },
-        { label: "MANDA NO WHATSAPP", target: "obj_manda_whats" },
+    7: {
+      stageId: 7,
+      stepNumber: "7",
+      title: "FECHAMENTO",
+      mainSpeaker: "VOCÊ",
+      mainSpeech: `Vamos fazer o seguinte: eu monto uma primeira versão pra vocês sem compromisso. Você olha como ficou, me fala o que achou e aí decide.`,
+      contextTip: "Proposta de risco zero. O cliente não precisa pagar antes de ver o resultado real para o negócio dele.",
+      alternatives: [
+        {
+          customerSays: "ACEITOU A PRÉVIA (\"Pode montar então / Me manda\")",
+          recommendedReply: `Fechado! Vou pegar suas informações básicas e em até 48 horas te chamo no WhatsApp com o link de teste pronto. Qual seu melhor WhatsApp?`,
+        },
+        {
+          customerSays: "PREFERE RECEBER EXEMPLO ANTES (\"Me manda algum que você já fez\")",
+          recommendedReply: `Mando sim! Te mando modelos parecidos com o seu ramo agora mesmo no WhatsApp. Esse número aqui recebe mensagem?`,
+        },
+        {
+          customerSays: "QUER FALAR MAIS TARDE / OUTRO DIA",
+          recommendedReply: `Tranquilo. Anotei aqui seu contato e combinamos um horário que for melhor pra você dar uma olhada.`,
+        },
       ],
     },
   };
@@ -485,10 +336,10 @@ export function generateCallScript(business: Business): CallScriptData {
   return {
     companyName,
     category,
-    cityState,
-    phone: formattedPhone,
+    city,
+    phone,
     siteStatus,
-    website: business.website,
-    nodes,
+    hasWebsite,
+    stages,
   };
 }
