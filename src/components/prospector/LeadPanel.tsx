@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookmarkPlus, Copy, Globe, Instagram, Mail, MapPin, MessageCircle, Phone, Star, Trash2 } from "lucide-react";
+import { BookmarkPlus, Copy, Globe, Instagram, Mail, MapPin, MessageCircle, Phone, PhoneCall, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { CreateSiteDialog } from "@/components/prospector/CreateSiteDialog";
+import { CallScriptDialog } from "@/components/prospector/CallScriptDialog";
 import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { buildKit } from "@/features/prospector/generators";
 import { placeDetailsRepository, photoProvider } from "@/features/prospector/repository";
@@ -88,6 +89,7 @@ const contactTypes: { value: ContactType; label: string }[] = [
 /** Barra de ação fixa (mobile): as três ações mais usadas sempre ao alcance do dedo. */
 function LeadActionBar({ business }: { business: Business | Lead }) {
   const [msgFor, setMsgFor] = useState<Business | null>(null);
+  const [callFor, setCallFor] = useState<Business | null>(null);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const wa = whatsappLink(business.phone);
 
@@ -118,6 +120,7 @@ function LeadActionBar({ business }: { business: Business | Lead }) {
       </Button>
 
       <MessageDialog business={msgFor} onOpenChange={(open) => !open && setMsgFor(null)} />
+      <CallScriptDialog business={callFor} onOpenChange={(open) => !open && setCallFor(null)} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
     </div>
   );
@@ -311,6 +314,10 @@ function LeadDetail({ business }: { business: Business | Lead }) {
             Salvar lead
           </Button>
         )}
+        <Button size="sm" onClick={() => setCallFor(business)}>
+          <PhoneCall className="size-4" aria-hidden />
+          Gerar ligação
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setMsgFor(business)}>
           Gerar mensagem
         </Button>
@@ -485,6 +492,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
 
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <MessageDialog business={msgFor} onOpenChange={(open) => !open && setMsgFor(null)} />
+      <CallScriptDialog business={callFor} onOpenChange={(open) => !open && setCallFor(null)} />
     </div>
   );
 }

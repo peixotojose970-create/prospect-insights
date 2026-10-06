@@ -10,6 +10,7 @@ import {
   MoreVertical,
   Monitor,
   Phone,
+  PhoneCall,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CallScriptDialog } from "@/components/prospector/CallScriptDialog";
 import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { OpportunityDialog } from "@/components/prospector/OpportunityDialog";
 import { formatPhone, fullAddress, ratingLabel, whatsappLink } from "@/features/prospector/format";
@@ -46,6 +48,7 @@ export function LeadCard({
   const selected = selectable && isSelected(business.id);
   const [analyze, setAnalyze] = useState(false);
   const [approach, setApproach] = useState(false);
+  const [callScript, setCallScript] = useState(false);
   const saved = isSaved(business.id);
   const lead = business as Lead;
   const status = lead.status;
@@ -176,6 +179,10 @@ export function LeadCard({
               <Sparkles className="size-4" aria-hidden />
               Analisar oportunidade
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setCallScript(true)}>
+              <PhoneCall className="size-4" aria-hidden />
+              Gerar ligação
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setApproach(true)}>
               <MessageCircle className="size-4" aria-hidden />
               Gerar mensagem
@@ -210,6 +217,7 @@ export function LeadCard({
 
       <OpportunityDialog business={analyze ? business : null} onOpenChange={(open) => setAnalyze(open)} />
       <MessageDialog business={approach ? business : null} onOpenChange={(open) => setApproach(open)} />
+      <CallScriptDialog business={callScript ? (business as Business) : null} onOpenChange={(open) => setCallScript(open)} />
     </Card>
   );
 }
