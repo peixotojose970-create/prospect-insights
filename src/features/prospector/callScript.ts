@@ -120,10 +120,10 @@ export function generateCallScript(business?: Business | null): GeneratedCallScr
 
   const websiteRaw = business?.website?.trim();
   const hasWebsite = Boolean(websiteRaw);
-  const siteStatus = hasWebsite ? websiteRaw : "Não encontrado";
+  const siteStatus = hasWebsite ? websiteRaw : "Não informado";
 
   const tone = getCategoryTone(category !== "Não informado" ? category : "");
-  const targetName = companyName !== "Não informado" ? companyName : "o estabelecimento";
+  const targetName = companyName !== "Não informado" ? companyName : "empresa";
 
   const stages: Record<CallStageId, CallStageData> = {
     1: {
