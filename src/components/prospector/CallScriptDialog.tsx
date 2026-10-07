@@ -20,7 +20,6 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { normalizePhone } from "@/features/prospector/format";
 import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
@@ -198,7 +197,7 @@ export function CallScriptDialog({
         onOpenChange(open);
       }}
     >
-      <DialogContent className="flex max-h-[96dvh] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-h-[92dvh]">
+      <DialogContent className="flex h-[92dvh] max-h-[92dvh] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-[88dvh] sm:max-h-[88dvh]">
         <CallScriptErrorBoundary onReset={handleRegenerate}>
           {generationError || !scriptData ? (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -219,7 +218,7 @@ export function CallScriptDialog({
           ) : (
             <>
               {/* TOPO: Roteiro de ligação + Dados do estabelecimento */}
-              <DialogHeader className="border-b border-border bg-card p-4 sm:p-5">
+              <DialogHeader className="shrink-0 border-b border-border bg-card p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <DialogTitle className="text-base font-bold tracking-tight text-foreground sm:text-lg">
@@ -277,7 +276,7 @@ export function CallScriptDialog({
               </DialogHeader>
 
               {/* INDICADOR VISUAL DE PROGRESSO: 1 → 2 → 3 → 4 → 5 → 6 → 7 */}
-              <div className="border-b border-border bg-muted/40 px-3 py-2 sm:px-4">
+              <div className="shrink-0 border-b border-border bg-muted/40 px-3 py-2 sm:px-4">
                 <div className="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar py-0.5">
                   {STAGES_LIST.map((st, idx) => {
                     const isActive = st.id === currentStageId;
@@ -319,7 +318,7 @@ export function CallScriptDialog({
               </div>
 
               {/* ÁREA CENTRAL: UMA ETAPA POR VEZ, DIRETO AO PONTO */}
-              <ScrollArea className="flex-1 p-4 sm:p-6">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-8">
                 <div className="space-y-4">
                   {/* Título da etapa */}
                   <div className="flex items-center justify-between border-b border-border/60 pb-2">
@@ -507,10 +506,10 @@ export function CallScriptDialog({
                     </Button>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* BARRA INFERIOR COM OS CONTROLES EXIGIDOS: [VOLTAR] [PRÓXIMA ETAPA] [COPIAR FALA] [REGENERAR] [FECHAR] */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card p-3 sm:p-4">
+              <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card p-3 sm:p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
