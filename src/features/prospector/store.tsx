@@ -158,13 +158,25 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!alive || !auth.user) { setState(emptyState); setHydrated(true); return; }
-      // RLS exposes only the current identity's row; never accept an account number from the browser.
-      const { data: row } = await supabase.from("prospector_account_data").select("account_number,payload").maybeSingle();
+      // Account data queries are constrained by database RLS to the authenticated identity.
+      const account = Number(auth.user.user_metadata?.prospector_account_number);
+      if (!Number.isInteger(account) || account < 0 || account > 5) {
+        setState(emptyState); setHydrated(true); return;
+      }
+      setAccountNumber(account);
+      const { data: row, error } = await supabase.from("prospector_account_data").select("payload").maybeSingle();
       if (!alive) return;
-      if (!row) { setState(emptyState); setHydrated(true); return; }
-      setAccountNumber(row.account_number);
-      const cached = load(row.account_number);
-      setState(row.payload ? parsePersisted(JSON.stringify(row.payload)) : cached);
+      if (error) { setState(emptyState); setHydrated(true); return; }
+      if (row?.payload) {
+        const remote = parsePersisted(JSON.stringify(row.payload));
+        setState(remote);
+        window.localStorage.setItem(accountStorageKey(account), JSON.stringify(remote));
+        setHydrated(true);
+        return;
+      }
+      const legacy = account === 1 ? window.localStorage.getItem(STORAGE_KEY) : null;
+      const cached = legacy ? parsePersisted(legacy) : load(account);
+      setState(cached);
       setHydrated(true);
     })();
     return () => { alive = false; };
@@ -175,7 +187,9 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
     const payload = JSON.stringify(state);
     window.localStorage.setItem(accountStorageKey(accountNumber), payload);
     const timer = window.setTimeout(() => {
-      void supabase.from("prospector_account_data").upsert({ account_number: accountNumber, payload: state as unknown as import("@/integrations/supabase/types").Json }, { onConflict: "account_number" });
+      void supabase.from("prospector_account_data").upsert({ account_number: accountNumber, payload: state as unknown as import("@/integrations/supabase/types").Json }, { onConflict: "account_number" }).then(({ error }) => {
+        if (error) console.error("Não foi possível sincronizar os dados do Prospector.", error.message);
+      });
     }, 700);
     return () => window.clearTimeout(timer);
   }, [state, hydrated, accountNumber]);

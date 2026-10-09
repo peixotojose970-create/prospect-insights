@@ -103,7 +103,12 @@ function Configuracoes() {
       if (!raw) throw new Error("Não há dados locais para migrar.");
       const payload = JSON.parse(raw);
       const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user) throw new Error("Entre na Conta 1 antes de iniciar a migração.");
+      if (authError || !auth.user || Number(auth.user.user_metadata?.prospector_account_number) !== 1) {
+        throw new Error("Entre na Conta 1 antes de iniciar a migração.");
+      }
+      if (!Array.isArray(payload.leads) || !Array.isArray(payload.followUps)) {
+        throw new Error("Os dados locais não têm o formato esperado. A cópia original foi mantida.");
+      }
       const { data: existing, error: readError } = await supabase
         .from("prospector_account_data")
         .select("payload")
