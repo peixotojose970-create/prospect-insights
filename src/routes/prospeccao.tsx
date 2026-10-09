@@ -279,7 +279,7 @@ function Prospeccao() {
     <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
       <PageHeader
         title="Prospecção"
-        subtitle={`Estabelecimentos reais do Google Maps ${isUS ? "nos Estados Unidos" : "no Brasil"}, filtrados pelo potencial de fechar um site.`}
+        subtitle="Encontre empresas reais e identifique oportunidades comerciais."
       />
 
       <datalist id="cidades-sugeridas">
@@ -293,20 +293,21 @@ function Prospeccao() {
         ))}
       </datalist>
 
-      <Card className="gap-4 p-4">
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="busca">Buscar empresas</Label>
-            <Input
-              id="busca"
-              data-global-search
-              enterKeyHint="search"
-              className="h-12 text-base"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={isUS ? "Use os filtros: tipo · cidade · estado" : "Ex.: Clínicas Curitiba"}
-            />
-
+      <Card className="gap-5 border-border/80 p-4 shadow-sm sm:p-5">
+        <form onSubmit={submit} className="space-y-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="busca" className="font-semibold">O que você procura?</Label>
+              <Input
+                id="busca"
+                data-global-search
+                enterKeyHint="search"
+                className="h-12 bg-background text-base shadow-sm"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={isUS ? "Use os filtros: tipo, cidade e estado" : "Ex.: Clínicas em Curitiba"}
+              />
+            </div>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -317,7 +318,7 @@ function Prospeccao() {
                 <SlidersHorizontal className="size-4" aria-hidden />
                 Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}
               </Button>
-              <Button type="submit" className="h-12 flex-1 md:flex-none" disabled={search.status === "loading"}>
+              <Button type="submit" className="h-12 flex-1 px-5 lg:flex-none" disabled={search.status === "loading"}>
                 {search.status === "loading" ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : (
@@ -326,25 +327,36 @@ function Prospeccao() {
                 Buscar
               </Button>
             </div>
-            <p className="hidden text-xs text-muted-foreground md:block">Atalho: Ctrl+K foca este campo.</p>
           </div>
 
-          {/* Desktop: filtros sempre visíveis. Mobile: dentro do bottom sheet. */}
-          <div className="hidden md:block">
+          <div className="hidden border-t border-border pt-5 md:block">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Refine sua busca</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">Defina a localização e os critérios dos estabelecimentos.</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Atalho: Ctrl+K foca a pesquisa.</p>
+            </div>
             <FilterFields {...filterProps} />
           </div>
         </form>
       </Card>
 
-      <Card className="gap-3 p-4">
-        <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-foreground">Categorias → Empresas</h2>
-          <p className="text-xs text-muted-foreground">
-            Segmentos com maior chance de fechar um site. Ao escolher um, listamos primeiro as empresas
-            marcadas como <span className="font-medium text-foreground">SEM SITE</span>.
-          </p>
+      <Card className="gap-4 border-border/80 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">Categorias → Empresas</h2>
+            <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              Selecione um segmento para pesquisar empresas com potencial para uma presença digital. Os resultados sem site informado recebem prioridade.
+            </p>
+          </div>
+          {activeSegment ? (
+            <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+              Ativo: {activeSegment.label}
+            </span>
+          ) : null}
         </div>
-        <div className="-mx-1 flex flex-wrap gap-2 px-1">
+        <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
           {PROSPECT_SEGMENTS.map((s) => {
             const term = isUS ? s.us : s.br;
             const active = category === term;
@@ -354,7 +366,7 @@ function Prospeccao() {
                 type="button"
                 size="sm"
                 variant={active ? "default" : "outline"}
-                className="h-10"
+                className="h-9 rounded-md px-3"
                 onClick={() => {
                   setCategory(term);
                   // A busca livre não pode sobrescrever o segmento escolhido.
@@ -377,14 +389,13 @@ function Prospeccao() {
           })}
         </div>
         {activeSegment ? (
-          <p className="text-xs text-muted-foreground">
-            Segmento ativo: <span className="font-medium text-foreground">{activeSegment.label}</span> — busca
-            enviada como “{category}”
+          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+            Busca configurada para <span className="font-medium text-foreground">{category}</span>
             {city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : ""}.
           </p>
         ) : null}
         {!city.trim() ? (
-          <p className="text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
+          <p className="rounded-md bg-muted/70 px-3 py-2 text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
       </Card>
 
@@ -502,50 +513,59 @@ function Prospeccao() {
           />
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium text-foreground">
-                {results.length} resultados
-                <span className="font-normal text-muted-foreground">
-                  {search.outcome?.areaLabel ? ` em ${search.outcome.areaLabel}` : ""}
-                  {search.outcome?.truncated ? " (limite do Google atingido)" : ""}
-                  {search.outcome?.cached ? " · cache" : ""}
-                </span>
-                {selection.length > 0 ? (
-                  <span className="ml-2 font-normal text-primary">· {selectionLabel(selection.length)}</span>
-                ) : null}
-              </p>
+            <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm sm:p-5" aria-label="Resumo da busca">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resultados da busca</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {results.length} resultados
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {search.outcome?.areaLabel ? ` em ${search.outcome.areaLabel}` : ""}
+                      {search.outcome?.truncated ? " (limite do Google atingido)" : ""}
+                      {search.outcome?.cached ? " · cache" : ""}
+                    </span>
+                    {selection.length > 0 ? (
+                      <span className="ml-2 text-sm font-normal text-primary">· {selectionLabel(selection.length)}</span>
+                    ) : null}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Categoria: <span className="font-medium text-foreground">{category}</span>
+                    {city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={allVisibleSelected ? "secondary" : "outline"}
+                    onClick={() =>
+                      allVisibleSelected ? deselectMany(results.map((b) => b.id)) : selectMany(results)
+                    }
+                  >
+                    <CheckSquare className="size-4" aria-hidden />
+                    {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/rapido">
+                      <Zap className="size-4" aria-hidden />
+                      Modo rápido
+                    </Link>
+                  </Button>
+                  <Button size="sm" variant="outline" className="md:hidden" onClick={() => setShowMap((v) => !v)}>
+                    <MapIcon className="size-4" aria-hidden />
+                    {showMap ? "Ocultar mapa" : "Ver mapa"}
+                  </Button>
+                </div>
+              </div>
               {search.outcome?.coverage ? (
-                <p className="w-full text-xs text-muted-foreground">
+                <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
                   {search.outcome.coverage.queries} consultas · {search.outcome.coverage.requests} páginas ·{" "}
                   {search.outcome.coverage.rawResults} encontrados · {search.outcome.coverage.duplicatesRemoved} duplicados ·{" "}
-                  {search.results.length} únicas · {search.results.filter((b) => !b.website).length} sem site ·{" "}
+                  {search.results.length} únicas · {search.results.filter((b) => !b.website).length} sem site informado ·{" "}
                   {search.results.filter((b) => !!b.website).length} com site · {results.length} exibidas
                   {search.outcome.coverage.notes.length ? ` · ${search.outcome.coverage.notes.join(" ")}` : ""}
                 </p>
               ) : null}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={allVisibleSelected ? "secondary" : "outline"}
-                  onClick={() =>
-                    allVisibleSelected ? deselectMany(results.map((b) => b.id)) : selectMany(results)
-                  }
-                >
-                  <CheckSquare className="size-4" aria-hidden />
-                  {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/rapido">
-                    <Zap className="size-4" aria-hidden />
-                    Modo rápido
-                  </Link>
-                </Button>
-                <Button size="sm" variant="outline" className="md:hidden" onClick={() => setShowMap((v) => !v)}>
-                  <MapIcon className="size-4" aria-hidden />
-                  {showMap ? "Ocultar mapa" : "Ver mapa"}
-                </Button>
-              </div>
-            </div>
+            </section>
 
             {/* No celular o mapa só carrega quando pedido, para economizar dados. */}
             <div className={showMap ? "block" : "hidden md:block"}>
