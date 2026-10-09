@@ -161,3 +161,31 @@
 #lovable-badge {
   display: none !important;
 }
+
+/* Proteções para conteúdo dinâmico do Prospector em telas estreitas. */
+html,
+body {
+  min-width: 320px;
+  overflow-x: clip;
+}
+
+main {
+  overflow-x: clip;
+}
+
+pre,
+[role="dialog"] p,
+[role="dialog"] dd {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  /* Menus flutuantes e diálogos nunca ultrapassam a área visível no celular. */
+  [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 1rem) !important;
+  }
+
+  [role="dialog"] {
+    overscroll-behavior: contain;
+  }
+}

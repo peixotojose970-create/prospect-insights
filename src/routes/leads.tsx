@@ -202,7 +202,7 @@ function Leads() {
       ) : (
         <>
         {/* Mobile: cards de leitura rápida. Desktop: tabela completa. */}
-        <div className="space-y-3 md:hidden">
+        <div className="space-y-3 lg:hidden">
           {rows.map((l) => (
             <Card key={l.id} className="gap-2 p-4">
               <div className="flex items-start justify-between gap-2">
@@ -231,7 +231,7 @@ function Leads() {
           ))}
         </div>
 
-        <Card className="hidden overflow-x-auto p-0 md:block">
+        <Card className="hidden overflow-x-auto p-0 lg:block">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-border text-left text-xs text-muted-foreground">
               <tr>

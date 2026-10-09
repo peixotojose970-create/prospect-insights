@@ -56,7 +56,7 @@ function Pipeline() {
       />
 
       {/* Mobile: chips de estágio + lista vertical. */}
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 lg:hidden">
         <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
           {LEAD_STATUSES.map((s) => {
             const count = leads.filter((l) => l.status === s.value).length;
@@ -120,7 +120,7 @@ function Pipeline() {
       </div>
 
       {/* Desktop: kanban horizontal com drag and drop (comportamento original). */}
-      <div className="-mx-4 hidden overflow-x-auto px-4 pb-2 md:block">
+      <div className="-mx-4 hidden overflow-x-auto px-4 pb-2 lg:block">
         <div className="flex min-w-max gap-4">
           {LEAD_STATUSES.map((column) => {
             const items = leads.filter((l) => l.status === column.value);
