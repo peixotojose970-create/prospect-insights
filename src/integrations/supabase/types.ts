@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      prospector_accounts: {
+        Row: { account_number: number; auth_user_id: string; username: string; role: string; active: boolean; created_at: string; updated_at: string }
+        Insert: { account_number: number; auth_user_id: string; username: string; role?: string; active?: boolean; created_at?: string; updated_at?: string }
+        Update: { account_number?: number; auth_user_id?: string; username?: string; role?: string; active?: boolean; updated_at?: string }
+        Relationships: []
+      }
       prospector_account_data: {
         Row: { account_number: number; payload: Json; updated_at: string }
         Insert: { account_number: number; payload?: Json; updated_at?: string }

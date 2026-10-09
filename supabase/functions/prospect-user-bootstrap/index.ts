@@ -37,18 +37,24 @@ Deno.serve(async (request: Request) => {
       const email = `${username.toLowerCase()}@prospector.local`;
       const { data: list, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
       if (listError) return json({ error: "Não foi possível verificar as contas." }, 502);
-      if (list.users.some((user) => user.email?.toLowerCase() === email)) {
-        existing.push(username);
-        continue;
-      }
-      const { error: createError } = await admin.auth.admin.createUser({
-        email,
-        password: byName.get(username.toLowerCase())!,
-        email_confirm: true,
-        user_metadata: { username, prospector_account_number: index, prospector_role: index === 0 ? "admin" : "user", must_change_password: true },
-      });
-      if (createError) return json({ error: `Não foi possível concluir o provisionamento (${username}).`, created, existing }, 502);
-      created.push(username);
+      const found = list.users.find((user) => user.email?.toLowerCase() === email);
+      let authUserId = found?.id;
+      if (!found) {
+        const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
+          email,
+          password: byName.get(username.toLowerCase())!,
+          email_confirm: true,
+          user_metadata: { username, must_change_password: true },
+        });
+        if (createError || !createdUser.user) return json({ error: `Não foi possível concluir o provisionamento (${username}).`, created, existing }, 502);
+        authUserId = createdUser.user.id;
+        created.push(username);
+      } else existing.push(username);
+      const { data: linked } = await admin.from("prospector_accounts").select("account_number").eq("account_number", index).maybeSingle();
+      const accountWrite = linked
+        ? await admin.from("prospector_accounts").update({ auth_user_id: authUserId, username, role: index === 0 ? "admin" : "user" }).eq("account_number", index)
+        : await admin.from("prospector_accounts").insert({ account_number: index, auth_user_id: authUserId, username, role: index === 0 ? "admin" : "user" });
+      if (accountWrite.error) return json({ error: `Não foi possível vincular a conta (${username}).`, created, existing }, 502);
     }
     return json({ success: true, created, existing, message: "Credenciais não são retornadas nem registradas." });
   } catch {

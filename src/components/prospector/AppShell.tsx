@@ -36,11 +36,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [accountName, setAccountName] = useState("Conta");
   useEffect(() => {
     let active = true;
-    const updateSession = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
-      setAuthenticated(!!session);
-      const account = session?.user.user_metadata?.prospector_account_number;
-      setAccountName(account === 0 ? "Administrador" : typeof account === "number" ? `Conta ${account}` : "Conta autenticada");
-      if (!session && window.location.pathname !== "/login") window.location.assign("/login");
+    const updateSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
+      if (!session) {
+        setAuthenticated(false);
+        if (window.location.pathname !== "/login") window.location.assign("/login");
+        return;
+      }
+      const { data: account } = await supabase.from("prospector_accounts").select("username,role,active").eq("auth_user_id", session.user.id).maybeSingle();
+      if (!active) return;
+      if (!account?.active) {
+        await supabase.auth.signOut();
+        setAuthenticated(false);
+        window.location.assign("/login");
+        return;
+      }
+      setAccountName(account.role === "admin" ? "Administrador" : account.username);
+      setAuthenticated(true);
     };
     supabase.auth.getSession().then(({ data }) => { if (active) updateSession(data.session); });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {

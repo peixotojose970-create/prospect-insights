@@ -158,11 +158,10 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!alive || !auth.user) { setState(emptyState); setHydrated(true); return; }
-      // Account data queries are constrained by database RLS to the authenticated identity.
-      const account = Number(auth.user.user_metadata?.prospector_account_number);
-      if (!Number.isInteger(account) || account < 0 || account > 5) {
-        setState(emptyState); setHydrated(true); return;
-      }
+      // The account link comes from a row protected by backend policies, not editable login metadata.
+      const { data: accountRow, error: accountError } = await supabase.from("prospector_accounts").select("account_number").eq("auth_user_id", auth.user.id).maybeSingle();
+      if (!alive || accountError || !accountRow) { setState(emptyState); setHydrated(true); return; }
+      const account = accountRow.account_number;
       setAccountNumber(account);
       const { data: row, error } = await supabase.from("prospector_account_data").select("payload").maybeSingle();
       if (!alive) return;
