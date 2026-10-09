@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
@@ -60,7 +60,7 @@ export function useTheme() {
   return { dark, setDark };
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ProspectorProvider>
       <DisplayModeProvider><ShellInner>{children}</ShellInner></DisplayModeProvider>
@@ -75,9 +75,9 @@ type DisplayModeContextValue = {
   mode: DisplayMode | null;
   selectMode: (mode: DisplayMode) => void;
 };
-const DisplayModeContext = React.createContext<DisplayModeContextValue | null>(null);
+const DisplayModeContext = createContext<DisplayModeContextValue | null>(null);
 
-function DisplayModeProvider({ children }: { children: React.ReactNode }) {
+function DisplayModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<DisplayMode | null>(null);
   useEffect(() => {
     const saved = window.localStorage.getItem(DISPLAY_MODE_KEY);
@@ -95,7 +95,7 @@ function DisplayModeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useDisplayMode() {
-  const value = React.useContext(DisplayModeContext);
+  const value = useContext(DisplayModeContext);
   if (!value) throw new Error("useDisplayMode deve ser usado dentro do AppShell");
   return value;
 }
@@ -165,7 +165,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function ShellInner({ children }: { children: React.ReactNode }) {
+function ShellInner({ children }: { children: ReactNode }) {
   const { dark, setDark } = useTheme();
   const { mode } = useDisplayMode();
   const { leads } = useProspector();
