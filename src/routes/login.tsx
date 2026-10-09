@@ -23,8 +23,13 @@ function AccessLogin() {
     setStatus("validating");
     try {
       const tokens = await loginWithAccessKey({ data: { key: key.trim() } });
-      const { error } = await supabase.auth.setSession({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
-      if (error) throw error;
+      const { data: sessionData, error } = await supabase.auth.setSession({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
+      if (error || !sessionData.session) throw error ?? new Error("A sessão não foi criada.");
+      const { data: verified, error: verificationError } = await supabase.auth.getUser(sessionData.session.access_token);
+      if (verificationError || !verified.user) {
+        await supabase.auth.signOut();
+        throw verificationError ?? new Error("A sessão não foi confirmada pelo serviço de autenticação.");
+      }
       setKey("");
       setStatus("authorized");
       await router.navigate({ to: "/" });
