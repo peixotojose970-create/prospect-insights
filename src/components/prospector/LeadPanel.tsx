@@ -62,7 +62,7 @@ function PlaceGallery({ business }: { business: Business }) {
 
   return (
     <section className="space-y-1.5">
-      <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
+      <div className="flex max-w-full snap-x gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
         {photos.map((photo) => (
           <img
             key={photo.url}
@@ -89,47 +89,41 @@ const contactTypes: { value: ContactType; label: string }[] = [
   { value: "outro", label: "Outro" },
 ];
 
-/** Barra de ação fixa (mobile): as três ações mais usadas sempre ao alcance do dedo. */
+/** Barra de ação fixa: em telas estreitas, usa uma grade para manter todas as ações acessíveis. */
 function LeadActionBar({ business }: { business: Business | Lead }) {
   const [msgFor, setMsgFor] = useState<Business | null>(null);
-  const [callFor, setCallFor] = useState<Business | null>(null);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const wa = whatsappLink(business.phone);
 
   return (
-    <div className="flex shrink-0 gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+    <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:grid-cols-3 md:hidden">
       {wa ? (
-        <Button className="h-12 flex-1" asChild>
+        <Button className="h-12 min-w-0 px-3" asChild>
           <a href={wa} target="_blank" rel="noreferrer">
             <MessageCircle className="size-4" aria-hidden />
-            WhatsApp
+            <span className="truncate">WhatsApp</span>
           </a>
         </Button>
       ) : (
-        <Button
-          className="h-12 flex-1"
-          variant="secondary"
-          onClick={() => toast.info("Telefone não disponível.")}
-        >
+        <Button className="h-12 min-w-0 px-3" variant="secondary" onClick={() => toast.info("Telefone não disponível.")}>
           <MessageCircle className="size-4" aria-hidden />
-          WhatsApp
+          <span className="truncate">WhatsApp</span>
         </Button>
       )}
-      <Button className="h-12 flex-1" variant="outline" onClick={() => setMsgFor(business)}>
-        Mensagem
+      <Button className="h-12 min-w-0 px-3" variant="outline" onClick={() => setMsgFor(business)}>
+        <span className="truncate">Mensagem</span>
       </Button>
-      <Button className="h-12 flex-1" variant="outline" onClick={() => setSiteFor(business)}>
-        Criar site
+      <Button className="col-span-2 h-12 min-w-0 px-3 sm:col-span-1" variant="outline" onClick={() => setSiteFor(business)}>
+        <span className="truncate">Criar site</span>
       </Button>
 
       <MessageDialog business={msgFor} onOpenChange={(open) => !open && setMsgFor(null)} />
-      <CallScriptDialog business={callFor} onOpenChange={(open) => !open && setCallFor(null)} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
     </div>
   );
 }
 
-/** Detalhe da empresa/lead: painel lateral no desktop, tela cheia no celular. */
+/** Detalhe da empresa/lead: painel lateral no desktop, tela completa no celular. */
 export function LeadWorkspace() {
   const { openId, openedBusiness, openLead, findById } = useProspector();
   const business = openId
@@ -142,17 +136,17 @@ export function LeadWorkspace() {
     <Sheet open={!!business} onOpenChange={(open) => !open && openLead(null)}>
       <SheetContent
         side="right"
-        className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 rounded-none p-0 pb-[env(safe-area-inset-bottom)] max-md:inset-x-0 max-md:bottom-0 max-md:top-auto md:h-full md:max-h-full md:rounded-none sm:max-w-xl"
+        className="inset-y-0 right-0 flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 md:w-full md:max-w-xl"
       >
         {business ? (
           <>
-            <SheetHeader className="shrink-0 border-b border-border bg-card p-4 pt-[max(1rem,env(safe-area-inset-top))] text-left sm:p-6">
-              <SheetTitle className="break-words pr-9 text-xl leading-snug sm:text-lg">{business.name || "Não informado"}</SheetTitle>
-              <SheetDescription className="break-words text-sm leading-relaxed">
+            <SheetHeader className="relative shrink-0 border-b border-border bg-card px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] text-left sm:p-6">
+              <SheetTitle className="min-w-0 break-words pr-10 text-xl leading-snug sm:text-lg">{business.name || "Não informado"}</SheetTitle>
+              <SheetDescription className="min-w-0 break-words pr-6 text-sm leading-relaxed">
                 {[business.category, business.city, business.state].filter(Boolean).join(" · ") || "Não informado"}
               </SheetDescription>
             </SheetHeader>
-            <ScrollArea className="min-h-0 flex-1">
+            <ScrollArea className="min-h-0 min-w-0 flex-1">
               <LeadDetail business={business} />
             </ScrollArea>
             <LeadActionBar business={business} />
@@ -226,10 +220,10 @@ function LeadDetail({ business }: { business: Business | Lead }) {
     !isNaN(business.longitude);
 
   return (
-    <div className="space-y-5 p-3.5 sm:space-y-6 sm:p-6">
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+    <div className="min-w-0 max-w-full space-y-5 overflow-x-hidden p-3.5 sm:space-y-6 sm:p-6">
+      <section className="min-w-0 space-y-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Lead Score</p>
             <p className="text-3xl font-bold tabular-nums text-foreground">{score}</p>
           </div>
@@ -237,7 +231,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </div>
         <ScoreBar score={score} />
         {scoreFactors.length > 0 ? (
-          <ul className="space-y-1 text-xs text-muted-foreground">
+          <ul className="min-w-0 space-y-1 break-words text-xs text-muted-foreground">
             {scoreFactors.map((f) => (
               <li key={f.label}>
                 +{f.points} · {f.label}
@@ -250,11 +244,11 @@ function LeadDetail({ business }: { business: Business | Lead }) {
       <PlaceGallery business={business} />
 
       {/* Detalhes da empresa com dados reais */}
-      <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
-        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <section className="min-w-0 max-w-full space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+        <h4 className="break-words text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Detalhes da empresa
         </h4>
-        <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-sm">
+        <dl className="grid min-w-0 grid-cols-1 gap-2.5 text-sm [&>div]:min-w-0 sm:grid-cols-2">
           <div className="space-y-0.5 sm:col-span-2">
             <dt className="text-xs text-muted-foreground">Nome</dt>
             <dd className="font-semibold text-foreground break-words">
@@ -342,7 +336,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </dl>
 
         {/* Informações complementares */}
-        <div className="space-y-2 pt-2 border-t border-border/60">
+        <div className="min-w-0 space-y-2 border-t border-border/60 pt-2">
           <Row
             icon={<Instagram className="size-3.5" />}
             value={business.instagram ?? "Não informado"}
@@ -351,21 +345,21 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           <Row icon={<MessageCircle className="size-3.5" />} value={whatsappLabel(business.phone)} />
 
           {business.country === "US" && business.email ? (
-            <div className="pt-1">
-              <Button size="sm" variant="secondary" className="h-10 w-full" asChild>
-                <a href={usEmailMailto(business as Business, profile) ?? "#"}>
+            <div className="min-w-0 pt-1">
+              <Button size="sm" variant="secondary" className="h-10 w-full min-w-0 px-3" asChild>
+                <a href={usEmailMailto(business as Business, profile) ?? "#"} title={business.email}>
                   <Mail className="size-4" aria-hidden />
-                  Enviar e-mail ({business.email})
+                  <span className="truncate">Enviar e-mail</span>
                 </a>
               </Button>
             </div>
           ) : null}
 
-          <p className="text-xs text-muted-foreground">
+          <p className="break-words text-xs text-muted-foreground">
             Horário: {details?.openingHours ?? business.openingHours ?? (loadingDetails ? "Consultando…" : "Não informado")}
           </p>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="break-words text-xs text-muted-foreground">
             Coordenadas: {hasCoords ? `${business.latitude.toFixed(5)}, ${business.longitude.toFixed(5)}` : "Não informado"}
           </p>
 
@@ -436,20 +430,22 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         ) : null}
       </div>
 
-      <Tabs defaultValue="crm">
-        <TabsList className="w-full">
-          <TabsTrigger value="crm" className="flex-1">
-            CRM
-          </TabsTrigger>
-          <TabsTrigger value="kit" className="flex-1">
-            Kit do lead
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="flex-1">
-            Histórico
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="crm" className="min-w-0 max-w-full">
+        <div className="max-w-full overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+          <TabsList className="grid h-auto min-w-full grid-cols-3 gap-1 p-1">
+            <TabsTrigger value="crm" className="min-w-0 px-2 text-xs sm:text-sm">
+              <span className="truncate">CRM</span>
+            </TabsTrigger>
+            <TabsTrigger value="kit" className="min-w-0 px-2 text-xs sm:text-sm">
+              <span className="truncate">Kit do lead</span>
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="min-w-0 px-2 text-xs sm:text-sm">
+              <span className="truncate">Histórico</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="crm" className="space-y-5 pt-4">
+        <TabsContent value="crm" className="min-w-0 space-y-5 pt-4">
           {lead ? (
             <>
               <div className="space-y-2">
@@ -549,23 +545,23 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           )}
         </TabsContent>
 
-        <TabsContent value="kit" className="space-y-3 pt-4">
+        <TabsContent value="kit" className="min-w-0 space-y-3 pt-4">
           {kit.map((item) => (
-            <div key={item.title} className="rounded-lg border border-border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
-                <Button size="sm" variant="ghost" onClick={() => copyText(item.content, `${item.title} copiado.`)}>
+            <div key={item.title} className="min-w-0 rounded-lg border border-border p-3">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <h4 className="min-w-0 break-words text-sm font-semibold text-foreground">{item.title}</h4>
+                <Button size="sm" variant="ghost" className="shrink-0" onClick={() => copyText(item.content, `${item.title} copiado.`)}>
                   <Copy className="size-4" aria-hidden />
                 </Button>
               </div>
-              <pre className="mt-2 max-h-40 overflow-auto text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
+              <pre className="mt-2 max-h-40 max-w-full overflow-auto break-words whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
                 {item.content}
               </pre>
             </div>
           ))}
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full min-w-0 whitespace-normal"
             onClick={() =>
               copyText(kit.map((i) => `## ${i.title}\n${i.content}`).join("\n\n"), "Kit completo copiado.")
             }
@@ -574,7 +570,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
           </Button>
         </TabsContent>
 
-        <TabsContent value="historico" className="pt-4">
+        <TabsContent value="historico" className="min-w-0 pt-4">
           {leadHistory.length > 0 ? (
             <ol className="space-y-3 border-l border-border pl-4">
               {leadHistory.map((h) => (
@@ -591,7 +587,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
         </TabsContent>
       </Tabs>
 
-      <SourceNotice />
+      <SourceNotice className="min-w-0 break-words" />
 
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <MessageDialog business={msgFor} onOpenChange={(open) => !open && setMsgFor(null)} />
