@@ -78,20 +78,33 @@ type DisplayModeContextValue = {
 const DisplayModeContext = createContext<DisplayModeContextValue | null>(null);
 
 function DisplayModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<DisplayMode | null>(null);
+  // A navegação sempre inicia em um modo seguro. A antiga tela obrigatória de
+  // escolha foi removida da inicialização para não bloquear o aplicativo.
+  const [mode, setMode] = useState<DisplayMode>("desktop");
+
   useEffect(() => {
-    const saved = window.localStorage.getItem(DISPLAY_MODE_KEY);
-    if (saved === "desktop" || saved === "mobile") setMode(saved);
+    try {
+      const saved = window.localStorage.getItem(DISPLAY_MODE_KEY);
+      if (saved === "desktop" || saved === "mobile") setMode(saved);
+    } catch {
+      // O Prospector continua utilizável mesmo se o navegador bloquear armazenamento local.
+    }
   }, []);
+
   const selectMode = (next: DisplayMode) => {
-    window.localStorage.setItem(DISPLAY_MODE_KEY, next);
+    try {
+      window.localStorage.setItem(DISPLAY_MODE_KEY, next);
+    } catch {
+      // Mantém a preferência apenas nesta sessão quando o armazenamento não estiver disponível.
+    }
     setMode(next);
   };
+
   useEffect(() => {
-    if (mode) document.documentElement.dataset.displayMode = mode;
-    else delete document.documentElement.dataset.displayMode;
+    document.documentElement.dataset.displayMode = mode;
   }, [mode]);
-  return <DisplayModeContext.Provider value={{ mode, selectMode }}>{mode ? children : <ModeChoice onSelect={selectMode} />}</DisplayModeContext.Provider>;
+
+  return <DisplayModeContext.Provider value={{ mode, selectMode }}>{children}</DisplayModeContext.Provider>;
 }
 
 export function useDisplayMode() {

@@ -126,13 +126,28 @@ function parsePersisted(raw: string | null): Persisted {
   if (!raw) return emptyState;
   try {
     const parsed = JSON.parse(raw) as Partial<Persisted>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptyState;
+
+    // Dados antigos ou parcialmente gravados não podem derrubar a aplicação inteira.
+    // Cada coleção é validada separadamente para preservar o que ainda estiver íntegro.
     return {
-      leads: parsed.leads ?? [], followUps: parsed.followUps ?? [], activities: parsed.activities ?? [],
-      savedSearches: parsed.savedSearches ?? [], sales: Array.isArray(parsed.sales) ? parsed.sales : [],
-      monthlySalesGoal: typeof parsed.monthlySalesGoal === "number" && parsed.monthlySalesGoal >= 0 ? parsed.monthlySalesGoal : 0,
-      selection: parsed.selection ?? [], profile: parsed.profile ?? { personalName: "", companyName: "" },
+      leads: Array.isArray(parsed.leads) ? parsed.leads : [],
+      followUps: Array.isArray(parsed.followUps) ? parsed.followUps : [],
+      activities: Array.isArray(parsed.activities) ? parsed.activities : [],
+      savedSearches: Array.isArray(parsed.savedSearches) ? parsed.savedSearches : [],
+      sales: Array.isArray(parsed.sales) ? parsed.sales : [],
+      monthlySalesGoal: typeof parsed.monthlySalesGoal === "number" && Number.isFinite(parsed.monthlySalesGoal) && parsed.monthlySalesGoal >= 0 ? parsed.monthlySalesGoal : 0,
+      selection: Array.isArray(parsed.selection) ? parsed.selection : [],
+      profile: parsed.profile && typeof parsed.profile === "object"
+        ? {
+            personalName: typeof parsed.profile.personalName === "string" ? parsed.profile.personalName : "",
+            companyName: typeof parsed.profile.companyName === "string" ? parsed.profile.companyName : "",
+          }
+        : { personalName: "", companyName: "" },
     };
-  } catch { return emptyState; }
+  } catch {
+    return emptyState;
+  }
 }
 function load(): Persisted {
   if (typeof window === "undefined") return emptyState;
