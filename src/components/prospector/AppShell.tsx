@@ -32,6 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) { return <
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { dark, setDark } = useTheme(); const { leads } = useProspector(); const pathname = useRouterState({ select: (s) => s.location.pathname }); const alerts = leads.filter((l) => l.status === "interessado").length;
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); const input = document.querySelector<HTMLInputElement>("[data-global-search]"); if (input) input.focus(); else window.location.assign("/prospeccao"); } }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, []);
+  if (pathname === "/login") return <>{children}</>;
   return <div className="min-h-screen bg-background">
     <InstallAppStrip />
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
