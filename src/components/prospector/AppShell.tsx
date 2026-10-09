@@ -3,6 +3,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
   ChevronLeft,
+  Computer,
+  Smartphone,
   ChevronRight,
   Flame,
   Kanban,
@@ -61,9 +63,52 @@ export function useTheme() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ProspectorProvider>
-      <ShellInner>{children}</ShellInner>
+      <DisplayModeProvider><ShellInner>{children}</ShellInner></DisplayModeProvider>
     </ProspectorProvider>
   );
+}
+
+export type DisplayMode = "desktop" | "mobile";
+const DISPLAY_MODE_KEY = "prospector:display-mode";
+
+type DisplayModeContextValue = {
+  mode: DisplayMode | null;
+  selectMode: (mode: DisplayMode) => void;
+};
+const DisplayModeContext = React.createContext<DisplayModeContextValue | null>(null);
+
+function DisplayModeProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setMode] = useState<DisplayMode | null>(null);
+  useEffect(() => {
+    const saved = window.localStorage.getItem(DISPLAY_MODE_KEY);
+    if (saved === "desktop" || saved === "mobile") setMode(saved);
+  }, []);
+  const selectMode = (next: DisplayMode) => {
+    window.localStorage.setItem(DISPLAY_MODE_KEY, next);
+    setMode(next);
+  };
+  useEffect(() => {
+    if (mode) document.documentElement.dataset.displayMode = mode;
+    else delete document.documentElement.dataset.displayMode;
+  }, [mode]);
+  return <DisplayModeContext.Provider value={{ mode, selectMode }}>{mode ? children : <ModeChoice onSelect={selectMode} />}</DisplayModeContext.Provider>;
+}
+
+export function useDisplayMode() {
+  const value = React.useContext(DisplayModeContext);
+  if (!value) throw new Error("useDisplayMode deve ser usado dentro do AppShell");
+  return value;
+}
+
+function ModeChoice({ onSelect }: { onSelect: (mode: DisplayMode) => void }) {
+  const [selected, setSelected] = useState<DisplayMode | null>(null);
+  return <main className="grid min-h-screen place-items-center bg-background px-4 py-8"><section className="w-full max-w-3xl space-y-6">
+    <div className="text-center"><h1 className="text-2xl font-bold text-foreground">Como você vai usar o PROSPECTOR?</h1><p className="mt-2 text-muted-foreground">Escolha a interface mais adequada para você. Você poderá mudar isso depois nas Configurações.</p></div>
+    <div className="grid gap-4 sm:grid-cols-2">
+      {([{ mode: "desktop", title: "MODO PC", text: "Vou usar no computador.", description: "Menu lateral fixo, painéis mais amplos e aproveitamento de telas grandes.", Icon: Computer }, { mode: "mobile", title: "MODO CELULAR", text: "Vou usar no celular.", description: "Menu deslizante, botões acessíveis, painéis compactos e navegação adaptada à tela pequena.", Icon: Smartphone }] as const).map(({ mode, title, text, description, Icon }) => <button key={mode} type="button" onClick={() => setSelected(mode)} aria-pressed={selected === mode} className={cn("rounded-xl border bg-card p-6 text-left transition-colors", selected === mode ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50")}><Icon className="mb-4 size-8 text-primary" /><span className="block text-xs font-bold tracking-wider text-primary">{title}</span><span className="mt-2 block font-semibold text-foreground">{text}</span><span className="mt-2 block text-sm text-muted-foreground">{description}</span></button>)}
+    </div>
+    <div className="text-center"><Button disabled={!selected} onClick={() => selected && onSelect(selected)} className="min-w-40">Continuar</Button></div>
+  </section></main>;
 }
 
 type NavItem = {
@@ -122,6 +167,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { dark, setDark } = useTheme();
+  const { mode } = useDisplayMode();
   const { leads } = useProspector();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -163,17 +209,17 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background">
-      <aside className={cn("fixed inset-y-0 left-0 z-40 hidden border-r border-white/10 transition-[width] duration-200 md:block", collapsed ? "w-[72px]" : "w-60")}>
+      <aside className={cn("fixed inset-y-0 left-0 z-40 hidden border-r border-white/10 transition-[width] duration-200", mode === "desktop" ? "md:block" : "", collapsed ? "w-[72px]" : "w-60")}>
         {sidebar}
         <Button variant="ghost" size="icon" className="absolute -right-4 top-[88px] z-10 size-8 rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
           {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
         </Button>
       </aside>
 
-      <div className={cn("min-h-screen transition-[margin] duration-200 md:ml-60", collapsed && "md:ml-[72px]")}>
+      <div className={cn("min-h-screen min-w-0 transition-[margin] duration-200", mode === "desktop" && "md:ml-60", mode === "desktop" && collapsed && "md:ml-[72px]")}>
         <InstallAppStrip />
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
-          <Button variant="ghost" size="icon" className="-ml-2 size-10 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></Button>
+          <Button variant="ghost" size="icon" className={cn("-ml-2 size-10", mode === "desktop" ? "md:hidden" : "md:inline-flex")} onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></Button>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground sm:text-base">{pageTitle}</p>
             <p className="hidden text-xs text-muted-foreground lg:block">PROSPECTOR</p>
@@ -186,7 +232,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <main className="min-w-0 px-3 py-5 sm:px-6 sm:py-6 lg:px-8"><div className="mx-auto max-w-7xl space-y-5 sm:space-y-6">{children}</div></main>
       </div>
 
-      {menuOpen ? <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Menu de navegação"><button className="absolute inset-0 bg-slate-950/60" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" /><aside className="relative h-full w-[min(82vw,300px)] shadow-2xl"><Button variant="ghost" size="icon" className="absolute right-3 top-4 z-10 size-10 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X className="size-5" /></Button>{sidebar}</aside></div> : null}
+      {menuOpen ? <div className={cn("fixed inset-0 z-50", mode === "desktop" ? "md:hidden" : "")} role="dialog" aria-modal="true" aria-label="Menu de navegação"><button className="absolute inset-0 bg-slate-950/60" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" /><aside className="relative h-full w-[min(82vw,300px)] shadow-2xl"><Button variant="ghost" size="icon" className="absolute right-3 top-4 z-10 size-10 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X className="size-5" /></Button>{sidebar}</aside></div> : null}
       <LeadWorkspace />
     </div>
   );

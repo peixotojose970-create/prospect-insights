@@ -1,6 +1,7 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Moon, Sun, Upload } from "lucide-react";
+import { Computer, Download, Moon, Smartphone, Sun, Upload } from "lucide-react";
+import { useDisplayMode, type DisplayMode } from "@/components/prospector/AppShell";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,6 +63,9 @@ function Pref({
 
 function Configuracoes() {
   const { leads, profile, setProfile } = useProspector();
+  const { mode, selectMode } = useDisplayMode();
+  const [pendingMode, setPendingMode] = useState<DisplayMode | null>(null);
+  const activeMode = pendingMode ?? mode;
 
   const downloadBackup = () => {
     const raw = window.localStorage.getItem("prospector:v1");
@@ -119,6 +123,13 @@ function Configuracoes() {
       <PageHeader title="Configurações" subtitle="Aparência, preferências e seus dados." />
 
       <InstallAppCard />
+
+      <Section title="Modo de exibição" description="Você pode mudar esse modo quando quiser.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {([{ value: "desktop", label: "Modo PC", Icon: Computer }, { value: "mobile", label: "Modo celular", Icon: Smartphone }] as const).map(({ value, label, Icon }) => <button key={value} type="button" aria-pressed={activeMode === value} onClick={() => setPendingMode(value)} className={`flex min-h-16 items-center gap-3 rounded-lg border p-4 text-left ${activeMode === value ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/50"}`}><Icon className="size-5 text-primary" /><span className="font-medium">{label}</span></button>)}
+        </div>
+        {pendingMode && pendingMode !== mode ? <Button onClick={() => { selectMode(pendingMode); setPendingMode(null); }}>Aplicar modo</Button> : null}
+      </Section>
 
       <Section title="Aparência" description="Escolha entre tema claro e escuro.">
         <div className="flex gap-2">
