@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { businessSearchRepository } from "./repository";
+import { supabase } from "@/integrations/supabase/client";
 import type { SearchErrorCode } from "@/lib/business-search.functions";
 import type {
   Activity,
