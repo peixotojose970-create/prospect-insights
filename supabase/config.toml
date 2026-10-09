@@ -2,3 +2,6 @@ project_id = "dnsfzeqyvunmfuvzygsk"
 
 [functions.prospect-bootstrap]
 verify_jwt = false
+
+[functions.prospect-auth]
+verify_jwt = false
