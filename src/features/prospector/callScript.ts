@@ -36,6 +36,11 @@ export type GeneratedCallScript = {
   stages: Record<CallStageId, CallStageData>;
 };
 
+export type CallScriptProfile = {
+  personalName?: string;
+  companyName?: string;
+};
+
 function getCategoryTone(category: string): {
   vocative: string;
   servicesDescription: string;
@@ -107,7 +112,10 @@ function getCategoryTone(category: string): {
   };
 }
 
-export function generateCallScript(business?: Business | null): GeneratedCallScript {
+export function generateCallScript(
+  business?: Business | null,
+  profile?: CallScriptProfile,
+): GeneratedCallScript {
   const companyName = business?.name?.trim() || "Não informado";
   const categoryRaw = business?.category?.trim();
   const category = categoryRaw && categoryRaw !== "Não informado" ? categoryRaw : "Não informado";
@@ -124,6 +132,14 @@ export function generateCallScript(business?: Business | null): GeneratedCallScr
 
   const tone = getCategoryTone(category !== "Não informado" ? category : "");
   const targetName = companyName !== "Não informado" ? companyName : "empresa";
+  const personalName = profile?.personalName?.trim();
+  const representativeCompanyName = profile?.companyName?.trim() || "nossa equipe";
+  const introduction = personalName
+    ? `Meu nome é ${personalName}, da ${representativeCompanyName}`
+    : `Sou um consultor da ${representativeCompanyName}`;
+  const shortIntroduction = personalName
+    ? `É ${personalName}, da ${representativeCompanyName}`
+    : `Sou um consultor da ${representativeCompanyName}`;
 
   const stages: Record<CallStageId, CallStageData> = {
     1: {
@@ -137,15 +153,15 @@ export function generateCallScript(business?: Business | null): GeneratedCallScr
       alternatives: [
         {
           customerSays: '"Quem fala?"',
-          recommendedReply: `É o Alysson, da NEXORA. Eu queria falar rapidinho com o responsável pelo negócio.`,
+          recommendedReply: `${shortIntroduction}. Eu queria falar rapidinho com o responsável pelo negócio.`,
         },
         {
           customerSays: '"Sim."',
-          recommendedReply: `Prazer! Meu nome é Alysson, da NEXORA. Eu queria falar rapidinho com o responsável pelo negócio.`,
+          recommendedReply: `Prazer! ${introduction}. Eu queria falar rapidinho com o responsável pelo negócio.`,
         },
         {
           customerSays: '"Pois não."',
-          recommendedReply: `Oi! Aqui é o Alysson, da NEXORA. Gostaria de falar rapidinho com o responsável pela empresa.`,
+          recommendedReply: `Oi! ${shortIntroduction}. Gostaria de falar rapidinho com o responsável pela empresa.`,
         },
         {
           customerSays: '"Sobre o que seria?"',
@@ -169,7 +185,7 @@ export function generateCallScript(business?: Business | null): GeneratedCallScr
       subSections: [
         {
           label: "SE SIM (É O RESPONSÁVEL) — ABERTURA COMERCIAL",
-          speech: `Meu nome é Alysson, da NEXORA. Vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
+          speech: `${introduction}. Vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
           note: "Abertura rápida e honesta que quebra a resistência comum de telemarketing.",
         },
         {
@@ -181,7 +197,7 @@ export function generateCallScript(business?: Business | null): GeneratedCallScr
       alternatives: [
         {
           customerSays: '"Sim, sou eu. Pode falar."',
-          recommendedReply: `Meu nome é Alysson, da NEXORA. Vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
+          recommendedReply: `${introduction}. Vou ser 100% honesto com você: eu tenho uma proposta pro seu negócio. Você me dá 30 segundos e depois você decide?`,
           nextStage: 3,
         },
         {

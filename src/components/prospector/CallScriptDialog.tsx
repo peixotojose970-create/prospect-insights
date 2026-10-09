@@ -105,7 +105,7 @@ export function CallScriptDialog({
   business: Business | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { isSaved, saveLead, registerContact, logHistory } = useProspector();
+  const { isSaved, saveLead, registerContact, logHistory, profile } = useProspector();
   const [currentStageId, setCurrentStageId] = useState<CallStageId>(1);
   const [historyStack, setHistoryStack] = useState<CallStageId[]>([]);
   const [showAlternatives, setShowAlternatives] = useState<boolean>(true);
@@ -117,13 +117,13 @@ export function CallScriptDialog({
     if (!business) return null;
     try {
       setGenerationError(false);
-      return generateCallScript(business);
+      return generateCallScript(business, profile);
     } catch (e) {
       console.error("Erro ao gerar roteiro de ligação:", e);
       setGenerationError(true);
       return null;
     }
-  }, [business, regenerateKey]);
+  }, [business, profile, regenerateKey]);
 
   if (!business) return null;
 
@@ -172,7 +172,7 @@ export function CallScriptDialog({
 
   const handleDial = () => {
     if (!isSaved(business.id)) saveLead(business);
-    registerContact(business.id, "ligacao", "Ligação guiada pelo Roteiro da Nexora");
+    registerContact(business.id, "ligacao", "Ligação guiada pelo roteiro comercial");
     if (digits) {
       window.location.href = `tel:+55${digits}`;
     }
@@ -225,7 +225,7 @@ export function CallScriptDialog({
                       Roteiro de ligação
                     </DialogTitle>
                     <Badge variant="outline" className="border-primary/40 bg-primary/10 text-xs font-semibold text-primary">
-                      NEXORA
+                      {profile.companyName.trim() || "Sua empresa"}
                     </Badge>
                   </div>
                   {digits ? (
