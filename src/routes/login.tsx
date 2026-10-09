@@ -63,13 +63,13 @@ function AccessLogin() {
             <Label htmlFor="access-key">Chave de acesso</Label>
             <div className="relative">
               <KeyRound className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <input id="access-key" autoComplete="off" value={key} onChange={(e) => { setKey(e.target.value); if (status !== "validating") setStatus("idle"); }} type={visible ? "text" : "password"} placeholder="Digite ou cole sua chave de acesso" className="h-12 w-full rounded-lg border border-input bg-background pr-12 pl-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
+              <input id="access-key" required autoComplete="off" autoCapitalize="none" spellCheck={false} value={key} onChange={(e) => { setKey(e.target.value); if (status !== "validating") setStatus("idle"); }} type={visible ? "text" : "password"} placeholder="Digite ou cole sua chave de acesso" aria-invalid={status === "invalid" || status === "connection"} aria-describedby="access-key-message" className="h-12 w-full rounded-lg border border-input bg-background pr-12 pl-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
               <button type="button" onClick={() => setVisible(!visible)} className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={visible ? "Ocultar chave" : "Mostrar chave"}>{visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>
             </div>
+            <p id="access-key-message" role="status" aria-live="polite" className={`min-h-5 text-xs ${status === "invalid" || status === "disabled" || status === "connection" ? "text-destructive" : "text-muted-foreground"}`}>{message}</p>
           </div>
           <div className="flex items-center gap-2.5"><Checkbox id="remember" checked={remember} onCheckedChange={(checked) => setRemember(checked === true)} /><Label htmlFor="remember" className="cursor-pointer text-sm font-normal text-muted-foreground">Manter conectado neste dispositivo</Label></div>
           <Button type="submit" disabled={!key.trim() || status === "validating"} className="h-12 w-full text-sm font-semibold">{status === "validating" ? <><LoaderCircle className="size-4 animate-spin" />Validando acesso…</> : <>Entrar no Prospector<ArrowRight className="size-4" /></>}</Button>
-          <p role="status" aria-live="polite" className={`min-h-5 text-center text-xs ${status === "invalid" || status === "disabled" || status === "connection" ? "text-destructive" : "text-muted-foreground"}`}>{message}</p>
         </form>
         <div className="mt-5 flex items-center justify-center gap-2 border-t border-border pt-5 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-primary" aria-hidden />Seu acesso é protegido e confidencial</div>
       </section>
