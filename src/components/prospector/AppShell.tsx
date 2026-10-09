@@ -43,7 +43,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); const input = document.querySelector<HTMLInputElement>("[data-global-search]"); if (input) input.focus(); else window.location.assign("/prospeccao"); } }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, []);
-  if (pathname === "/login") return <>{children}</>;
+  if (pathname === "/login" || pathname === "/provisionamento") return <>{children}</>;
   if (!authenticated) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Verificando sessão segura…</div>;
   return <div className="min-h-screen bg-background">
     <InstallAppStrip />
