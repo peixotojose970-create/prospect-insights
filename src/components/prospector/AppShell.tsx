@@ -137,6 +137,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+
   const sidebar = (
     <div className="flex h-full flex-col bg-slate-950 text-slate-100">
       <div className={cn("flex h-[72px] items-center border-b border-white/10", collapsed ? "justify-center px-2" : "px-5")}><Brand compact={collapsed} /></div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus, Copy, Globe, Instagram, Mail, MapPin, MessageCircle, Phone, PhoneCall, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,7 +132,6 @@ function LeadActionBar({ business }: { business: Business | Lead }) {
 /** Detalhe da empresa/lead: painel lateral no desktop, tela cheia no celular. */
 export function LeadWorkspace() {
   const { openId, openedBusiness, openLead, findById } = useProspector();
-  const isMobile = useIsMobile();
   const business = openId
     ? openedBusiness && (openedBusiness.id === openId || openedBusiness.placeId === openId)
       ? openedBusiness
@@ -143,8 +141,8 @@ export function LeadWorkspace() {
   return (
     <Sheet open={!!business} onOpenChange={(open) => !open && openLead(null)}>
       <SheetContent
-        side={isMobile ? "bottom" : "right"}
-        className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 rounded-none p-0 pb-[env(safe-area-inset-bottom)] md:h-full md:max-h-full md:rounded-none sm:max-w-xl"
+        side="right"
+        className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 rounded-none p-0 pb-[env(safe-area-inset-bottom)] max-md:inset-x-0 max-md:bottom-0 max-md:top-auto md:h-full md:max-h-full md:rounded-none sm:max-w-xl"
       >
         {business ? (
           <>
