@@ -75,6 +75,21 @@ export type Lead = Business & LeadCrm;
 export type FollowUp = { id: string; leadId: string; date: string; time: string; label: string; done: boolean };
 export type Activity = { id: string; label: string; lead: string; at: string };
 
+export type SaleStatus = "fechada" | "pagamento_pendente" | "cancelada";
+export type Sale = {
+  id: string;
+  clientName: string;
+  leadId: string | null;
+  service: string;
+  totalValue: number;
+  receivedValue: number;
+  saleDate: string;
+  status: SaleStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SavedSearch = {
   id: string;
   category: string;

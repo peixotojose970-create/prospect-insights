@@ -16,6 +16,7 @@ import type {
   FollowUp,
   Lead,
   LeadStatus,
+  Sale,
   SavedSearch,
   SearchCriteria,
   SearchOutcome,
@@ -29,6 +30,8 @@ type Persisted = {
   followUps: FollowUp[];
   activities: Activity[];
   savedSearches: SavedSearch[];
+  sales: Sale[];
+  monthlySalesGoal: number;
   /** Seleção temporária de empresas (persiste entre pesquisas e recarregamentos). */
   selection: Business[];
   profile: { personalName: string; companyName: string };
@@ -63,6 +66,12 @@ type Store = {
   followUps: FollowUp[];
   activities: Activity[];
   savedSearches: SavedSearch[];
+  sales: Sale[];
+  monthlySalesGoal: number;
+  createSale: (sale: Omit<Sale, "id" | "createdAt" | "updatedAt">) => void;
+  updateSale: (id: string, sale: Omit<Sale, "id" | "createdAt" | "updatedAt">) => void;
+  deleteSale: (id: string) => void;
+  setMonthlySalesGoal: (value: number) => void;
   search: SearchState;
   runSearch: (criteria: SearchCriteria, append?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -107,6 +116,8 @@ const emptyState: Persisted = {
   followUps: [],
   activities: [],
   savedSearches: [],
+  sales: [],
+  monthlySalesGoal: 0,
   selection: [],
   profile: { personalName: "", companyName: "" },
 };
@@ -117,8 +128,9 @@ function parsePersisted(raw: string | null): Persisted {
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     return {
       leads: parsed.leads ?? [], followUps: parsed.followUps ?? [], activities: parsed.activities ?? [],
-      savedSearches: parsed.savedSearches ?? [], selection: parsed.selection ?? [],
-      profile: parsed.profile ?? { personalName: "", companyName: "" },
+      savedSearches: parsed.savedSearches ?? [], sales: Array.isArray(parsed.sales) ? parsed.sales : [],
+      monthlySalesGoal: typeof parsed.monthlySalesGoal === "number" && parsed.monthlySalesGoal >= 0 ? parsed.monthlySalesGoal : 0,
+      selection: parsed.selection ?? [], profile: parsed.profile ?? { personalName: "", companyName: "" },
     };
   } catch { return emptyState; }
 }
@@ -264,13 +276,29 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
 
   const value = useMemo<Store>(() => {
-    const { leads, followUps, activities, savedSearches, selection, profile } = state;
+    const { leads, followUps, activities, savedSearches, sales, monthlySalesGoal, selection, profile } = state;
     const selectedIds = new Set(selection.map((b) => b.id));
     return {
       leads,
       followUps,
       activities,
       savedSearches,
+      sales,
+      monthlySalesGoal,
+      createSale: (sale) => {
+        const now = new Date().toISOString();
+        setState((prev) => ({
+          ...prev,
+          sales: [{ ...sale, id: `sale-${Date.now()}-${Math.random().toString(36).slice(2)}`, createdAt: now, updatedAt: now }, ...prev.sales],
+          activities: [{ id: `sale-${Date.now()}`, label: "Venda registrada", lead: sale.clientName, at: stamp() }, ...prev.activities].slice(0, 20),
+        }));
+      },
+      updateSale: (id, sale) => setState((prev) => ({
+        ...prev,
+        sales: prev.sales.map((item) => item.id === id ? { ...item, ...sale, updatedAt: new Date().toISOString() } : item),
+      })),
+      deleteSale: (id) => setState((prev) => ({ ...prev, sales: prev.sales.filter((sale) => sale.id !== id) })),
+      setMonthlySalesGoal: (value) => setState((prev) => ({ ...prev, monthlySalesGoal: Math.max(0, value) })),
       selection,
       profile,
       setProfile: (nextProfile) => setState((prev) => ({ ...prev, profile: nextProfile })),

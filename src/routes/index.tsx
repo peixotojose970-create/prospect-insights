@@ -1,128 +1,49 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, Flame, Globe, Users } from "lucide-react";
+import { Bell, Flame, Globe, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SaleDialog } from "@/components/prospector/SaleDialog";
 import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SourceNotice, StatusBadge } from "@/features/prospector/ui";
+import type { Sale, SaleStatus } from "@/types";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Painel do prospector | Prospector B2B" },
-      {
-        name: "description",
-        content:
-          "Acompanhe leads salvos, oportunidades sem site, follow-ups do dia e atividade recente da sua prospecção B2B.",
-      },
-      { property: "og:title", content: "Painel do prospector | Prospector B2B" },
-      {
-        property: "og:description",
-        content: "Leads salvos, oportunidades sem site e follow-ups do dia em um só painel.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Dashboard,
-});
+export const Route = createFileRoute("/")({ component: Dashboard });
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const monthKey = (date: string) => date.slice(0, 7);
+const statusLabel: Record<SaleStatus, string> = { fechada: "Fechada", pagamento_pendente: "Pagamento pendente", cancelada: "Cancelada" };
+const statusClass: Record<SaleStatus, string> = { fechada: "bg-success/15 text-success", pagamento_pendente: "bg-warning/15 text-warning", cancelada: "bg-danger/15 text-danger" };
 
 function Dashboard() {
-  const { leads, followUps, activities, openLead } = useProspector();
-  const noSite = leads.filter((l) => !l.website);
-  const pending = followUps.filter((f) => !f.done);
-  const hot = leads.filter((l) => l.score >= 80);
-
+  const { leads, followUps, activities, sales, monthlySalesGoal, setMonthlySalesGoal, deleteSale, openLead } = useProspector();
+  const [dialogOpen, setDialogOpen] = useState(false); const [editing, setEditing] = useState<Sale | null>(null);
+  const [filter, setFilter] = useState("all"); const [customStart, setCustomStart] = useState(""); const [customEnd, setCustomEnd] = useState("");
+  const now = new Date(); const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const lastMonth = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
+  const valid = sales.filter((sale) => sale.status !== "cancelada");
+  const total = valid.reduce((sum, sale) => sum + sale.totalValue, 0); const received = valid.reduce((sum, sale) => sum + sale.receivedValue, 0);
+  const currentReceived = valid.filter((sale) => monthKey(sale.saleDate) === currentMonth).reduce((sum, sale) => sum + sale.receivedValue, 0);
+  const previousReceived = valid.filter((sale) => monthKey(sale.saleDate) === lastMonth).reduce((sum, sale) => sum + sale.receivedValue, 0);
+  const filtered = useMemo(() => sales.filter((sale) => {
+    if (filter === "month") return monthKey(sale.saleDate) === currentMonth;
+    if (filter === "previous") return monthKey(sale.saleDate) === lastMonth;
+    if (filter === "pending") return sale.status === "pagamento_pendente";
+    if (filter === "cancelled") return sale.status === "cancelada";
+    if (filter === "custom") return (!customStart || sale.saleDate >= customStart) && (!customEnd || sale.saleDate <= customEnd);
+    return true;
+  }).sort((a, b) => b.saleDate.localeCompare(a.saleDate)), [sales, filter, currentMonth, lastMonth, customStart, customEnd]);
   const stats = [
-    { label: "Leads salvos", value: leads.length, icon: Users, to: "/leads" },
-    { label: "Sem site informado", value: noSite.length, icon: Globe, to: "/oportunidades" },
-    { label: "Alta prioridade", value: hot.length, icon: Flame, to: "/oportunidades" },
-    { label: "Follow-ups pendentes", value: pending.length, icon: Bell, to: "/follow-ups" },
+    { label: "Leads salvos", value: leads.length, icon: Users, to: "/leads" }, { label: "Sem site informado", value: leads.filter((l) => !l.website).length, icon: Globe, to: "/oportunidades" },
+    { label: "Alta prioridade", value: leads.filter((l) => l.score >= 80).length, icon: Flame, to: "/oportunidades" }, { label: "Follow-ups pendentes", value: followUps.filter((f) => !f.done).length, icon: Bell, to: "/follow-ups" },
   ] as const;
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Painel"
-        subtitle="Sua carteira de prospecção construída a partir de dados abertos de empresas."
-        actions={
-          <Button asChild>
-            <Link to="/prospeccao">Buscar empresas</Link>
-          </Button>
-        }
-      />
-
-      <InstallAppCard />
-
-      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="gap-1.5 p-4 sm:gap-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm leading-snug text-muted-foreground sm:text-xs">{s.label}</p>
-              <s.icon className="size-5 shrink-0 text-muted-foreground sm:size-4" aria-hidden />
-            </div>
-            <p className="text-4xl font-bold tabular-nums text-foreground sm:text-3xl">{s.value}</p>
-            <Link to={s.to} className="text-xs text-primary underline underline-offset-2">
-              Ver detalhes
-            </Link>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="gap-3 p-4">
-          <h2 className="text-sm font-semibold text-foreground">Leads recentes</h2>
-          {leads.length === 0 ? (
-            <EmptyState
-              title="Nenhum lead salvo"
-              description="Faça uma busca e salve as empresas que fazem sentido para você."
-              action={
-                <Button asChild size="sm">
-                  <Link to="/prospeccao">Ir para prospecção</Link>
-                </Button>
-              }
-            />
-          ) : (
-            <ul className="divide-y divide-border">
-              {leads.slice(0, 6).map((lead) => (
-                <li key={lead.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{lead.name}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <StatusBadge status={lead.status} />
-                      <ScorePill score={lead.score} />
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => openLead(lead.id)}>
-                    Abrir
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card className="gap-3 p-4">
-          <h2 className="text-sm font-semibold text-foreground">Atividade recente</h2>
-          {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Suas ações aparecem aqui.</p>
-          ) : (
-            <ol className="space-y-3 border-l border-border pl-4">
-              {activities.slice(0, 8).map((a) => (
-                <li key={a.id} className="relative text-sm">
-                  <span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-primary" aria-hidden />
-                  <p className="text-foreground">
-                    {a.label} — <span className="text-muted-foreground">{a.lead}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">{a.at}</p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Card>
-      </div>
-
-      <SourceNotice />
-    </div>
-  );
+  const salesStats = [["Vendas fechadas", valid.length], ["Faturamento total", money.format(total)], ["Valor recebido", money.format(received)], ["Valor a receber", money.format(total - received)], ["Vendas do mês", valid.filter((sale) => monthKey(sale.saleDate) === currentMonth).length], ["Ticket médio", money.format(valid.length ? total / valid.length : 0)]];
+  const progress = monthlySalesGoal > 0 ? Math.min(100, (currentReceived / monthlySalesGoal) * 100) : 0;
+  const openSale = (sale: Sale | null = null) => { setEditing(sale); setDialogOpen(true); };
+  return <div className="space-y-6"><PageHeader title="Painel" subtitle="Acompanhe sua prospecção, vendas e recebimentos." actions={<div className="flex gap-2"><Button variant="outline" asChild><Link to="/prospeccao">Buscar empresas</Link></Button><Button onClick={() => openSale()}><Plus className="mr-1 size-4" />Registrar venda</Button></div>} /><InstallAppCard />
+    <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">{stats.map((s) => <Card key={s.label} className="gap-1.5 p-4"><div className="flex items-center justify-between"><p className="text-sm text-muted-foreground">{s.label}</p><s.icon className="size-4 text-muted-foreground" /></div><p className="text-3xl font-bold tabular-nums">{s.value}</p><Link to={s.to} className="text-xs text-primary underline">Ver detalhes</Link></Card>)}</div>
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Financeiro de vendas</h2><p className="text-sm text-muted-foreground">Registros manuais, sem cobranças automáticas.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{salesStats.map(([label, value]) => <Card key={String(label)} className="gap-1 p-4"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-bold tabular-nums">{value}</p></Card>)}</div><Card className="gap-3 p-4"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><h3 className="font-semibold">Meta mensal de recebimentos</h3><p className="text-sm text-muted-foreground">{money.format(currentReceived)} recebidos neste mês.</p></div><label className="grid gap-1 text-sm font-medium">Meta (R$)<Input className="w-44" type="number" min="0" step="0.01" value={monthlySalesGoal || ""} onChange={(e) => setMonthlySalesGoal(Math.max(0, Number(e.target.value)))} /></label></div>{monthlySalesGoal > 0 ? <><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div><p className="text-xs text-muted-foreground">{progress.toFixed(0)}% da meta mensal alcançada.</p></> : <p className="text-xs text-muted-foreground">Defina uma meta para acompanhar o progresso.</p>}{previousReceived > 0 && <p className="text-xs text-muted-foreground">Mês anterior: {money.format(previousReceived)} recebidos.</p>}</Card></section>
+    <section className="space-y-3"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><h2 className="text-lg font-semibold">Vendas recentes</h2><p className="text-sm text-muted-foreground">Consulte, edite ou atualize pagamentos registrados.</p></div><div className="flex flex-wrap gap-2"><select className="h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Todas</option><option value="month">Este mês</option><option value="previous">Mês anterior</option><option value="custom">Personalizado</option><option value="pending">Pagamento pendente</option><option value="cancelled">Canceladas</option></select>{filter === "custom" && <><Input className="w-36" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} /><Input className="w-36" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} /></>}</div></div>{filtered.length === 0 ? <EmptyState title="Nenhuma venda encontrada" description="Registre sua primeira venda para acompanhar faturamento e recebimentos." action={<Button size="sm" onClick={() => openSale()}>Registrar venda</Button>} /> : <Card className="overflow-hidden p-0"><div className="divide-y divide-border">{filtered.slice(0, 12).map((sale) => <div key={sale.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-medium">{sale.clientName}</p><p className="text-sm text-muted-foreground">{sale.service} · {new Date(`${sale.saleDate}T12:00:00`).toLocaleDateString("pt-BR")}</p></div><div className="flex flex-wrap items-center gap-3 text-sm"><span>Total: <b>{money.format(sale.totalValue)}</b></span><span>Recebido: <b>{money.format(sale.receivedValue)}</b></span><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass[sale.status]}`}>{statusLabel[sale.status]}</span><Button size="sm" variant="outline" onClick={() => openSale(sale)}>Abrir</Button><Button size="sm" variant="ghost" className="text-danger" onClick={() => { if (window.confirm("Excluir esta venda? Esta ação não pode ser desfeita.")) deleteSale(sale.id); }}>Excluir</Button></div></div>)}</div></Card>}</section>
+    <div className="grid gap-4 lg:grid-cols-2"><Card className="gap-3 p-4"><h2 className="text-sm font-semibold">Leads recentes</h2>{leads.length === 0 ? <EmptyState title="Nenhum lead salvo" description="Faça uma busca e salve empresas." action={<Button asChild size="sm"><Link to="/prospeccao">Ir para prospecção</Link></Button>} /> : <ul className="divide-y divide-border">{leads.slice(0, 6).map((lead) => <li key={lead.id} className="flex items-center justify-between gap-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{lead.name}</p><div className="mt-1 flex gap-2"><StatusBadge status={lead.status} /><ScorePill score={lead.score} /></div></div><Button size="sm" variant="outline" onClick={() => openLead(lead.id)}>Abrir</Button></li>)}</ul>}</Card><Card className="gap-3 p-4"><h2 className="text-sm font-semibold">Atividade recente</h2>{activities.length === 0 ? <p className="text-sm text-muted-foreground">Suas ações aparecem aqui.</p> : <ol className="space-y-3 border-l border-border pl-4">{activities.slice(0, 8).map((a) => <li key={a.id} className="relative text-sm"><span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-primary" /><p>{a.label} — <span className="text-muted-foreground">{a.lead}</span></p><p className="text-xs text-muted-foreground">{a.at}</p></li>)}</ol>}</Card></div><SourceNotice /><SaleDialog sale={editing} open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditing(null); }} /></div>;
 }
