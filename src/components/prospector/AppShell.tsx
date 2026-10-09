@@ -1,51 +1,180 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Flame, Kanban, LayoutDashboard, MessageCircle, Moon, MoreVertical, Search, Settings, Sun, Target, Users, Zap } from "lucide-react";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Kanban,
+  LayoutDashboard,
+  Menu,
+  MessageCircle,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  Target,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InstallAppMenuItem, InstallAppStrip } from "@/components/prospector/InstallApp";
 import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
 import { cn } from "@/lib/utils";
 
-const nav = [
-  { to: "/prospeccao", label: "Prospecção", icon: Search },
+const mainNav = [
+  { to: "/", label: "Painel", icon: LayoutDashboard },
+  { to: "/prospeccao", label: "Buscar empresas", icon: Search },
   { to: "/rapido", label: "Modo rápido", icon: Zap },
+] as const;
+const managementNav = [
   { to: "/oportunidades", label: "Oportunidades", icon: Flame },
-  { to: "/leads", label: "Leads", icon: Users },
+  { to: "/leads", label: "Leads salvos", icon: Users },
   { to: "/trabalhar-leads", label: "Trabalhar leads", icon: MessageCircle },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/follow-ups", label: "Follow-ups", icon: Bell },
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
-const mobileNav = [
-  { to: "/prospeccao", label: "Buscar", icon: Search },
-  { to: "/oportunidades", label: "Oportun.", icon: Flame },
-  { to: "/leads", label: "Leads", icon: Users },
-  { to: "/follow-ups", label: "Follow-up", icon: Bell },
-  { to: "/", label: "Painel", icon: LayoutDashboard },
-] as const;
-export function useTheme() { const [dark, setDark] = useState(false); useEffect(() => { document.documentElement.classList.toggle("dark", dark); }, [dark]); return { dark, setDark }; }
-export function AppShell({ children }: { children: React.ReactNode }) { return <ProspectorProvider><ShellInner>{children}</ShellInner></ProspectorProvider>; }
+
+const pageTitles: Record<string, string> = {
+  "/": "Painel",
+  "/prospeccao": "Buscar empresas",
+  "/rapido": "Modo rápido",
+  "/oportunidades": "Oportunidades",
+  "/leads": "Leads salvos",
+  "/trabalhar-leads": "Trabalhar leads",
+  "/pipeline": "Pipeline",
+  "/follow-ups": "Follow-ups",
+  "/configuracoes": "Configurações",
+};
+
+export function useTheme() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
+  return { dark, setDark };
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <ProspectorProvider>
+      <ShellInner>{children}</ShellInner>
+    </ProspectorProvider>
+  );
+}
+
+type NavItem = {
+  to: "/" | "/prospeccao" | "/rapido" | "/oportunidades" | "/leads" | "/trabalhar-leads" | "/pipeline" | "/follow-ups" | "/configuracoes";
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed?: boolean; onNavigate?: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          to={item.to}
+          onClick={onNavigate}
+          className={cn(
+            "group flex min-h-11 items-center rounded-lg px-3 text-sm font-medium transition-colors",
+            collapsed ? "justify-center" : "gap-3",
+            active
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-slate-300 hover:bg-white/10 hover:text-white",
+          )}
+        >
+          <item.icon className="size-[18px] shrink-0" aria-hidden />
+          {!collapsed ? <span className="truncate">{item.label}</span> : null}
+        </Link>
+      </TooltipTrigger>
+      {collapsed ? <TooltipContent side="right">{item.label}</TooltipContent> : null}
+    </Tooltip>
+  );
+}
+
+function Navigation({ pathname, collapsed = false, onNavigate }: { pathname: string; collapsed?: boolean; onNavigate?: () => void }) {
+  return (
+    <nav className="space-y-6" aria-label="Navegação principal">
+      <section>
+        {!collapsed ? <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Visão geral</p> : null}
+        <div className="space-y-1">{mainNav.map((item) => <NavLink key={item.to} item={item} active={pathname === item.to} collapsed={collapsed} onNavigate={onNavigate} />)}</div>
+      </section>
+      <section>
+        {!collapsed ? <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Gestão de leads</p> : null}
+        <div className="space-y-1">{managementNav.map((item) => <NavLink key={item.to} item={item} active={pathname === item.to} collapsed={collapsed} onNavigate={onNavigate} />)}</div>
+      </section>
+    </nav>
+  );
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link to="/" className={cn("flex items-center gap-3", compact && "justify-center")} aria-label="Prospector: ir para o painel">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Target className="size-5" /></span>
+      {!compact ? <span className="text-base font-bold tracking-tight text-white">PROSPECTOR</span> : null}
+    </Link>
+  );
+}
+
 function ShellInner({ children }: { children: React.ReactNode }) {
-  const { dark, setDark } = useTheme(); const { leads } = useProspector(); const pathname = useRouterState({ select: (s) => s.location.pathname }); const alerts = leads.filter((l) => l.status === "interessado").length;
-  useEffect(() => { const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); const input = document.querySelector<HTMLInputElement>("[data-global-search]"); if (input) input.focus(); else window.location.assign("/prospeccao"); } }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, []);
-  return <div className="min-h-screen bg-background">
-    <InstallAppStrip />
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
-      <Link to="/" className="flex min-w-0 items-center gap-2"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground"><Target className="size-4" /></span><span className="truncate text-sm font-semibold tracking-tight text-foreground">PROSPECTOR</span></Link>
-      <span className="ml-2 hidden rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground lg:inline">Dados oficiais do Google Maps</span>
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <Button variant="ghost" size="icon" className="size-10" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}</Button>
-        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="Notificações" className="relative size-10" asChild><Link to="/follow-ups"><Bell className="size-4" />{alerts > 0 ? <span className="absolute top-2 right-2 size-1.5 rounded-full bg-danger" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-56"><DropdownMenuLabel>PROSPECTOR</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/leads"><Search className="size-4" />Buscar leads salvos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/rapido"><Zap className="size-4" />Prospecção rápida</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/pipeline"><Kanban className="size-4" />Pipeline</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/configuracoes"><Settings className="size-4" />Configurações</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setDark(!dark)}>{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}Tema {dark ? "escuro" : "claro"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-        <span className="ml-1 hidden size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground sm:grid">JP</span>
+  const { dark, setDark } = useTheme();
+  const { leads } = useProspector();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const alerts = leads.filter((lead) => lead.status === "interessado").length;
+  const pageTitle = pageTitles[pathname] ?? "Prospector";
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const sidebar = (
+    <div className="flex h-full flex-col bg-slate-950 text-slate-100">
+      <div className={cn("flex h-[72px] items-center border-b border-white/10", collapsed ? "justify-center px-2" : "px-5")}><Brand compact={collapsed} /></div>
+      <div className="flex-1 overflow-y-auto px-3 py-5"><Navigation pathname={pathname} collapsed={collapsed} onNavigate={() => setMenuOpen(false)} /></div>
+      <div className="space-y-3 border-t border-white/10 p-3">
+        <NavLink item={{ to: "/configuracoes", label: "Configurações", icon: Settings }} active={pathname === "/configuracoes"} collapsed={collapsed} onNavigate={() => setMenuOpen(false)} />
+        {!collapsed ? <InstallAppMenuItem className="[&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-slate-100 [&_button:hover]:bg-white/10" /> : null}
       </div>
-    </header>
-    <div className="flex"><aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 border-r border-border bg-card md:block md:w-16 lg:w-56"><nav className="flex flex-col gap-1 p-2">{nav.map((item) => { const active = pathname === item.to; return <Tooltip key={item.to}><TooltipTrigger asChild><Link to={item.to} className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors", active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><item.icon className="size-4 shrink-0" /><span className="hidden truncate lg:inline">{item.label}</span></Link></TooltipTrigger><TooltipContent side="right" className="lg:hidden">{item.label}</TooltipContent></Tooltip>; })}</nav><InstallAppMenuItem className="hidden px-3 pt-3 lg:block" /></aside><main className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-6 sm:pt-5 md:pb-8"><div className="mx-auto max-w-7xl space-y-5 sm:space-y-6">{children}</div></main></div>
-    <nav className="fixed bottom-0 z-30 flex w-full items-stretch border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Navegação principal">{mobileNav.map((item) => { const active = pathname === item.to; return <Link key={item.to} to={item.to} className={cn("flex min-h-14 flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}><item.icon className="size-5" /><span className="max-w-full truncate px-0.5">{item.label}</span></Link>; })}</nav>
-    <LeadWorkspace />
-  </div>;
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      <aside className={cn("fixed inset-y-0 left-0 z-40 hidden border-r border-white/10 transition-[width] duration-200 md:block", collapsed ? "w-[72px]" : "w-60")}>
+        {sidebar}
+        <Button variant="ghost" size="icon" className="absolute -right-4 top-[88px] z-10 size-8 rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
+          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+        </Button>
+      </aside>
+
+      <div className={cn("min-h-screen transition-[margin] duration-200 md:ml-60", collapsed && "md:ml-[72px]")}>
+        <InstallAppStrip />
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+          <Button variant="ghost" size="icon" className="-ml-2 size-10 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></Button>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground sm:text-base">{pageTitle}</p>
+            <p className="hidden text-xs text-muted-foreground lg:block">PROSPECTOR</p>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="size-10" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}</Button>
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="relative size-10" aria-label="Ver follow-ups" asChild><Link to="/follow-ups"><Bell className="size-[18px]" />{alerts > 0 ? <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-danger" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
+          </div>
+        </header>
+        <main className="min-w-0 px-3 py-5 sm:px-6 sm:py-6 lg:px-8"><div className="mx-auto max-w-7xl space-y-5 sm:space-y-6">{children}</div></main>
+      </div>
+
+      {menuOpen ? <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Menu de navegação"><button className="absolute inset-0 bg-slate-950/60" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" /><aside className="relative h-full w-[min(82vw,300px)] shadow-2xl"><Button variant="ghost" size="icon" className="absolute right-3 top-4 z-10 size-10 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X className="size-5" /></Button>{sidebar}</aside></div> : null}
+      <LeadWorkspace />
+    </div>
+  );
 }
