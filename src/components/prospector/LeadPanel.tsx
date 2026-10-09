@@ -144,13 +144,13 @@ export function LeadWorkspace() {
     <Sheet open={!!business} onOpenChange={(open) => !open && openLead(null)}>
       <SheetContent
         side={isMobile ? "bottom" : "right"}
-        className="flex h-[96dvh] w-full flex-col gap-0 rounded-t-2xl p-0 md:h-full md:rounded-none sm:max-w-xl"
+        className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 rounded-none p-0 pb-[env(safe-area-inset-bottom)] md:h-full md:max-h-full md:rounded-none sm:max-w-xl"
       >
         {business ? (
           <>
-            <SheetHeader className="shrink-0 border-b border-border p-4 sm:p-6">
-              <SheetTitle className="pr-8 leading-tight">{business.name || "Não informado"}</SheetTitle>
-              <SheetDescription>
+            <SheetHeader className="shrink-0 border-b border-border bg-card p-4 pt-[max(1rem,env(safe-area-inset-top))] text-left sm:p-6">
+              <SheetTitle className="break-words pr-9 text-xl leading-snug sm:text-lg">{business.name || "Não informado"}</SheetTitle>
+              <SheetDescription className="break-words text-sm leading-relaxed">
                 {[business.category, business.city, business.state].filter(Boolean).join(" · ") || "Não informado"}
               </SheetDescription>
             </SheetHeader>
@@ -228,7 +228,7 @@ function LeadDetail({ business }: { business: Business | Lead }) {
     !isNaN(business.longitude);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-5 p-3.5 sm:space-y-6 sm:p-6">
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -252,8 +252,8 @@ function LeadDetail({ business }: { business: Business | Lead }) {
       <PlaceGallery business={business} />
 
       {/* Detalhes da empresa com dados reais */}
-      <section className="space-y-3 rounded-lg border border-border bg-card p-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Detalhes da empresa
         </h4>
         <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-sm">

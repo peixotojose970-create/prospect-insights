@@ -197,7 +197,7 @@ export function CallScriptDialog({
         onOpenChange(open);
       }}
     >
-      <DialogContent className="flex h-[92dvh] max-h-[92dvh] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-[88dvh] sm:max-h-[88dvh]">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-3xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-[88dvh] sm:max-h-[88dvh] sm:w-[calc(100vw-1.5rem)] sm:rounded-lg">
         <CallScriptErrorBoundary onReset={handleRegenerate}>
           {generationError || !scriptData ? (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">

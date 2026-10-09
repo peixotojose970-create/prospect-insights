@@ -142,8 +142,8 @@ export function PageHeader({
   return (
     <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:pb-5">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-foreground sm:truncate sm:text-3xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:truncate sm:text-3xl">{title}</h1>
+        <p className="mt-1 text-base leading-relaxed text-muted-foreground sm:text-sm">{subtitle}</p>
       </div>
       {actions ? (
         <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [&>*]:shrink-0 sm:mx-0 sm:shrink-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">

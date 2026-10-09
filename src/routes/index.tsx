@@ -54,14 +54,14 @@ function Dashboard() {
 
       <InstallAppCard />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label} className="gap-1 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <s.icon className="size-4 text-muted-foreground" aria-hidden />
+          <Card key={s.label} className="gap-1.5 p-4 sm:gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm leading-snug text-muted-foreground sm:text-xs">{s.label}</p>
+              <s.icon className="size-5 shrink-0 text-muted-foreground sm:size-4" aria-hidden />
             </div>
-            <p className="text-3xl font-bold tabular-nums text-foreground">{s.value}</p>
+            <p className="text-4xl font-bold tabular-nums text-foreground sm:text-3xl">{s.value}</p>
             <Link to={s.to} className="text-xs text-primary underline underline-offset-2">
               Ver detalhes
             </Link>

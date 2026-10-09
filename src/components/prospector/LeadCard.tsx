@@ -60,8 +60,8 @@ export function LeadCard({
     <Card
       className={
         selected
-          ? "gap-3 border-primary bg-primary/5 p-4 ring-1 ring-primary/30 transition-colors"
-          : "gap-3 p-4 transition-colors"
+          ? "gap-3 border-primary bg-primary/5 p-3.5 ring-1 ring-primary/30 transition-colors sm:p-4"
+          : "gap-3 p-3.5 transition-colors sm:p-4"
       }
     >
       <div className="flex items-start justify-between gap-3">
@@ -76,10 +76,10 @@ export function LeadCard({
           </label>
         ) : null}
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground sm:truncate">
+          <h3 className="break-words text-base font-semibold leading-snug text-foreground sm:truncate sm:text-sm">
             {priority.emoji} {business.name}
           </h3>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="mt-1 break-words text-sm leading-snug text-muted-foreground sm:truncate sm:text-xs">
             {business.category}
             {business.city ? ` · ${business.city}` : ""}
             {business.state ? ` - ${business.state}` : ""}
@@ -96,7 +96,7 @@ export function LeadCard({
         <p className="text-xs text-muted-foreground">{opportunityHeadline(business)}</p>
       </div>
 
-      <ul className="space-y-1.5 text-xs text-muted-foreground">
+      <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground sm:space-y-1.5 sm:text-xs">
         <li className="flex items-center gap-2">
           <Star className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">{ratingLabel(business)}</span>
@@ -107,7 +107,7 @@ export function LeadCard({
         </li>
         <li className="flex items-center gap-2">
           <Phone className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">{formatPhone(business.phone)}</span>
+          <span className="min-w-0 break-words">{formatPhone(business.phone)}</span>
         </li>
         <li className="flex items-center gap-2">
           <Globe className="size-3.5 shrink-0" aria-hidden />
@@ -125,7 +125,7 @@ export function LeadCard({
       ) : null}
 
       {/* Ações principais: sempre visíveis, com área de toque confortável. */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 sm:flex-nowrap">
+      <div className="grid grid-cols-2 items-stretch gap-2 pt-1 sm:flex sm:flex-nowrap">
         {wa ? (
           <Button size="sm" className="h-11 min-w-[calc(50%-0.25rem)] flex-1 sm:h-10 sm:min-w-0" asChild>
             <a href={wa} target="_blank" rel="noreferrer">
@@ -174,7 +174,7 @@ export function LeadCard({
               <MoreVertical className="size-4" aria-hidden />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" sideOffset={6} className="w-[min(14rem,calc(100vw-1.5rem))]">
             <DropdownMenuItem onSelect={() => setAnalyze(true)}>
               <Sparkles className="size-4" aria-hidden />
               Analisar oportunidade
