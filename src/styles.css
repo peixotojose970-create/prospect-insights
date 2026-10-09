@@ -165,11 +165,15 @@
 /* Proteções para conteúdo dinâmico do Prospector em telas estreitas. */
 html,
 body {
-  min-width: 320px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: clip;
 }
 
 main {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: clip;
 }
 

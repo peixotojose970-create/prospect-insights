@@ -162,7 +162,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background">
       <aside className={cn("fixed inset-y-0 left-0 z-40 hidden border-r border-white/10 transition-[width] duration-200 md:block", collapsed ? "w-[72px]" : "w-60")}>
         {sidebar}
         <Button variant="ghost" size="icon" className="absolute -right-4 top-[88px] z-10 size-8 rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
