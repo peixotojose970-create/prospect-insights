@@ -14,7 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      prospector_account_data: {
+        Row: { account_number: number; payload: Json; updated_at: string }
+        Insert: { account_number: number; payload?: Json; updated_at?: string }
+        Update: { account_number?: number; payload?: Json; updated_at?: string }
+        Relationships: []
+      }
+      prospector_access_keys: {
+        Row: { id: string; account_number: number; key_hash: string; auth_user_id: string | null; active: boolean; created_at: string; revoked_at: string | null }
+        Insert: { id?: string; account_number: number; key_hash: string; auth_user_id?: string | null; active?: boolean; created_at?: string; revoked_at?: string | null }
+        Update: { id?: string; account_number?: number; key_hash?: string; auth_user_id?: string | null; active?: boolean; created_at?: string; revoked_at?: string | null }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

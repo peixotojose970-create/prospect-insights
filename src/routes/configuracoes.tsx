@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Moon, Sun, Trash2 } from "lucide-react";
+import { Download, Moon, Sun, Upload, CloudUpload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { toCsv } from "@/features/prospector/generators";
+import { supabase } from "@/integrations/supabase/client";
 import { useProspector } from "@/features/prospector/store";
 import { PageHeader, SourceNotice } from "@/features/prospector/ui";
 
@@ -61,6 +62,81 @@ function Pref({
 
 function Configuracoes() {
   const { leads, profile, setProfile } = useProspector();
+  const [migrationStatus, setMigrationStatus] = React.useState("");
+
+  const downloadBackup = () => {
+    const raw = window.localStorage.getItem("prospector:v1");
+    if (!raw) {
+      toast.error("Não há dados locais para criar o backup.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify({ format: "prospector-backup-v1", createdAt: new Date().toISOString(), data: JSON.parse(raw) }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prospector-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Backup recuperável baixado. Os dados locais foram mantidos.");
+  };
+
+  const restoreBackup = async (file?: File) => {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (parsed?.format !== "prospector-backup-v1" || !parsed.data || !Array.isArray(parsed.data.leads)) {
+        throw new Error("Formato de backup inválido.");
+      }
+      const before = window.localStorage.getItem("prospector:v1");
+      if (before) window.localStorage.setItem("prospector:v1:recovery-before-restore", before);
+      window.localStorage.setItem("prospector:v1", JSON.stringify(parsed.data));
+      toast.success("Backup restaurado. Recarregando o Prospector…");
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível restaurar o backup.");
+    }
+  };
+
+  const migrateAccountOne = async () => {
+    try {
+      const raw = window.localStorage.getItem("prospector:v1");
+      if (!raw) throw new Error("Não há dados locais para migrar.");
+      const payload = JSON.parse(raw);
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) throw new Error("Entre na Conta 1 antes de iniciar a migração.");
+      const { data: existing, error: readError } = await supabase
+        .from("prospector_account_data")
+        .select("payload")
+        .eq("account_number", 1)
+        .maybeSingle();
+      if (readError) throw readError;
+      if (existing) {
+        const remote = existing.payload as Record<string, unknown>;
+        const matching = JSON.stringify(remote) === JSON.stringify(payload);
+        setMigrationStatus(`Conta 1 já contém dados; nenhuma gravação foi feita. Validação: ${matching ? "cópia local idêntica" : "conteúdos diferentes"}.`);
+        if (!matching) throw new Error("A conta já possui dados diferentes. Cópia local preservada; revise antes de qualquer substituição.");
+        toast.success("Migração já concluída e validada; nenhum dado foi alterado.");
+        return;
+      }
+      const { error: insertError } = await supabase.from("prospector_account_data").insert({ account_number: 1, payload });
+      if (insertError) throw insertError;
+      const { data: verify, error: verifyError } = await supabase
+        .from("prospector_account_data")
+        .select("payload")
+        .eq("account_number", 1)
+        .maybeSingle();
+      if (verifyError) throw verifyError;
+      if (!verify || JSON.stringify(verify.payload) !== JSON.stringify(payload)) {
+        throw new Error("A gravação foi enviada, mas a verificação não confirmou os mesmos dados.");
+      }
+      setMigrationStatus(`Migração validada na Conta 1: ${payload.leads?.length ?? 0} leads, ${payload.followUps?.length ?? 0} follow-ups, ${payload.activities?.length ?? 0} atividades. Cópia local mantida.`);
+      toast.success("Dados migrados e conferidos. A cópia deste navegador foi preservada.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha na migração.";
+      setMigrationStatus(message);
+      toast.error(message);
+    }
+  };
 
   const setTheme = (dark: boolean) => {
     document.documentElement.classList.toggle("dark", dark);
@@ -78,12 +154,6 @@ function Configuracoes() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Backup exportado.");
-  };
-
-  const clearAll = () => {
-    window.localStorage.removeItem("prospector:v1");
-    toast.success("Dados apagados. Recarregando…");
-    window.location.reload();
   };
 
   return (
@@ -140,18 +210,28 @@ function Configuracoes() {
         <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente neste navegador.</p>
       </Section>
 
-      <Section title="Seus dados" description="Tudo fica salvo apenas neste navegador.">
+      <Section title="Seus dados e migração" description="Faça um backup recuperável antes de migrar. A cópia local nunca é apagada pela migração.">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={exportAll}>
+          <Button variant="outline" size="sm" onClick={downloadBackup}>
             <Download className="size-4" aria-hidden />
-            Exportar backup CSV
+            Baixar backup recuperável
           </Button>
-          <Button variant="outline" size="sm" onClick={clearAll}>
-            <Trash2 className="size-4" aria-hidden />
-            Apagar todos os dados
+          <Button variant="outline" size="sm" onClick={() => document.getElementById("prospector-backup-file")?.click()}>
+            <Upload className="size-4" aria-hidden />
+            Restaurar backup
+          </Button>
+          <input id="prospector-backup-file" type="file" accept="application/json,.json" className="hidden" onChange={(event) => { void restoreBackup(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+          <Button size="sm" onClick={() => void migrateAccountOne()}>
+            <CloudUpload className="size-4" aria-hidden />
+            Migrar para Conta 1
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{leads.length} leads salvos neste navegador.</p>
+        <p className="text-xs text-muted-foreground">{leads.length} leads neste navegador. A migração exige sessão autorizada da Conta 1 e não sobrescreve dados já existentes.</p>
+        {migrationStatus && <p role="status" className="text-sm text-muted-foreground">{migrationStatus}</p>}
+        <Button variant="outline" size="sm" onClick={exportAll}>
+          <Download className="size-4" aria-hidden />
+          Exportar leads em CSV
+        </Button>
       </Section>
 
       <Section title="Origem dos dados" description="De onde vêm as informações das empresas.">
