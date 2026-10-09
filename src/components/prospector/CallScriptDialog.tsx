@@ -247,28 +247,28 @@ export function CallScriptDialog({
                     </span>
                   </div>
 
-                  <DialogDescription className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-4">
-                    <span className="inline-flex items-center gap-1.5">
+                  <DialogDescription className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1.5 text-xs text-muted-foreground min-[360px]:grid-cols-2 sm:grid-cols-4">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
                       <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Categoria:</span>{" "}
+                      <span className="shrink-0 font-medium text-foreground">Categoria:</span>{" "}
                       <span className="truncate">{scriptData.category}</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
                       <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Cidade:</span>{" "}
+                      <span className="shrink-0 font-medium text-foreground">Cidade:</span>{" "}
                       <span className="truncate">{scriptData.city}</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
                       <Phone className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Telefone:</span>{" "}
+                      <span className="shrink-0 font-medium text-foreground">Telefone:</span>{" "}
                       <span className="truncate">{scriptData.phone}</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
                       <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Site:</span>{" "}
+                      <span className="shrink-0 font-medium text-foreground">Site:</span>{" "}
                       <span className="truncate">{scriptData.siteStatus}</span>
                     </span>
                   </DialogDescription>
