@@ -23,6 +23,7 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "prospector:v1";
+const accountStorageKey = (account: number) => `${STORAGE_KEY}:account:${account}`;
 const CLIENT_TIMEOUT_MS = 90_000;
 
 type Persisted = {
@@ -112,24 +113,20 @@ const emptyState: Persisted = {
   profile: { personalName: "", companyName: "" },
 };
 
-function load(): Persisted {
-  if (typeof window === "undefined") return emptyState;
+function parsePersisted(raw: string | null): Persisted {
+  if (!raw) return emptyState;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState;
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     return {
-      leads: parsed.leads ?? [],
-      followUps: parsed.followUps ?? [],
-      activities: parsed.activities ?? [],
-      savedSearches: parsed.savedSearches ?? [],
-      selection: parsed.selection ?? [],
+      leads: parsed.leads ?? [], followUps: parsed.followUps ?? [], activities: parsed.activities ?? [],
+      savedSearches: parsed.savedSearches ?? [], selection: parsed.selection ?? [],
       profile: parsed.profile ?? { personalName: "", companyName: "" },
     };
-
-  } catch {
-    return emptyState;
-  }
+  } catch { return emptyState; }
+}
+function load(account: number): Persisted {
+  if (typeof window === "undefined") return emptyState;
+  return parsePersisted(window.localStorage.getItem(accountStorageKey(account)));
 }
 
 function todayISO() {
@@ -142,6 +139,7 @@ function stamp() {
 
 export function ProspectorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(emptyState);
+  const [accountNumber, setAccountNumber] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openedBusiness, setOpenedBusiness] = useState<Business | Lead | null>(null);
@@ -156,14 +154,31 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    setState(load());
-    setHydrated(true);
+    let alive = true;
+    void (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!alive || !auth.user) { setState(emptyState); setHydrated(true); return; }
+      // RLS exposes only the current identity's row; never accept an account number from the browser.
+      const { data: row } = await supabase.from("prospector_account_data").select("account_number,payload").maybeSingle();
+      if (!alive) return;
+      if (!row) { setState(emptyState); setHydrated(true); return; }
+      setAccountNumber(row.account_number);
+      const cached = load(row.account_number);
+      setState(row.payload ? parsePersisted(JSON.stringify(row.payload)) : cached);
+      setHydrated(true);
+    })();
+    return () => { alive = false; };
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state, hydrated]);
+    if (!hydrated || accountNumber === null) return;
+    const payload = JSON.stringify(state);
+    window.localStorage.setItem(accountStorageKey(accountNumber), payload);
+    const timer = window.setTimeout(() => {
+      void supabase.from("prospector_account_data").upsert({ account_number: accountNumber, payload: state as unknown as import("@/integrations/supabase/types").Json }, { onConflict: "account_number" });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [state, hydrated, accountNumber]);
 
   const pushActivity = useCallback((label: string, lead: string) => {
     setState((prev) => ({
