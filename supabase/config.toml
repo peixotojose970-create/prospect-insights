@@ -1,1 +1,4 @@
 project_id = "dnsfzeqyvunmfuvzygsk"
+
+[functions.prospect-bootstrap]
+verify_jwt = false
