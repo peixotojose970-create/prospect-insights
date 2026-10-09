@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import { businessSearchRepository } from "./repository";
-import { supabase } from "@/integrations/supabase/client";
 import type { SearchErrorCode } from "@/lib/business-search.functions";
 import type {
   Activity,
@@ -23,7 +22,6 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "prospector:v1";
-const accountStorageKey = (account: number) => `${STORAGE_KEY}:account:${account}`;
 const CLIENT_TIMEOUT_MS = 90_000;
 
 type Persisted = {
@@ -124,9 +122,9 @@ function parsePersisted(raw: string | null): Persisted {
     };
   } catch { return emptyState; }
 }
-function load(account: number): Persisted {
+function load(): Persisted {
   if (typeof window === "undefined") return emptyState;
-  return parsePersisted(window.localStorage.getItem(accountStorageKey(account)));
+  return parsePersisted(window.localStorage.getItem(STORAGE_KEY));
 }
 
 function todayISO() {
@@ -139,7 +137,6 @@ function stamp() {
 
 export function ProspectorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(emptyState);
-  const [accountNumber, setAccountNumber] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openedBusiness, setOpenedBusiness] = useState<Business | Lead | null>(null);
@@ -154,44 +151,14 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    let alive = true;
-    void (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!alive || !auth.user) { setState(emptyState); setHydrated(true); return; }
-      // The account link comes from a row protected by backend policies, not editable login metadata.
-      const { data: accountRow, error: accountError } = await supabase.from("prospector_accounts").select("account_number").eq("auth_user_id", auth.user.id).maybeSingle();
-      if (!alive || accountError || !accountRow) { setState(emptyState); setHydrated(true); return; }
-      const account = accountRow.account_number;
-      setAccountNumber(account);
-      const { data: row, error } = await supabase.from("prospector_account_data").select("payload").maybeSingle();
-      if (!alive) return;
-      if (error) { setState(emptyState); setHydrated(true); return; }
-      if (row?.payload) {
-        const remote = parsePersisted(JSON.stringify(row.payload));
-        setState(remote);
-        window.localStorage.setItem(accountStorageKey(account), JSON.stringify(remote));
-        setHydrated(true);
-        return;
-      }
-      const legacy = account === 1 ? window.localStorage.getItem(STORAGE_KEY) : null;
-      const cached = legacy ? parsePersisted(legacy) : load(account);
-      setState(cached);
-      setHydrated(true);
-    })();
-    return () => { alive = false; };
+    setState(load());
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated || accountNumber === null) return;
-    const payload = JSON.stringify(state);
-    window.localStorage.setItem(accountStorageKey(accountNumber), payload);
-    const timer = window.setTimeout(() => {
-      void supabase.from("prospector_account_data").upsert({ account_number: accountNumber, payload: state as unknown as import("@/integrations/supabase/types").Json }, { onConflict: "account_number" }).then(({ error }) => {
-        if (error) console.error("Não foi possível sincronizar os dados do Prospector.", error.message);
-      });
-    }, 700);
-    return () => window.clearTimeout(timer);
-  }, [state, hydrated, accountNumber]);
+    if (!hydrated) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state, hydrated]);
 
   const pushActivity = useCallback((label: string, lead: string) => {
     setState((prev) => ({

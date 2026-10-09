@@ -8,7 +8,6 @@ import { InstallAppMenuItem, InstallAppStrip } from "@/components/prospector/Ins
 import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/prospeccao", label: "Prospecção", icon: Search },
@@ -32,36 +31,7 @@ export function useTheme() { const [dark, setDark] = useState(false); useEffect(
 export function AppShell({ children }: { children: React.ReactNode }) { return <ProspectorProvider><ShellInner>{children}</ShellInner></ProspectorProvider>; }
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { dark, setDark } = useTheme(); const { leads } = useProspector(); const pathname = useRouterState({ select: (s) => s.location.pathname }); const alerts = leads.filter((l) => l.status === "interessado").length;
-  const [authenticated, setAuthenticated] = useState(false);
-  const [accountName, setAccountName] = useState("Conta");
-  useEffect(() => {
-    let active = true;
-    const updateSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
-      if (!session) {
-        setAuthenticated(false);
-        if (window.location.pathname !== "/login") window.location.assign("/login");
-        return;
-      }
-      const { data: account } = await supabase.from("prospector_accounts").select("username,role,active").eq("auth_user_id", session.user.id).maybeSingle();
-      if (!active) return;
-      if (!account?.active) {
-        await supabase.auth.signOut();
-        setAuthenticated(false);
-        window.location.assign("/login");
-        return;
-      }
-      setAccountName(account.role === "admin" ? "Administrador" : account.username);
-      setAuthenticated(true);
-    };
-    supabase.auth.getSession().then(({ data }) => { if (active) updateSession(data.session); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      updateSession(session);
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
-  }, []);
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); const input = document.querySelector<HTMLInputElement>("[data-global-search]"); if (input) input.focus(); else window.location.assign("/prospeccao"); } }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, []);
-  if (pathname === "/login" || pathname === "/provisionamento") return <>{children}</>;
-  if (!authenticated) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Verificando sessão segura…</div>;
   return <div className="min-h-screen bg-background">
     <InstallAppStrip />
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
@@ -70,7 +40,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="icon" className="hidden size-10 md:inline-flex" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}</Button>
         <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="Notificações" className="relative size-10" asChild><Link to="/follow-ups"><Bell className="size-4" />{alerts > 0 ? <span className="absolute top-2 right-2 size-1.5 rounded-full bg-danger" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-56"><DropdownMenuLabel>{accountName}</DropdownMenuLabel><DropdownMenuItem disabled className="text-xs text-muted-foreground">Sessão autenticada</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/leads"><Search className="size-4" />Buscar leads salvos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/rapido"><Zap className="size-4" />Prospecção rápida</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/pipeline"><Kanban className="size-4" />Pipeline</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/configuracoes"><Settings className="size-4" />Configurações</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setDark(!dark)}>{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}Tema {dark ? "escuro" : "claro"}</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => { void supabase.auth.signOut().then(() => window.location.assign("/login")); }}>Sair da conta</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-10" aria-label="Mais opções"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-56"><DropdownMenuLabel>PROSPECTOR</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/leads"><Search className="size-4" />Buscar leads salvos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/rapido"><Zap className="size-4" />Prospecção rápida</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/pipeline"><Kanban className="size-4" />Pipeline</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/configuracoes"><Settings className="size-4" />Configurações</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setDark(!dark)}>{dark ? <Moon className="size-4" /> : <Sun className="size-4" />}Tema {dark ? "escuro" : "claro"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         <span className="ml-1 hidden size-8 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground sm:grid">JP</span>
       </div>
     </header>

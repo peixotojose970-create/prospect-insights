@@ -7,9 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { InstallAppCard } from "@/components/prospector/InstallApp";
-import { AdminAccountsPanel } from "@/components/prospector/AdminAccountsPanel";
 import { toCsv } from "@/features/prospector/generators";
-import { supabase } from "@/integrations/supabase/client";
 import { useProspector } from "@/features/prospector/store";
 import { PageHeader, SourceNotice } from "@/features/prospector/ui";
 
@@ -175,7 +173,6 @@ function Configuracoes() {
       <PageHeader title="Configurações" subtitle="Aparência, preferências e seus dados." />
 
       <InstallAppCard />
-      <AdminAccountsPanel />
 
       <Section title="Aparência" description="Escolha entre tema claro e escuro.">
         <div className="flex gap-2">
