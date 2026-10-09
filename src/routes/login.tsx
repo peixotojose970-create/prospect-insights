@@ -20,10 +20,27 @@ function LoginPage() {
     setLoading(true);
     try {
       // O identificador técnico fica interno; a pessoa informa apenas o usuário.
-      const internalEmail = `${username.trim().toLowerCase()}@prospector.local`;
+      const normalizedUsername = username.trim().toLowerCase();
+      const internalEmail = `${normalizedUsername}@prospector.local`;
       const { error: authError } = await supabase.auth.signInWithPassword({ email: internalEmail, password });
       if (authError) {
         setError("Usuário ou senha incorretos. Confira os dados e tente novamente.");
+        return;
+      }
+      const { data: authData, error: userError } = await supabase.auth.getUser();
+      if (userError || !authData.user) {
+        await supabase.auth.signOut();
+        setError("Não foi possível confirmar a identidade autenticada. Tente novamente.");
+        return;
+      }
+      const { data: account, error: accountError } = await supabase
+        .from("prospector_accounts")
+        .select("username,active")
+        .eq("auth_user_id", authData.user.id)
+        .maybeSingle();
+      if (accountError || !account?.active || account.username.toLowerCase() !== normalizedUsername) {
+        await supabase.auth.signOut();
+        setError("Este usuário ainda não tem uma conta ativa vinculada. Peça ao administrador para concluir o provisionamento.");
         return;
       }
       // O cliente Lovable mantém a sessão gerenciada pelo provedor. A escolha é mantida para a opção de sessão curta.
