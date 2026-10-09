@@ -49,7 +49,18 @@ Deno.serve(async (request: Request) => {
         if (createError || !createdUser.user) return json({ error: `Não foi possível concluir o provisionamento (${username}).`, created, existing }, 502);
         authUserId = createdUser.user.id;
         created.push(username);
-      } else existing.push(username);
+      } else {
+        // Preserve the existing Auth identity, but always align its login email,
+        // initial password and username metadata with the authorized bootstrap input.
+        const { error: updateError } = await admin.auth.admin.updateUserById(found.id, {
+          email,
+          password: byName.get(username.toLowerCase())!,
+          email_confirm: true,
+          user_metadata: { ...found.user_metadata, username, must_change_password: true },
+        });
+        if (updateError) return json({ error: `Não foi possível atualizar as credenciais (${username}).`, created, existing }, 502);
+        existing.push(username);
+      }
       const { data: linked } = await admin.from("prospector_accounts").select("account_number").eq("account_number", index).maybeSingle();
       const accountWrite = linked
         ? await admin.from("prospector_accounts").update({ auth_user_id: authUserId, username, role: index === 0 ? "admin" : "user" }).eq("account_number", index)
