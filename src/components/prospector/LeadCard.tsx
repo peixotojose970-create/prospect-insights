@@ -125,9 +125,9 @@ export function LeadCard({
       ) : null}
 
       {/* Ações principais: sempre visíveis, com área de toque confortável. */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-wrap items-center gap-2 pt-1 sm:flex-nowrap">
         {wa ? (
-          <Button size="sm" className="h-10 flex-1" asChild>
+          <Button size="sm" className="h-11 min-w-[calc(50%-0.25rem)] flex-1 sm:h-10 sm:min-w-0" asChild>
             <a href={wa} target="_blank" rel="noreferrer">
               <MessageCircle className="size-4" aria-hidden />
               WhatsApp
@@ -136,7 +136,7 @@ export function LeadCard({
         ) : (
           <Button
             size="sm"
-            className="h-10 flex-1"
+            className="h-11 min-w-[calc(50%-0.25rem)] flex-1 sm:h-10 sm:min-w-0"
             variant="secondary"
             onClick={() => toast.info("Telefone não disponível.")}
           >
@@ -144,7 +144,7 @@ export function LeadCard({
             WhatsApp
           </Button>
         )}
-        <Button size="sm" variant="outline" className="h-10 flex-1" onClick={() => openLead(business)}>
+        <Button size="sm" variant="outline" className="h-11 min-w-[calc(50%-0.25rem)] flex-1 sm:h-10 sm:min-w-0" onClick={() => openLead(business)}>
           Abrir
         </Button>
         {saved ? (
