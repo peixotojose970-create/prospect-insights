@@ -104,38 +104,46 @@ function Configuracoes() {
       if (!raw) throw new Error("Não há dados locais para migrar.");
       const payload = JSON.parse(raw);
       const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user || Number(auth.user.user_metadata?.prospector_account_number) !== 1) {
-        throw new Error("Entre na Conta 1 antes de iniciar a migração.");
+      if (authError || !auth.user) throw new Error("Entre na conta Alysson antes de iniciar a migração.");
+      const { data: account, error: accountError } = await supabase
+        .from("prospector_accounts")
+        .select("account_number,username,role,active")
+        .eq("auth_user_id", auth.user.id)
+        .maybeSingle();
+      if (accountError) throw accountError;
+      if (!account || !account.active || account.role !== "admin" || account.username.toLowerCase() !== "alysson") {
+        throw new Error("Entre na conta administrativa Alysson antes de iniciar a migração.");
       }
+      const accountNumber = account.account_number;
       if (!Array.isArray(payload.leads) || !Array.isArray(payload.followUps)) {
         throw new Error("Os dados locais não têm o formato esperado. A cópia original foi mantida.");
       }
       const { data: existing, error: readError } = await supabase
         .from("prospector_account_data")
         .select("payload")
-        .eq("account_number", 1)
+        .eq("account_number", accountNumber)
         .maybeSingle();
       if (readError) throw readError;
       if (existing) {
         const remote = existing.payload as Record<string, unknown>;
         const matching = JSON.stringify(remote) === JSON.stringify(payload);
-        setMigrationStatus(`Conta 1 já contém dados; nenhuma gravação foi feita. Validação: ${matching ? "cópia local idêntica" : "conteúdos diferentes"}.`);
+        setMigrationStatus(`A conta Alysson já contém dados; nenhuma gravação foi feita. Validação: ${matching ? "cópia local idêntica" : "conteúdos diferentes"}.`);
         if (!matching) throw new Error("A conta já possui dados diferentes. Cópia local preservada; revise antes de qualquer substituição.");
         toast.success("Migração já concluída e validada; nenhum dado foi alterado.");
         return;
       }
-      const { error: insertError } = await supabase.from("prospector_account_data").insert({ account_number: 1, payload });
+      const { error: insertError } = await supabase.from("prospector_account_data").insert({ account_number: accountNumber, payload });
       if (insertError) throw insertError;
       const { data: verify, error: verifyError } = await supabase
         .from("prospector_account_data")
         .select("payload")
-        .eq("account_number", 1)
+        .eq("account_number", accountNumber)
         .maybeSingle();
       if (verifyError) throw verifyError;
       if (!verify || JSON.stringify(verify.payload) !== JSON.stringify(payload)) {
         throw new Error("A gravação foi enviada, mas a verificação não confirmou os mesmos dados.");
       }
-      setMigrationStatus(`Migração validada na Conta 1: ${payload.leads?.length ?? 0} leads, ${payload.followUps?.length ?? 0} follow-ups, ${payload.activities?.length ?? 0} atividades. Cópia local mantida.`);
+      setMigrationStatus(`Migração validada na conta Alysson: ${payload.leads?.length ?? 0} leads, ${payload.followUps?.length ?? 0} follow-ups, ${payload.activities?.length ?? 0} atividades. Cópia local mantida.`);
       toast.success("Dados migrados e conferidos. A cópia deste navegador foi preservada.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha na migração.";
