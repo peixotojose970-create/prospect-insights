@@ -4,6 +4,9 @@ import { ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, ShieldCheck } from "lu
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { loginWithAccessKey } from "@/lib/access-login.functions";
+import { useRouter } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/login")({ component: AccessLogin });
 
@@ -12,13 +15,23 @@ function AccessLogin() {
   const [visible, setVisible] = useState(false);
   const [remember, setRemember] = useState(false);
   const [status, setStatus] = useState<"idle" | "validating" | "invalid" | "disabled" | "connection" | "authorized">("idle");
+  const router = useRouter();
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!key.trim()) return;
     setStatus("validating");
-    // Access-key verification will be connected to the secure validator in the next stage.
-    window.setTimeout(() => setStatus("connection"), 700);
+    try {
+      const tokens = await loginWithAccessKey({ data: { key: key.trim() } });
+      const { error } = await supabase.auth.setSession({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
+      if (error) throw error;
+      setKey("");
+      setStatus("authorized");
+      await router.navigate({ to: "/" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível validar esta chave.";
+      setStatus(message.includes("configurada") || message.includes("configurado") ? "connection" : "invalid");
+    }
   }
 
   const message = {

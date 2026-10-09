@@ -8,6 +8,7 @@ import { InstallAppMenuItem, InstallAppStrip } from "@/components/prospector/Ins
 import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/prospeccao", label: "Prospecção", icon: Search },
@@ -31,8 +32,19 @@ export function useTheme() { const [dark, setDark] = useState(false); useEffect(
 export function AppShell({ children }: { children: React.ReactNode }) { return <ProspectorProvider><ShellInner>{children}</ShellInner></ProspectorProvider>; }
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { dark, setDark } = useTheme(); const { leads } = useProspector(); const pathname = useRouterState({ select: (s) => s.location.pathname }); const alerts = leads.filter((l) => l.status === "interessado").length;
+  const [authenticated, setAuthenticated] = useState(false);
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => { if (active) { setAuthenticated(!!data.session); if (!data.session) window.location.assign("/login"); } });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthenticated(!!session);
+      if (!session && window.location.pathname !== "/login") window.location.assign("/login");
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); const input = document.querySelector<HTMLInputElement>("[data-global-search]"); if (input) input.focus(); else window.location.assign("/prospeccao"); } }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, []);
   if (pathname === "/login") return <>{children}</>;
+  if (!authenticated) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Verificando sessão segura…</div>;
   return <div className="min-h-screen bg-background">
     <InstallAppStrip />
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
