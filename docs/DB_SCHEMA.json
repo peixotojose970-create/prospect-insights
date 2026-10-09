@@ -1,14 +1,261 @@
 {
   "enums": [],
-  "funcoes": [],
-  "tabelas": [],
-  "policies": [],
+  "funcoes": [
+    {
+      "nome": "prospector_is_active_admin",
+      "retorno": "boolean",
+      "definicao": "CREATE OR REPLACE FUNCTION public.prospector_is_active_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\n SET row_security TO 'off'\nAS $function$ SELECT EXISTS (SELECT 1 FROM public.prospector_accounts WHERE auth_user_id = auth.uid() AND role = 'admin' AND active = true) $function$\n",
+      "argumentos": ""
+    }
+  ],
+  "tabelas": [
+    {
+      "tabela": "prospector_access_keys",
+      "colunas": [
+        {
+          "nome": "id",
+          "nulo": "NO",
+          "tipo": "uuid",
+          "default": "gen_random_uuid()",
+          "tipo_udt": "uuid"
+        },
+        {
+          "nome": "account_number",
+          "nulo": "NO",
+          "tipo": "smallint",
+          "default": null,
+          "tipo_udt": "int2"
+        },
+        {
+          "nome": "key_hash",
+          "nulo": "NO",
+          "tipo": "text",
+          "default": null,
+          "tipo_udt": "text"
+        },
+        {
+          "nome": "auth_user_id",
+          "nulo": "YES",
+          "tipo": "uuid",
+          "default": null,
+          "tipo_udt": "uuid"
+        },
+        {
+          "nome": "active",
+          "nulo": "NO",
+          "tipo": "boolean",
+          "default": "true",
+          "tipo_udt": "bool"
+        },
+        {
+          "nome": "created_at",
+          "nulo": "NO",
+          "tipo": "timestamp with time zone",
+          "default": "now()",
+          "tipo_udt": "timestamptz"
+        },
+        {
+          "nome": "revoked_at",
+          "nulo": "YES",
+          "tipo": "timestamp with time zone",
+          "default": null,
+          "tipo_udt": "timestamptz"
+        }
+      ]
+    },
+    {
+      "tabela": "prospector_account_data",
+      "colunas": [
+        {
+          "nome": "account_number",
+          "nulo": "NO",
+          "tipo": "smallint",
+          "default": null,
+          "tipo_udt": "int2"
+        },
+        {
+          "nome": "payload",
+          "nulo": "NO",
+          "tipo": "jsonb",
+          "default": "'{}'::jsonb",
+          "tipo_udt": "jsonb"
+        },
+        {
+          "nome": "updated_at",
+          "nulo": "NO",
+          "tipo": "timestamp with time zone",
+          "default": "now()",
+          "tipo_udt": "timestamptz"
+        }
+      ]
+    },
+    {
+      "tabela": "prospector_accounts",
+      "colunas": [
+        {
+          "nome": "account_number",
+          "nulo": "NO",
+          "tipo": "smallint",
+          "default": null,
+          "tipo_udt": "int2"
+        },
+        {
+          "nome": "auth_user_id",
+          "nulo": "NO",
+          "tipo": "uuid",
+          "default": null,
+          "tipo_udt": "uuid"
+        },
+        {
+          "nome": "username",
+          "nulo": "NO",
+          "tipo": "text",
+          "default": null,
+          "tipo_udt": "text"
+        },
+        {
+          "nome": "role",
+          "nulo": "NO",
+          "tipo": "text",
+          "default": "'user'::text",
+          "tipo_udt": "text"
+        },
+        {
+          "nome": "active",
+          "nulo": "NO",
+          "tipo": "boolean",
+          "default": "true",
+          "tipo_udt": "bool"
+        },
+        {
+          "nome": "created_at",
+          "nulo": "NO",
+          "tipo": "timestamp with time zone",
+          "default": "now()",
+          "tipo_udt": "timestamptz"
+        },
+        {
+          "nome": "updated_at",
+          "nulo": "NO",
+          "tipo": "timestamp with time zone",
+          "default": "now()",
+          "tipo_udt": "timestamptz"
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "false",
+      "policy": "Users cannot modify access key records",
+      "tabela": "prospector_access_keys",
+      "comando": "ALL",
+      "permissiva": "PERMISSIVE",
+      "with_check": "false"
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "false",
+      "policy": "Users cannot read access key records",
+      "tabela": "prospector_access_keys",
+      "comando": "SELECT",
+      "permissiva": "PERMISSIVE",
+      "with_check": null
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": null,
+      "policy": "Account users insert own Prospector data",
+      "tabela": "prospector_account_data",
+      "comando": "INSERT",
+      "permissiva": "PERMISSIVE",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM prospector_accounts a\n  WHERE ((a.account_number = prospector_account_data.account_number) AND (a.auth_user_id = auth.uid()) AND (a.active = true))))"
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "(EXISTS ( SELECT 1\n   FROM prospector_accounts a\n  WHERE ((a.account_number = prospector_account_data.account_number) AND (a.auth_user_id = auth.uid()) AND (a.active = true))))",
+      "policy": "Account users read own Prospector data",
+      "tabela": "prospector_account_data",
+      "comando": "SELECT",
+      "permissiva": "PERMISSIVE",
+      "with_check": null
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "(EXISTS ( SELECT 1\n   FROM prospector_accounts a\n  WHERE ((a.account_number = prospector_account_data.account_number) AND (a.auth_user_id = auth.uid()) AND (a.active = true))))",
+      "policy": "Account users update own Prospector data",
+      "tabela": "prospector_account_data",
+      "comando": "UPDATE",
+      "permissiva": "PERMISSIVE",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM prospector_accounts a\n  WHERE ((a.account_number = prospector_account_data.account_number) AND (a.auth_user_id = auth.uid()) AND (a.active = true))))"
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "prospector_is_active_admin()",
+      "policy": "Admin can manage Prospector accounts",
+      "tabela": "prospector_accounts",
+      "comando": "ALL",
+      "permissiva": "PERMISSIVE",
+      "with_check": "prospector_is_active_admin()"
+    },
+    {
+      "roles": [
+        "authenticated"
+      ],
+      "using": "((auth_user_id = auth.uid()) AND (active = true))",
+      "policy": "Users can read own Prospector account",
+      "tabela": "prospector_accounts",
+      "comando": "SELECT",
+      "permissiva": "PERMISSIVE",
+      "with_check": null
+    }
+  ],
   "triggers": [],
-  "gerado_em": "2026-10-09T01:52:15.046054+00:00",
-  "rls_ativo": {},
-  "contagem_linhas": {},
-  "chaves_primarias": [],
-  "chaves_estrangeiras": [],
+  "gerado_em": "2026-10-09T13:48:26.409965+00:00",
+  "rls_ativo": {
+    "prospector_accounts": true,
+    "prospector_access_keys": true,
+    "prospector_account_data": true
+  },
+  "contagem_linhas": {
+    "prospector_accounts": 0,
+    "prospector_access_keys": 0,
+    "prospector_account_data": 0
+  },
+  "chaves_primarias": [
+    {
+      "coluna": "id",
+      "tabela": "prospector_access_keys"
+    },
+    {
+      "coluna": "account_number",
+      "tabela": "prospector_account_data"
+    },
+    {
+      "coluna": "account_number",
+      "tabela": "prospector_accounts"
+    }
+  ],
+  "chaves_estrangeiras": [
+    {
+      "coluna": "account_number",
+      "tabela": "prospector_account_data",
+      "referencia": "prospector_access_keys.account_number"
+    }
+  ],
   "triggers_auth_users": [],
-  "geckoai_sincronizado_em": "2026-10-09T01:52:15.837Z"
+  "geckoai_sincronizado_em": "2026-10-09T13:48:25.528Z"
 }
