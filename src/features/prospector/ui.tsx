@@ -106,7 +106,9 @@ export function SourceNotice({ className }: { className?: string }) {
         Google Maps Platform — Places API
       </a>
       . Somente resultados no Brasil (pt-BR). Cobertura conforme o retorno oficial do Google — não é a lista
-      completa de empresas da cidade.
+      completa de empresas da cidade. A busca consulta o Google sob demanda; este projeto não mantém um catálogo
+      permanente nem uma atualização diária de empresas. Os dados do Google não são armazenados para formar uma base
+      persistente. Nenhuma fonte alternativa com licença e credenciais disponíveis foi identificada para este projeto.
     </p>
   );
 }
