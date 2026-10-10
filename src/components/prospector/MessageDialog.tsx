@@ -32,6 +32,7 @@ export function MessageDialog({
     ["natural", "Natural"],
     ["comercial", "Comercial"],
     ["curiosidade", "Curiosidade"],
+    ["direto", "Direto"],
   ];
 
   const ensureSaved = () => {

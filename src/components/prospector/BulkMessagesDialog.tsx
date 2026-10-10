@@ -21,7 +21,7 @@ import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
 import type { Business } from "@/types";
 
-type Style = "curta" | "natural" | "comercial" | "curiosidade";
+type Style = "curta" | "natural" | "comercial" | "curiosidade" | "direto";
 type Status = "pendente" | "enviado" | "pulado";
 
 const STYLE_LABELS: Record<Style, string> = {
@@ -29,6 +29,7 @@ const STYLE_LABELS: Record<Style, string> = {
   natural: "Natural",
   comercial: "Comercial",
   curiosidade: "Curiosidade",
+  direto: "Direto",
 };
 
 /** Preparação e fila manual de mensagens de WhatsApp para as empresas selecionadas. */

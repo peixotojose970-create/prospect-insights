@@ -18,6 +18,7 @@ const STYLES = [
   { value: "natural", label: "Natural" },
   { value: "comercial", label: "Comercial" },
   { value: "curiosidade", label: "Desperta curiosidade" },
+  { value: "direto", label: "Direto" },
 ] as const;
 
 type Style = (typeof STYLES)[number]["value"];

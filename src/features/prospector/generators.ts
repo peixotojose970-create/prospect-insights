@@ -85,17 +85,39 @@ function shortName(business: Business) {
   return business.name.trim();
 }
 
+/** Retorna possibilidades adequadas ao segmento, sem afirmar que o negócio já as oferece. */
+function sitePossibilities(business: Business) {
+  const category = business.category?.toLocaleLowerCase("pt-BR") ?? "";
+  if (/barbear|sal[aã]o|beleza|est[ée]tica/.test(category))
+    return "fotos, informações sobre os serviços, localização e agendamento";
+  if (/restaurante|lanchonete|pizzaria|caf[ée]|aliment|hamburg/.test(category))
+    return "cardápio, fotos, localização e informações para pedidos";
+  if (/cl[ií]nica|consult[oó]rio|odont|sa[uú]de|m[ée]dic/.test(category))
+    return "especialidades, informações, localização e agendamentos";
+  if (/oficina|auto|mec[aâ]nic|ve[ií]cul/.test(category))
+    return "informações sobre os serviços, localização e formas de contato";
+  if (/academia|fitness|pilates|crossfit|treino/.test(category))
+    return "modalidades, estrutura, localização e formas de contato";
+  if (/loja|com[eé]rcio|varejo|boutique|mercado/.test(category))
+    return "produtos, informações comerciais e canais de atendimento";
+  if (/lava.?jato|lavagem|est[eé]tica automotiva/.test(category))
+    return "serviços, fotos, localização e agendamentos";
+  return "informações importantes, localização e formas de contato";
+}
+
 /**
  * ETAPA 1 — abertura. Curta, humana, sem vender: só confirma o responsável
  * e desperta curiosidade. Cada estilo tem sua própria personalidade.
  */
-export function buildMessages(business: Business, _profile?: SenderProfile) {
+export function buildMessages(business: Business, profile?: SenderProfile) {
   const nome = shortName(business);
+  const categoria = business.category?.trim() || "negócio";
   const curta = `Olá! Tudo bem? Falo com o responsável pela ${nome}?`;
   const natural = `Oi! Tudo bem? Falo com alguém responsável pela ${nome}?`;
   const comercial = `Olá, boa tarde! Tudo bem? Falo com o responsável pela ${nome}?`;
   const curiosidade = `Olá! Tudo bem? Falo com o responsável pela ${nome}? Tenho uma ideia específica para vocês.`;
-  return { curta, natural, comercial, curiosidade };
+  const direto = `Olá! Tudo bem?\n\n${senderIntroduction(profile)}. Vi o perfil da ${nome}, na categoria ${categoria}, e pensei em uma oportunidade para apresentar melhor o negócio de vocês na internet.\n\nA ideia é um site profissional pensado para a ${nome}, com ${sitePossibilities(business)}, para facilitar que novos clientes conheçam o estabelecimento e entrem em contato.\n\nPosso te mostrar uma prévia de como ficaria para vocês, sem compromisso?`;
+  return { curta, natural, comercial, curiosidade, direto };
 }
 
 /**
@@ -152,7 +174,9 @@ ${signature}`;
 
 ${signature}`;
 
-  return { curta, natural, comercial, curiosidade };
+  const direto = `Perfeito! ${senderIntroduction(profile)}. A proposta é criar um site profissional para a ${nome}, apresentando ${sitePossibilities(business)} de um jeito claro para quem procura por ${categoria ?? "este tipo de negócio"} na região.\n\nAssim, o site pode ajudar novos clientes a encontrar as informações principais e iniciar o contato com vocês. Posso te mostrar uma prévia sem compromisso?${signature ? `\n\n${signature}` : ""}`;
+
+  return { curta, natural, comercial, curiosidade, direto };
 }
 
 /** Follow-up considerando status, dias desde o último contato e contexto do lead. */
