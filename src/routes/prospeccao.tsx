@@ -136,7 +136,7 @@ function FilterFields(p: FilterProps) {
             placeholder={isUS ? "Ex.: Miami" : "Ex.: Campinas"}
             list={isUS ? "cidades-eua" : "cidades-sugeridas"}
           />
-          {!isUS ? <p className="text-[11px] text-muted-foreground">{ibgeCities.length ? `${ibgeCities.length} municípios do ${state} disponíveis (IBGE)` : `Municípios do ${state} carregando do IBGE`}</p> : null}
+          {!isUS ? <p className="text-[11px] text-muted-foreground">{p.ibgeCities.length ? `${p.ibgeCities.length} municípios do ${p.state} disponíveis (IBGE)` : `Municípios do ${p.state} carregando do IBGE`}</p> : null}
         </div>
         <div className="space-y-2">
           <Label>Estado</Label>
@@ -605,7 +605,7 @@ function Prospeccao() {
                 </Button>
               ) : null}
               {search.criteria && !isUS ? (
-                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={loadingMore || search.status === "loading"}
+                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={loadingMore}
                   onClick={() => {
                     const nextOffset = discoveryOffset + 2;
                     setDiscoveryOffset(nextOffset);

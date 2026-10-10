@@ -162,11 +162,11 @@ async function callPlaces(
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "formato inesperado na resposta");
   }
-  const response = payload as { places?: unknown; nextPageToken?: unknown };
-  if (response.places !== undefined && !Array.isArray(response.places)) {
+  const parsed = payload as { places?: unknown; nextPageToken?: unknown };
+  if (parsed.places !== undefined && !Array.isArray(parsed.places)) {
     throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "campo places não é uma lista");
   }
-  if (response.nextPageToken !== undefined && typeof response.nextPageToken !== "string") {
+  if (parsed.nextPageToken !== undefined && typeof parsed.nextPageToken !== "string") {
     throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "token de paginação inválido");
   }
   return response;

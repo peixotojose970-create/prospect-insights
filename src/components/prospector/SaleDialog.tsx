@@ -18,9 +18,18 @@ export function SaleDialog({ sale, open, onOpenChange }: { sale: Sale | null; op
   const set = (key: keyof Draft, value: string | number | null) => setDraft((prev) => ({ ...prev, [key]: value } as Draft));
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!draft.clientName.trim() || !draft.service.trim() || !draft.saleDate) return toast.error("Preencha cliente, serviço e data da venda.");
-    if (!Number.isFinite(draft.totalValue) || draft.totalValue < 0 || !Number.isFinite(draft.receivedValue) || draft.receivedValue < 0) return toast.error("Os valores devem ser positivos.");
-    if (draft.receivedValue > draft.totalValue) return toast.error("O valor recebido não pode superar o valor total.");
+    if (!draft.clientName.trim() || !draft.service.trim() || !draft.saleDate) {
+      toast.error("Preencha cliente, serviço e data da venda.");
+      return;
+    }
+    if (!Number.isFinite(draft.totalValue) || draft.totalValue < 0 || !Number.isFinite(draft.receivedValue) || draft.receivedValue < 0) {
+      toast.error("Os valores devem ser positivos.");
+      return;
+    }
+    if (draft.receivedValue > draft.totalValue) {
+      toast.error("O valor recebido não pode superar o valor total.");
+      return;
+    }
     const clean = { ...draft, clientName: draft.clientName.trim(), service: draft.service.trim(), notes: draft.notes.trim() };
     if (sale) updateSale(sale.id, clean); else createSale(clean);
     toast.success(sale ? "Venda atualizada." : "Venda registrada."); onOpenChange(false);
