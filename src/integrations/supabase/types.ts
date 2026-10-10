@@ -14,22 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      prospector_accounts: {
-        Row: { account_number: number; auth_user_id: string; username: string; role: string; active: boolean; created_at: string; updated_at: string }
-        Insert: { account_number: number; auth_user_id: string; username: string; role?: string; active?: boolean; created_at?: string; updated_at?: string }
-        Update: { account_number?: number; auth_user_id?: string; username?: string; role?: string; active?: boolean; updated_at?: string }
+      prospector_access_keys: {
+        Row: {
+          account_number: number
+          active: boolean
+          auth_user_id: string | null
+          created_at: string
+          id: string
+          key_hash: string
+          revoked_at: string | null
+        }
+        Insert: {
+          account_number: number
+          active?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          key_hash: string
+          revoked_at?: string | null
+        }
+        Update: {
+          account_number?: number
+          active?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          key_hash?: string
+          revoked_at?: string | null
+        }
         Relationships: []
       }
       prospector_account_data: {
-        Row: { account_number: number; payload: Json; updated_at: string }
-        Insert: { account_number: number; payload?: Json; updated_at?: string }
-        Update: { account_number?: number; payload?: Json; updated_at?: string }
-        Relationships: []
+        Row: {
+          account_number: number
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          account_number: number
+          payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          account_number?: number
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospector_account_data_account_number_fkey"
+            columns: ["account_number"]
+            isOneToOne: true
+            referencedRelation: "prospector_access_keys"
+            referencedColumns: ["account_number"]
+          },
+        ]
       }
-      prospector_access_keys: {
-        Row: { id: string; account_number: number; key_hash: string; auth_user_id: string | null; active: boolean; created_at: string; revoked_at: string | null }
-        Insert: { id?: string; account_number: number; key_hash: string; auth_user_id?: string | null; active?: boolean; created_at?: string; revoked_at?: string | null }
-        Update: { id?: string; account_number?: number; key_hash?: string; auth_user_id?: string | null; active?: boolean; created_at?: string; revoked_at?: string | null }
+      prospector_accounts: {
+        Row: {
+          account_number: number
+          active: boolean
+          auth_user_id: string
+          created_at: string
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          account_number: number
+          active?: boolean
+          auth_user_id: string
+          created_at?: string
+          role?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          account_number?: number
+          active?: boolean
+          auth_user_id?: string
+          created_at?: string
+          role?: string
+          updated_at?: string
+          username?: string
+        }
         Relationships: []
       }
     }
@@ -37,7 +105,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      prospector_is_active_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
