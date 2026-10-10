@@ -83,6 +83,7 @@ type FilterProps = {
   setOnlyPhone: (v: boolean) => void;
   minScore: number;
   setMinScore: (v: number) => void;
+  ibgeCities: string[];
 };
 
 /** Campos de refinamento — reutilizados no painel desktop e no bottom sheet mobile. */
@@ -258,6 +259,7 @@ function Prospeccao() {
     setOnlyPhone,
     minScore,
     setMinScore,
+    ibgeCities,
   };
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
