@@ -130,7 +130,7 @@ type NavItem = {
   icon: typeof LayoutDashboard;
 };
 
-function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed?: boolean; onNavigate?: () => void | undefined }) {
+function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed?: boolean; onNavigate?: (() => void) | undefined }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -154,7 +154,7 @@ function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; activ
   );
 }
 
-function Navigation({ pathname, collapsed = false, onNavigate }: { pathname: string; collapsed?: boolean; onNavigate?: () => void | undefined }) {
+function Navigation({ pathname, collapsed = false, onNavigate }: { pathname: string; collapsed?: boolean; onNavigate?: (() => void) | undefined }) {
   return (
     <nav className="space-y-6" aria-label="Navegação principal">
       <section>
