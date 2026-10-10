@@ -128,7 +128,7 @@ export function generateCallScript(
 
   const websiteRaw = business?.website?.trim();
   const hasWebsite = Boolean(websiteRaw);
-  const siteStatus = hasWebsite ? websiteRaw : "Não informado";
+  const siteStatus = websiteRaw ? websiteRaw : "Não informado";
 
   const tone = getCategoryTone(category !== "Não informado" ? category : "");
   const targetName = companyName !== "Não informado" ? companyName : "empresa";

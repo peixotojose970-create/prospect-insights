@@ -101,7 +101,7 @@ function DisplayModeProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    document.documentElement.dataset.displayMode = mode;
+    document.documentElement.dataset["displayMode"] = mode;
   }, [mode]);
 
   return <DisplayModeContext.Provider value={{ mode, selectMode }}>{children}</DisplayModeContext.Provider>;
@@ -130,7 +130,7 @@ type NavItem = {
   icon: typeof LayoutDashboard;
 };
 
-function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed?: boolean; onNavigate?: () => void }) {
+function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed?: boolean; onNavigate?: () => void | undefined }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
