@@ -363,7 +363,7 @@ export function generateCallScript(
       title: "6. Se perguntar o preço",
       shortLabel: "Preço",
       mainSpeaker: "VOCÊ",
-      mainSpeech: `Pra criar o site são R$300. Depois fica R$50 por mês pra manter o site no ar e fazer as atualizações.`,
+      mainSpeech: `Pra criar o site são R$220. Depois fica R$40 por mês pra manter o site no ar e fazer as atualizações.`,
       contextTip: "Diga o preço com calma e naturalidade. Não se justifique antes de o cliente responder.",
       alternatives: [
         {
@@ -373,8 +373,8 @@ export function generateCallScript(
           nextStage: 7,
         },
         {
-          customerSays: '"O que tá incluso nos R$50?"',
-          recommendedReply: `Hospedagem rápida, segurança, domínio e alterações quando você precisar mudar telefone, fotos, horários ou serviços.`,
+          customerSays: '"O que tá incluso nos R$40?"',
+          recommendedReply: `Hospedagem rápida, segurança, domínio e alterações quando você precisar mudar telefone, fotos, horários ou serviços.`, 
           nextQuestion: `Quer que eu monte uma prévia inicial pra você ver como fica?`,
           nextStage: 7,
         },
