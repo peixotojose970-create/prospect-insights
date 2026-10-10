@@ -152,11 +152,24 @@ async function callPlaces(
     throw new SearchError("rede", "Não foi possível consultar o Google Maps.", detail);
   }
 
+  let payload: unknown;
   try {
-    return JSON.parse(text) as unknown;
+    payload = JSON.parse(text) as unknown;
   } catch {
-    throw new SearchError("rede", "Não foi possível consultar o Google Maps.", "resposta não é JSON válido");
+    throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "resposta não é JSON válido");
   }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "formato inesperado na resposta");
+  }
+  const response = payload as { places?: unknown; nextPageToken?: unknown };
+  if (response.places !== undefined && !Array.isArray(response.places)) {
+    throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "campo places não é uma lista");
+  }
+  if (response.nextPageToken !== undefined && typeof response.nextPageToken !== "string") {
+    throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "token de paginação inválido");
+  }
+  return response;
 }
 
 type AddressComponent = { longText?: string; shortText?: string; types?: string[] };
