@@ -3,6 +3,7 @@ import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import { classifyWebsite } from "@/features/prospector/website";
 import { relatedTerms } from "@/data/segments";
+import { findCategory } from "@/features/prospector/osmCategories";
 
 import type { Business, SearchOutcome } from "@/types";
 
@@ -248,6 +249,7 @@ const searchSchema = z.object({
   state: z.string().trim().max(2),
   limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(),
   pageToken: z.string().trim().max(2000).optional(),
+  discoveryOffset: z.number().int().min(0).max(500).optional(),
 });
 
 export const searchBusinesses = createServerFn({ method: "POST" })
@@ -301,7 +303,7 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   const areaLabel = [data.city, data.state].filter(Boolean).join(" - ");
   const pageSize = data.limit ?? MAX_PAGE_SIZE;
   const primaryQuery = `${data.category} em ${areaLabel}, Brasil`;
-  const cacheKey = `${primaryQuery}|${pageSize}|${data.pageToken ?? ""}|v2`.toLowerCase();
+  const cacheKey = `${primaryQuery}|${pageSize}|${data.pageToken ?? ""}|${data.discoveryOffset ?? 0}|v3`.toLowerCase();
 
   const hit = searchCache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
@@ -325,9 +327,15 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   }
 
   // Consulta principal + consultas complementares do mesmo segmento, sempre na mesma cidade.
-  const queries = [data.category, ...relatedTerms(data.category, false)].map(
-    (term) => `${term} em ${areaLabel}, Brasil`,
-  );
+  const categoryAliases = findCategory(data.category)?.aliases ?? [];
+  const complementaryTerms = [...new Set([...relatedTerms(data.category, false), ...categoryAliases])].filter((term) => term.toLowerCase() !== data.category.toLowerCase());
+  // Cada lote percorre termos complementares diferentes; a consulta primária permanece estável.
+  const offset = data.discoveryOffset ?? 0;
+  const rotatedTerms = complementaryTerms.length
+    ? Array.from({ length: complementaryTerms.length }, (_, i) => complementaryTerms[(offset + i) % complementaryTerms.length]!)
+    : [];
+  const batchTerms = rotatedTerms.slice(0, Math.min(2, rotatedTerms.length));
+  const queries = [data.category, ...batchTerms].map((term) => `${term} em ${areaLabel}, Brasil`);
 
   const byId = new Map<string, Business>();
   const notes: string[] = [];

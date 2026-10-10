@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -135,6 +135,7 @@ function FilterFields(p: FilterProps) {
             placeholder={isUS ? "Ex.: Miami" : "Ex.: Campinas"}
             list={isUS ? "cidades-eua" : "cidades-sugeridas"}
           />
+          {!isUS ? <p className="text-[11px] text-muted-foreground">{ibgeCities.length ? `${ibgeCities.length} municípios do ${state} disponíveis (IBGE)` : `Municípios do ${state} carregando do IBGE`}</p> : null}
         </div>
         <div className="space-y-2">
           <Label>Estado</Label>
@@ -206,6 +207,18 @@ function Prospeccao() {
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [ibgeCities, setIbgeCities] = useState<string[]>([]);
+  const [discoveryOffset, setDiscoveryOffset] = useState(0);
+
+  useEffect(() => {
+    if (country !== "BR") { setIbgeCities([]); return; }
+    let active = true;
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${encodeURIComponent(state)}/municipios`)
+      .then((response) => response.ok ? response.json() as Promise<{ nome: string }[]> : [])
+      .then((items) => { if (active) setIbgeCities(items.map((item) => item.nome)); })
+      .catch(() => { if (active) setIbgeCities([]); });
+    return () => { active = false; };
+  }, [country, state]);
 
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
   const setCountry = (next: Country) => {
@@ -265,6 +278,7 @@ function Prospeccao() {
     setCategory(finalCategory);
     setCity(finalCity);
     setState(finalState);
+    setDiscoveryOffset(0);
     setFiltersOpen(false);
     void runSearch({
       category: finalCategory,
@@ -283,9 +297,8 @@ function Prospeccao() {
       />
 
       <datalist id="cidades-sugeridas">
-        {CITY_SUGGESTIONS.map((c) => (
-          <option key={c} value={c} />
-        ))}
+        {ibgeCities.map((c) => <option key={c} value={c} />)}
+        {CITY_SUGGESTIONS.map((c) => <option key={c} value={c} />)}
       </datalist>
       <datalist id="cidades-eua">
         {US_CITY_SUGGESTIONS.map((c) => (
@@ -582,14 +595,25 @@ function Prospeccao() {
               ))}
             </div>
 
-            {search.outcome?.nextPageToken ? (
-              <div className="flex justify-center">
+            <div className="flex flex-wrap justify-center gap-2">
+              {search.outcome?.nextPageToken ? (
                 <Button variant="outline" className="h-12 w-full sm:w-auto" onClick={() => void loadMore()} disabled={loadingMore}>
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
                   Carregar mais
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+              {search.criteria && !isUS ? (
+                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={loadingMore || search.status === "loading"}
+                  onClick={() => {
+                    const nextOffset = discoveryOffset + 2;
+                    setDiscoveryOffset(nextOffset);
+                    void runSearch({ ...search.criteria!, discoveryOffset: nextOffset }, true);
+                  }}>
+                  {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
+                  Encontrar mais empresas
+                </Button>
+              ) : null}
+            </div>
           </>
         )
       ) : null}

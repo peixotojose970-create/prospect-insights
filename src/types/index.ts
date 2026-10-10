@@ -108,6 +108,8 @@ export type SearchCriteria = {
   country?: ProspectCountry;
   limit?: number;
   pageToken?: string;
+  /** Deslocamento explícito para explorar um lote rotativo de termos complementares. */
+  discoveryOffset?: number;
 };
 
 export type SearchOutcome = {

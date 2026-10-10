@@ -11,7 +11,7 @@ export const GooglePlacesBusinessSearchRepository: BusinessSearchRepository = {
   sourceName: "Google Maps",
   search: (criteria) => criteria.country === "US"
     ? searchUSBusinesses({ data: { category: criteria.category, city: criteria.city, state: criteria.state, ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}) } })
-    : searchBusinesses({ data: { category: criteria.category, city: criteria.city, state: criteria.state, ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}) } }),
+    : searchBusinesses({ data: { category: criteria.category, city: criteria.city, state: criteria.state, ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}), ...(criteria.discoveryOffset !== undefined ? { discoveryOffset: criteria.discoveryOffset } : {}) } }),
 };
 
 export const GooglePlacesDetailsRepository: PlaceDetailsRepository = { sourceName: "Google Maps", detailsFor: (business) => fetchPlaceDetails({ data: { placeId: business.placeId } }) };

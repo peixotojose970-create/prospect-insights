@@ -13,6 +13,16 @@ export type ProspectSegment = {
 };
 
 export const PROSPECT_SEGMENTS: ProspectSegment[] = [
+  { label: "Barbearias e salões", br: "barbearia", brExtra: ["salão de beleza", "cabeleireiro"], us: "barber shop", usExtra: ["hair salon"] },
+  { label: "Pizzarias e cafeterias", br: "pizzaria", brExtra: ["restaurante", "cafeteria"], us: "pizzeria", usExtra: ["cafe", "restaurant"] },
+  { label: "Lava-jatos", br: "lava-jato", brExtra: ["estética automotiva", "lavagem de carros"], us: "car wash", usExtra: ["auto detailing"] },
+  { label: "Clínicas odontológicas", br: "clínica odontológica", brExtra: ["dentista", "consultório odontológico"], us: "dental clinic", usExtra: ["dentist"] },
+  { label: "Escolas e cursos", br: "escola", brExtra: ["curso profissionalizante", "escola de idiomas"], us: "school", usExtra: ["training center"] },
+  { label: "Lojas de móveis", br: "loja de móveis", brExtra: ["móveis planejados", "marcenaria"], us: "furniture store", usExtra: ["cabinet maker"] },
+  { label: "Mercados e açougues", br: "mercado", brExtra: ["supermercado", "açougue", "mercearia"], us: "grocery store", usExtra: ["butcher shop"] },
+  { label: "Hotéis e turismo", br: "hotel", brExtra: ["pousada", "agência de turismo"], us: "hotel", usExtra: ["travel agency"] },
+  { label: "Tecnologia e consultoria", br: "empresa de tecnologia", brExtra: ["consultoria de tecnologia", "empresa de informática"], us: "technology company", usExtra: ["IT consultant"] },
+  { label: "Gráficas", br: "gráfica", brExtra: ["gráfica rápida", "comunicação visual"], us: "print shop", usExtra: ["sign shop"] },
   { label: "Energia solar", br: "energia solar", brExtra: ["placas solares","energia fotovoltaica"], us: "solar panel installer" },
   { label: "Oficinas", br: "oficina mecânica", brExtra: ["auto center","mecânica automotiva"], us: "auto repair shop" },
   { label: "Eletricistas", br: "eletricista", brExtra: ["serviços elétricos","instalações elétricas"], us: "electrician" },

@@ -14,6 +14,31 @@ export type OsmCategory = {
 
 export const OSM_CATEGORIES: OsmCategory[] = [
   {
+    label: "Auto center e lava-jato",
+    aliases: ["auto center", "lava jato", "lava-jato", "estetica automotiva", "borracharia", "auto elétrica", "auto pecas", "moto peças"],
+    tags: ["shop=car", "shop=car_repair", "shop=tyres"],
+  },
+  {
+    label: "Construção e reformas",
+    aliases: ["construtora", "construção", "reformas", "empreiteira", "pedreiro", "eletricista", "encanador", "pintor", "marceneiro", "vidraçaria"],
+    tags: ["craft=builder", "craft=electrician", "craft=plumber"],
+  },
+  {
+    label: "Varejo e eletrônicos",
+    aliases: ["loja de móveis", "móveis", "eletrônicos", "informática", "celulares", "presentes", "loja de brinquedos", "papelaria", "ótica"],
+    tags: ["shop=furniture", "shop=electronics", "shop=computer", "shop=mobile_phone", "shop=optician"],
+  },
+  {
+    label: "Serviços profissionais",
+    aliases: ["tecnologia", "empresa de tecnologia", "consultoria", "agência de marketing", "gráfica", "contabilidade", "advocacia", "empresa de limpeza", "manutenção"],
+    tags: ["office=company", "office=it", "office=consulting", "office=accountant", "office=lawyer"],
+  },
+  {
+    label: "Turismo e hospedagem",
+    aliases: ["hotel", "hoteis", "pousada", "turismo", "agência de turismo", "hostel"],
+    tags: ["tourism=hotel", "tourism=guest_house", "tourism=hostel", "tourism=agency"],
+  },
+  {
     label: "Barbearia",
     aliases: ["barbearia", "barbearias", "barbeiro", "barber"],
     tags: ["shop=hairdresser"],
