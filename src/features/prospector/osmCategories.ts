@@ -14,6 +14,11 @@ export type OsmCategory = {
 
 export const OSM_CATEGORIES: OsmCategory[] = [
   {
+    label: "Açaiteria",
+    aliases: ["acaiteria", "açaiteria", "loja de açaí", "loja de acai", "açaí delivery", "acai delivery", "açaíteria", "casa de açaí"],
+    tags: ["cuisine=acai", "amenity=ice_cream"],
+  },
+  {
     label: "Auto center e lava-jato",
     aliases: ["auto center", "lava jato", "lava-jato", "estetica automotiva", "borracharia", "auto elétrica", "auto pecas", "moto peças"],
     tags: ["shop=car", "shop=car_repair", "shop=tyres"],
@@ -65,7 +70,7 @@ export const OSM_CATEGORIES: OsmCategory[] = [
   },
   {
     label: "Lanchonete",
-    aliases: ["lanchonete", "lanchonetes", "hamburgueria", "hamburguerias", "fast food", "burger", "pastelaria", "salgados", "acai"],
+    aliases: ["lanchonete", "lanchonetes", "hamburgueria", "hamburguerias", "fast food", "burger", "pastelaria", "salgados"],
     tags: ["amenity=fast_food"],
   },
   {

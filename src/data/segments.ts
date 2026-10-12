@@ -13,6 +13,7 @@ export type ProspectSegment = {
 };
 
 export const PROSPECT_SEGMENTS: ProspectSegment[] = [
+  { label: "Açaiteria", br: "açaiteria", brExtra: ["loja de açaí", "açaí delivery", "açaíteria", "casa de açaí", "acai shop"], us: "acai shop", usExtra: ["acai delivery"] },
   { label: "Barbearias e salões", br: "barbearia", brExtra: ["salão de beleza", "cabeleireiro"], us: "barber shop", usExtra: ["hair salon"] },
   { label: "Pizzarias e cafeterias", br: "pizzaria", brExtra: ["restaurante", "cafeteria"], us: "pizzeria", usExtra: ["cafe", "restaurant"] },
   { label: "Lava-jatos", br: "lava-jato", brExtra: ["estética automotiva", "lavagem de carros"], us: "car wash", usExtra: ["auto detailing"] },
