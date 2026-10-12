@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,9 @@ import { LeadCard } from "@/components/prospector/LeadCard";
 import { SelectionBar, selectionLabel } from "@/components/prospector/SelectionBar";
 
 import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
-import { parseQuery } from "@/features/prospector/queryParse";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
-import { CITY_SUGGESTIONS, STATES } from "@/data/brazil";
+import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
 import { PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
@@ -33,12 +32,12 @@ export const Route = createFileRoute("/prospeccao")({
       {
         name: "description",
         content:
-          "Busque empresas reais por categoria e cidade usando dados oficiais do Google Maps e encontre negócios sem site informado.",
+          "Busque empresas reais por categoria e estado usando dados oficiais do Google Maps e encontre negócios sem site informado.",
       },
       { property: "og:title", content: "Prospecção de empresas locais | Prospector" },
       {
         property: "og:description",
-        content: "Busque empresas por categoria e cidade com dados oficiais do Google Maps.",
+        content: "Busque empresas por categoria e estado com dados oficiais do Google Maps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -48,12 +47,12 @@ export const Route = createFileRoute("/prospeccao")({
 });
 
 const errorHints: Record<string, string> = {
-  vazio: "Não encontramos empresas para essa pesquisa. Tente outra categoria ou cidade.",
-  amplo: "Informe uma categoria e uma cidade brasileira para pesquisar.",
+  vazio: "Nenhuma empresa foi encontrada nas áreas consultadas. Tente outro termo, categoria ou estado.",
+  amplo: "Informe uma categoria e um estado brasileiro para pesquisar.",
   timeout: "A pesquisa demorou mais que o esperado. Tente novamente.",
   "rate-limit": "Limite de consultas atingido. Aguarde alguns instantes e tente novamente.",
   rede: "Não foi possível realizar a busca. Verifique sua conexão.",
-  local: "Não encontramos essa cidade. Confira o nome e o estado.",
+  local: "Escolha um estado brasileiro válido para realizar a busca.",
   config: "Google Maps não está configurado.",
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
@@ -83,7 +82,6 @@ type FilterProps = {
   setOnlyPhone: (v: boolean) => void;
   minScore: number;
   setMinScore: (v: number) => void;
-  ibgeCities: string[];
 };
 
 /** Campos de refinamento — reutilizados no painel desktop e no bottom sheet mobile. */
@@ -126,32 +124,25 @@ function FilterFields(p: FilterProps) {
             </SelectContent>
           </Select>
         </div>
+        {isUS ? (
+          <div className="space-y-2">
+            <Label htmlFor={`${p.idPrefix}-cidade`}>Cidade</Label>
+            <Input id={`${p.idPrefix}-cidade`} className="h-11" value={p.city} onChange={(e) => p.setCity(e.target.value)} placeholder="Ex.: Miami" list="cidades-eua" />
+          </div>
+        ) : null}
         <div className="space-y-2">
-          <Label htmlFor={`${p.idPrefix}-cidade`}>Cidade</Label>
-          <Input
-            id={`${p.idPrefix}-cidade`}
-            className="h-11"
-            value={p.city}
-            onChange={(e) => p.setCity(e.target.value)}
-            placeholder={isUS ? "Ex.: Miami" : "Ex.: Campinas"}
-            list={isUS ? "cidades-eua" : "cidades-sugeridas"}
-          />
-          {!isUS ? <p className="text-[11px] text-muted-foreground">{p.ibgeCities.length ? `${p.ibgeCities.length} municípios do ${p.state} disponíveis (IBGE)` : `Municípios do ${p.state} carregando do IBGE`}</p> : null}
-        </div>
-        <div className="space-y-2">
-          <Label>Estado</Label>
+          <Label>{isUS ? "Estado" : "Estado brasileiro"}</Label>
           <Select value={p.state} onValueChange={p.setState}>
-            <SelectTrigger className="h-11">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               {states.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                  {isUS ? s : `${BRAZILIAN_STATES[s as keyof typeof BRAZILIAN_STATES].name} (${s})`}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {!isUS ? <p className="text-[11px] text-muted-foreground">A busca consulta cidades diferentes do estado em lotes progressivos.</p> : null}
         </div>
       </div>
 
@@ -208,18 +199,7 @@ function Prospeccao() {
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [ibgeCities, setIbgeCities] = useState<string[]>([]);
   const [discoveryOffset, setDiscoveryOffset] = useState(0);
-
-  useEffect(() => {
-    if (country !== "BR") { setIbgeCities([]); return; }
-    let active = true;
-    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${encodeURIComponent(state)}/municipios`)
-      .then((response) => response.ok ? response.json() as Promise<{ nome: string }[]> : [])
-      .then((items) => { if (active) setIbgeCities(items.map((item) => item.nome)); })
-      .catch(() => { if (active) setIbgeCities([]); });
-    return () => { active = false; };
-  }, [country, state]);
 
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
   const setCountry = (next: Country) => {
@@ -259,7 +239,6 @@ function Prospeccao() {
     setOnlyPhone,
     minScore,
     setMinScore,
-    ibgeCities,
   };
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
@@ -268,24 +247,20 @@ function Prospeccao() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // A leitura livre ("Clínicas Curitiba") só vale para o Brasil.
-    const parsed = !isUS && query.trim() ? parseQuery(query) : { category: "", city: "", state: "" };
-    const finalCategory = parsed.category || category;
-    const finalCity = parsed.city || (isUS ? city : city);
-    const finalState = parsed.state || state;
-    if (!finalCity.trim()) {
+    if (isUS && !city.trim()) {
       setFiltersOpen(true);
       return;
     }
-    setCategory(finalCategory);
-    setCity(finalCity);
-    setState(finalState);
+    // No Brasil, o texto livre é exclusivamente um nome/termo: não altera a
+    // categoria nem a UF escolhidas e nunca é interpretado como uma cidade.
+    const term = isUS ? "" : query.trim();
     setDiscoveryOffset(0);
     setFiltersOpen(false);
     void runSearch({
-      category: finalCategory,
-      city: finalCity,
-      state: finalState,
+      category,
+      city,
+      state,
+      ...(term ? { term } : {}),
       ...(isUS ? { country: "US" as const } : {}),
     });
   };
@@ -298,10 +273,6 @@ function Prospeccao() {
         subtitle="Encontre empresas reais e identifique oportunidades comerciais."
       />
 
-      <datalist id="cidades-sugeridas">
-        {ibgeCities.map((c) => <option key={c} value={c} />)}
-        {CITY_SUGGESTIONS.map((c) => <option key={c} value={c} />)}
-      </datalist>
       <datalist id="cidades-eua">
         {US_CITY_SUGGESTIONS.map((c) => (
           <option key={c} value={c} />
@@ -320,7 +291,7 @@ function Prospeccao() {
                 className="h-12 bg-background text-base shadow-sm"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={isUS ? "Use os filtros: tipo, cidade e estado" : "Ex.: Clínicas em Curitiba"}
+                placeholder={isUS ? "Use os filtros: tipo, cidade e estado" : "Nome ou termo opcional: Ex.: São Jorge Barbearia"}
               />
             </div>
             <div className="flex gap-2">
@@ -386,10 +357,11 @@ function Prospeccao() {
                   setCategory(term);
                   // A busca livre não pode sobrescrever o segmento escolhido.
                   setQuery("");
-                  if (!city.trim()) {
+                  if (isUS && !city.trim()) {
                     setFiltersOpen(true);
                     return;
                   }
+                  setDiscoveryOffset(0);
                   void runSearch({
                     category: term,
                     city,
@@ -406,10 +378,10 @@ function Prospeccao() {
         {activeSegment ? (
           <p className="border-t border-border pt-3 text-xs text-muted-foreground">
             Busca configurada para <span className="font-medium text-foreground">{category}</span>
-            {city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : ""}.
+            {isUS ? (city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : "") : ` em todo o estado de ${BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name}`}.
           </p>
         ) : null}
-        {!city.trim() ? (
+        {isUS && !city.trim() ? (
           <p className="rounded-md bg-muted/70 px-3 py-2 text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
       </Card>
@@ -436,8 +408,9 @@ function Prospeccao() {
               className="h-12 flex-1"
               onClick={() => {
                 setFiltersOpen(false);
-                if (city.trim())
-                  void runSearch({ category, city, state, ...(isUS ? { country: "US" as const } : {}) });
+                setDiscoveryOffset(0);
+                if (!isUS || city.trim())
+                  void runSearch({ category, city, state, ...(!isUS && query.trim() ? { term: query.trim() } : {}), ...(isUS ? { country: "US" as const } : {}) });
               }}
             >
               Aplicar
@@ -457,14 +430,19 @@ function Prospeccao() {
                 type="button"
                 className="hover:text-foreground"
                 onClick={() => {
+                  const savedCountry = s.country ?? "BR";
+                  setCountry(savedCountry);
                   setCategory(s.category);
                   setCity(s.city);
                   setState(s.state);
+                  setQuery(s.term ?? "");
+                  setDiscoveryOffset(0);
                   void runSearch({
                     category: s.category,
                     city: s.city,
                     state: s.state,
-                    ...(isUS ? { country: "US" as const } : {}),
+                    ...(s.term ? { term: s.term } : {}),
+                    ...(savedCountry === "US" ? { country: "US" as const } : {}),
                   });
                 }}
               >
@@ -511,19 +489,38 @@ function Prospeccao() {
       {search.status === "idle" ? (
         <EmptyState
           title="Comece uma busca"
-          description="Escolha uma categoria e uma cidade para listar empresas reais e ver quais não têm site informado."
+          description="Escolha uma categoria e um estado para listar empresas reais em áreas diferentes e ver quais não têm site informado."
         />
       ) : null}
 
       {search.status === "success" ? (
         results.length === 0 ? (
           <EmptyState
-            title="Não encontramos empresas com esses filtros"
-            description="A busca retornou empresas, mas os filtros atuais removeram todas. Reduza o score mínimo ou desmarque os filtros."
+            title={search.outcome?.total === 0 ? "Nenhuma empresa encontrada neste lote" : "Não encontramos empresas com esses filtros"}
+            description={
+              search.outcome?.total === 0
+                ? "Nenhuma empresa correspondente foi encontrada nas áreas já consultadas. A busca não representa o estado inteiro enquanto houver áreas pendentes."
+                : "A busca retornou empresas, mas os filtros atuais removeram todas. Reduza o score mínimo ou desmarque os filtros."
+            }
             action={
-              <Button variant="outline" onClick={() => setFiltersOpen(true)} className="md:hidden">
-                Ajustar filtros
-              </Button>
+              search.criteria && !isUS && search.outcome?.coverage?.hasMoreAreas ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const nextOffset = discoveryOffset + 3;
+                    setDiscoveryOffset(nextOffset);
+                    void runSearch({ ...search.criteria!, discoveryOffset: nextOffset }, true);
+                  }}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
+                  Encontrar mais empresas
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setFiltersOpen(true)} className="md:hidden">
+                  Ajustar filtros
+                </Button>
+              )
             }
           />
         ) : (
@@ -536,7 +533,7 @@ function Prospeccao() {
                     {results.length} resultados
                     <span className="text-sm font-normal text-muted-foreground">
                       {search.outcome?.areaLabel ? ` em ${search.outcome.areaLabel}` : ""}
-                      {search.outcome?.truncated ? " (limite do Google atingido)" : ""}
+                      {search.outcome?.truncated ? " (busca parcial; há áreas pendentes ou uma consulta falhou)" : ""}
                       {search.outcome?.cached ? " · cache" : ""}
                     </span>
                     {selection.length > 0 ? (
@@ -545,7 +542,7 @@ function Prospeccao() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Categoria: <span className="font-medium text-foreground">{category}</span>
-                    {city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null}
+                    {isUS ? (city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null) : <> · Estado: <span className="font-medium text-foreground">{BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name} ({state})</span></>}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -604,10 +601,12 @@ function Prospeccao() {
                   Carregar mais
                 </Button>
               ) : null}
-              {search.criteria && !isUS ? (
+              {search.criteria && !isUS && search.outcome?.coverage?.hasMoreAreas ? (
                 <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={loadingMore}
                   onClick={() => {
-                    const nextOffset = discoveryOffset + 2;
+                    // O servidor consulta três áreas por lote; avançar pelo mesmo
+                    // tamanho evita repetir cidades e mantém o progresso correto.
+                    const nextOffset = discoveryOffset + 3;
                     setDiscoveryOffset(nextOffset);
                     void runSearch({ ...search.criteria!, discoveryOffset: nextOffset }, true);
                   }}>

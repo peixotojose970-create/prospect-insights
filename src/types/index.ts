@@ -96,6 +96,7 @@ export type SavedSearch = {
   city: string;
   state: string;
   country?: ProspectCountry;
+  term?: string;
   query: string;
   at: string;
   results: number;
@@ -103,8 +104,11 @@ export type SavedSearch = {
 
 export type SearchCriteria = {
   category: string;
+  /** Termo opcional para localizar um nome de empresa; nos EUA mantém a cidade. */
   city: string;
   state: string;
+  /** Nome ou expressão opcional que recebe prioridade na busca estadual brasileira. */
+  term?: string;
   country?: ProspectCountry;
   limit?: number;
   pageToken?: string;
@@ -125,6 +129,8 @@ export type SearchOutcome = {
     requests: number;
     rawResults: number;
     duplicatesRemoved: number;
+    /** Há novas áreas da UF programadas para o próximo lote. */
+    hasMoreAreas?: boolean;
     notes: string[];
   };
 };

@@ -217,10 +217,15 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       const timeout = (error as Error)?.message === "timeout-cliente";
       setLoadingMore(false);
       setSearch((prev) => ({
-        status: "error",
+        // Uma falha ao continuar não descarta nem esconde os resultados já exibidos.
+        status: append && prev.results.length ? "success" : "error",
         results: append ? prev.results : [],
-        outcome: append ? prev.outcome : null,
-        error: {
+        outcome: append && prev.outcome ? {
+          ...prev.outcome,
+          truncated: true,
+          ...(prev.outcome.coverage ? { coverage: { ...prev.outcome.coverage, notes: [...prev.outcome.coverage.notes, "Busca parcial: não foi possível carregar o próximo lote."] } } : {}),
+        } : null,
+        error: append && prev.results.length ? null : {
           code: timeout ? "timeout" : "rede",
           message: timeout
             ? "A pesquisa demorou mais que o esperado."
@@ -236,10 +241,14 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
     if (!result.ok) {
       setSearch((prev) => ({
-        status: "error",
+        status: append && prev.results.length ? "success" : "error",
         results: append ? prev.results : [],
-        outcome: append ? prev.outcome : null,
-        error: {
+        outcome: append && prev.outcome ? {
+          ...prev.outcome,
+          truncated: true,
+          ...(prev.outcome.coverage ? { coverage: { ...prev.outcome.coverage, notes: [...prev.outcome.coverage.notes, `Busca parcial: ${result.message}`] } } : {}),
+        } : null,
+        error: append && prev.results.length ? null : {
           code: result.ok ? "rede" : result.code,
           message: result.ok ? "" : result.message,
           ...(!result.ok && result.detail ? { detail: result.detail } : {}),
@@ -272,12 +281,14 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
           category: criteria.category,
           city: criteria.city,
           state: criteria.state,
-          query: `${criteria.category} em ${criteria.city} - ${criteria.state}`,
+          country: criteria.country ?? "BR",
+          ...(criteria.term ? { term: criteria.term } : {}),
+          query: criteria.term ? `${criteria.category} · ${criteria.term} em ${criteria.state}` : `${criteria.category} em ${criteria.state}`,
           at: stamp(),
           results: outcome.total,
         },
         ...prev.savedSearches.filter(
-          (s) => !(s.category === criteria.category && s.city === criteria.city && s.state === criteria.state),
+          (s) => !(s.category === criteria.category && s.city === criteria.city && s.state === criteria.state && (s.country ?? "BR") === (criteria.country ?? "BR")),
         ),
       ].slice(0, 15),
     }));

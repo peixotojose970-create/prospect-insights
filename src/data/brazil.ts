@@ -31,6 +31,39 @@ export const STATES = [
 
 export type StateCode = (typeof STATES)[number];
 
+/** Nome exibido e pontos de cobertura distribuídos por UF.
+ * Cada lote consulta só algumas destas cidades para manter a busca dentro das
+ * cotas do Google Maps; os próximos lotes avançam para as demais áreas. */
+export const BRAZILIAN_STATES: Record<StateCode, { name: string; areas: string[] }> = {
+  AC: { name: "Acre", areas: ["Rio Branco", "Cruzeiro do Sul", "Sena Madureira"] },
+  AL: { name: "Alagoas", areas: ["Maceió", "Arapiraca", "Palmeira dos Índios", "Penedo"] },
+  AP: { name: "Amapá", areas: ["Macapá", "Santana", "Laranjal do Jari"] },
+  AM: { name: "Amazonas", areas: ["Manaus", "Parintins", "Itacoatiara", "Manacapuru"] },
+  BA: { name: "Bahia", areas: ["Salvador", "Feira de Santana", "Vitória da Conquista", "Itabuna", "Juazeiro", "Barreiras"] },
+  CE: { name: "Ceará", areas: ["Fortaleza", "Caucaia", "Juazeiro do Norte", "Sobral", "Maracanaú"] },
+  DF: { name: "Distrito Federal", areas: ["Brasília", "Taguatinga", "Ceilândia", "Gama"] },
+  ES: { name: "Espírito Santo", areas: ["Vitória", "Vila Velha", "Serra", "Cariacica", "Linhares"] },
+  GO: { name: "Goiás", areas: ["Goiânia", "Aparecida de Goiânia", "Anápolis", "Rio Verde", "Luziânia"] },
+  MA: { name: "Maranhão", areas: ["São Luís", "Imperatriz", "Timon", "Caxias"] },
+  MT: { name: "Mato Grosso", areas: ["Cuiabá", "Várzea Grande", "Rondonópolis", "Sinop", "Sorriso"] },
+  MS: { name: "Mato Grosso do Sul", areas: ["Campo Grande", "Dourados", "Três Lagoas", "Corumbá"] },
+  MG: { name: "Minas Gerais", areas: ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Montes Claros", "Uberaba"] },
+  PA: { name: "Pará", areas: ["Belém", "Ananindeua", "Santarém", "Marabá", "Castanhal"] },
+  PB: { name: "Paraíba", areas: ["João Pessoa", "Campina Grande", "Santa Rita", "Patos"] },
+  PR: { name: "Paraná", areas: ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel", "São José dos Pinhais"] },
+  PE: { name: "Pernambuco", areas: ["Recife", "Jaboatão dos Guararapes", "Olinda", "Caruaru", "Petrolina"] },
+  PI: { name: "Piauí", areas: ["Teresina", "Parnaíba", "Picos", "Floriano"] },
+  RJ: { name: "Rio de Janeiro", areas: ["Rio de Janeiro", "São Gonçalo", "Duque de Caxias", "Niterói", "Nova Iguaçu", "Campos dos Goytacazes"] },
+  RN: { name: "Rio Grande do Norte", areas: ["Natal", "Mossoró", "Parnamirim", "Caicó"] },
+  RS: { name: "Rio Grande do Sul", areas: ["Porto Alegre", "Caxias do Sul", "Canoas", "Pelotas", "Santa Maria", "Novo Hamburgo"] },
+  RO: { name: "Rondônia", areas: ["Porto Velho", "Ji-Paraná", "Ariquemes", "Vilhena"] },
+  RR: { name: "Roraima", areas: ["Boa Vista", "Rorainópolis", "Caracaraí"] },
+  SC: { name: "Santa Catarina", areas: ["Florianópolis", "Joinville", "Blumenau", "São José", "Chapecó", "Criciúma"] },
+  SP: { name: "São Paulo", areas: ["São Paulo", "Campinas", "Guarulhos", "São José dos Campos", "Ribeirão Preto", "Sorocaba", "Santos", "Bauru"] },
+  SE: { name: "Sergipe", areas: ["Aracaju", "Nossa Senhora do Socorro", "Itabaiana", "Lagarto"] },
+  TO: { name: "Tocantins", areas: ["Palmas", "Araguaína", "Gurupi", "Porto Nacional"] },
+};
+
 /**
  * Sugestões de cidades apenas para preenchimento rápido.
  * Qualquer cidade brasileira suportada pela fonte pode ser digitada.

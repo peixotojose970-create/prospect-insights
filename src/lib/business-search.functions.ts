@@ -3,6 +3,7 @@ import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import { classifyWebsite } from "@/features/prospector/website";
 import { relatedTerms } from "@/data/segments";
+import { BRAZILIAN_STATES, type StateCode } from "@/data/brazil";
 import { findCategory } from "@/features/prospector/osmCategories";
 
 import type { Business, SearchOutcome } from "@/types";
@@ -169,7 +170,7 @@ async function callPlaces(
   if (parsed.nextPageToken !== undefined && typeof parsed.nextPageToken !== "string") {
     throw new SearchError("rede", "O Google Maps retornou uma resposta inválida.", "token de paginação inválido");
   }
-  return response;
+  return payload;
 }
 
 type AddressComponent = { longText?: string; shortText?: string; types?: string[] };
@@ -257,12 +258,14 @@ function toBusiness(place: PlaceResult): Business | null {
 }
 
 const searchSchema = z.object({
-  category: z.string().trim().max(80),
-  city: z.string().trim().max(120),
-  state: z.string().trim().max(2),
+  category: z.string().trim().min(1).max(80),
+  // Mantido para compatibilidade com buscas salvas antigas; a busca BR usa UF + term.
+  city: z.string().trim().max(120).optional().default(""),
+  state: z.string().trim().length(2),
+  term: z.string().trim().max(120).optional().default(""),
   limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(),
   pageToken: z.string().trim().max(2000).optional(),
-  discoveryOffset: z.number().int().min(0).max(500).optional(),
+  discoveryOffset: z.number().int().min(0).max(100).optional(),
 });
 
 export const searchBusinesses = createServerFn({ method: "POST" })
@@ -290,8 +293,7 @@ export const searchBusinesses = createServerFn({ method: "POST" })
     }
   });
 
-/** Text Search entrega no máximo 20 por página e ~60 (3 páginas) por consulta. */
-const MAX_PAGES_PER_QUERY = 3;
+/** Cada lote tem poucas consultas serializadas para não exceder a cota da fonte. */
 const MAX_REQUESTS_PER_SEARCH = 9;
 
 async function fetchPage(textQuery: string, pageSize: number, pageToken?: string) {
@@ -308,113 +310,91 @@ async function fetchPage(textQuery: string, pageSize: number, pageToken?: string
   })) as { places?: PlaceResult[]; nextPageToken?: string };
 }
 
+function normalizeText(value: string) {
+  return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Exige correspondência relevante de nome quando há termo específico, sem confundir categoria com nome. */
+function matchesName(business: Business, term: string, category: string) {
+  const query = normalizeText(term);
+  if (!query) return true;
+  const name = normalizeText(business.name);
+  if (name.includes(query)) return true;
+  const ignored = new Set(normalizeText(category).split(" "));
+  const tokens = query.split(" ").filter((word) => word.length > 2 && !ignored.has(word));
+  if (!tokens.length) return name.includes(query);
+  const matches = tokens.filter((word) => name.split(" ").some((part) => part === word || part.startsWith(word) || word.startsWith(part))).length;
+  return tokens.length === 1 ? matches === 1 : matches >= Math.min(2, tokens.length);
+}
+
 async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutcome> {
-  if (!data.category.trim() || !data.city.trim()) {
-    throw new SearchError("amplo", "Escolha uma categoria e uma cidade para realizar uma busca.");
-  }
+  const state = data.state.toUpperCase() as StateCode;
+  const stateData = BRAZILIAN_STATES[state];
+  if (!stateData) throw new SearchError("local", "Escolha um estado brasileiro válido para realizar a busca.");
 
-  const areaLabel = [data.city, data.state].filter(Boolean).join(" - ");
   const pageSize = data.limit ?? MAX_PAGE_SIZE;
-  const primaryQuery = `${data.category} em ${areaLabel}, Brasil`;
-  const cacheKey = `${primaryQuery}|${pageSize}|${data.pageToken ?? ""}|${data.discoveryOffset ?? 0}|v3`.toLowerCase();
-
-  const hit = searchCache.get(cacheKey);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
-    return { ...hit.value, cached: true };
-  }
-
-  // Continuação manual (token antigo): apenas uma página.
-  if (data.pageToken) {
-    const payload = await fetchPage(primaryQuery, pageSize, data.pageToken);
-    const businesses = (payload.places ?? []).map(toBusiness).filter((b): b is Business => b !== null);
-    const outcome: SearchOutcome = {
-      businesses,
-      total: businesses.length,
-      truncated: !!payload.nextPageToken,
-      cached: false,
-      areaLabel,
-      nextPageToken: payload.nextPageToken ?? null,
-    };
-    searchCache.set(cacheKey, { at: Date.now(), value: outcome });
-    return outcome;
-  }
-
-  // Consulta principal + consultas complementares do mesmo segmento, sempre na mesma cidade.
-  const categoryAliases = findCategory(data.category)?.aliases ?? [];
-  const complementaryTerms = [...new Set([...relatedTerms(data.category, false), ...categoryAliases])].filter((term) => term.toLowerCase() !== data.category.toLowerCase());
-  // Cada lote percorre termos complementares diferentes; a consulta primária permanece estável.
   const offset = data.discoveryOffset ?? 0;
-  const rotatedTerms = complementaryTerms.length
-    ? Array.from({ length: complementaryTerms.length }, (_, i) => complementaryTerms[(offset + i) % complementaryTerms.length]!)
-    : [];
-  const batchTerms = rotatedTerms.slice(0, Math.min(2, rotatedTerms.length));
-  const queries = [data.category, ...batchTerms].map((term) => `${term} em ${areaLabel}, Brasil`);
+  const areas = stateData.areas.slice(offset, offset + 3);
+  if (!areas.length) throw new SearchError("vazio", "Todas as áreas planejadas desse estado já foram consultadas.");
+
+  const requestedName = data.term.trim();
+  const primaryTerm = requestedName || data.category;
+  const aliases = requestedName ? [] : [...new Set([...relatedTerms(data.category, false), ...(findCategory(data.category)?.aliases ?? [])])];
+  const alternateTerm = aliases.find((item) => normalizeText(item) !== normalizeText(data.category));
+  const queryTerms = alternateTerm ? [primaryTerm, alternateTerm] : [primaryTerm];
+  const queries = areas.flatMap((area) => queryTerms.map((term) => ({ area, text: `${term} em ${area}, ${stateData.name}, Brasil` })));
+  const areaLabel = `${stateData.name} (${state})`;
+  const cacheKey = `${state}|${data.category}|${requestedName}|${offset}|${pageSize}|v4`.toLowerCase();
+  const hit = searchCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ...hit.value, cached: true };
 
   const byId = new Map<string, Business>();
   const notes: string[] = [];
   let requests = 0;
+  let successfulRequests = 0;
   let rawCount = 0;
-  let apiLimited = false;
   let firstError: SearchError | null = null;
-
-  outer: for (const [qi, textQuery] of queries.entries()) {
-    let token: string | undefined;
-    for (let page = 0; page < MAX_PAGES_PER_QUERY; page++) {
-      if (requests >= MAX_REQUESTS_PER_SEARCH) {
-        apiLimited = true;
-        break outer;
-      }
-      requests++;
-      let payload: { places?: PlaceResult[]; nextPageToken?: string };
-      try {
-        payload = await fetchPage(textQuery, pageSize, token);
-      } catch (error) {
-        if (!(error instanceof SearchError)) throw error;
-        // Falha na consulta principal sem nada coletado: repassa o erro real.
-        if (qi === 0 && page === 0) throw error;
-        firstError ??= error;
-        if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config") {
-          notes.push(`Busca interrompida: ${error.message}`);
-          break outer;
-        }
-        notes.push(`Uma página adicional falhou (${error.message}); resultados parciais mantidos.`);
-        break;
-      }
+  for (const query of queries) {
+    if (requests >= MAX_REQUESTS_PER_SEARCH) break;
+    requests += 1;
+    try {
+      const payload = await fetchPage(query.text, pageSize);
+      successfulRequests += 1;
       const places = payload.places ?? [];
       rawCount += places.length;
       for (const place of places) {
-        const b = toBusiness(place);
-        // Deduplicação pelo identificador único do Google (place id).
-        if (b && !byId.has(b.id)) byId.set(b.id, b);
+        const business = toBusiness(place);
+        if (business && matchesName(business, requestedName, data.category) && !byId.has(business.id)) byId.set(business.id, business);
       }
-      console.log("[SEARCH]", textQuery, "página", page + 1, "resultados", places.length);
-      token = payload.nextPageToken;
-      if (!token) break;
-      if (page === MAX_PAGES_PER_QUERY - 1) apiLimited = true;
+    } catch (error) {
+      if (!(error instanceof SearchError)) throw error;
+      firstError ??= error;
+      notes.push(`Área ${query.area} não pôde ser consultada (${error.message}).`);
+      if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config") break;
     }
   }
 
   const businesses = [...byId.values()];
-  console.log("[SEARCH] total", { requests, rawCount, unique: businesses.length, notes, apiLimited });
-
-  if (businesses.length === 0) {
+  const hasPendingAreas = offset + areas.length < stateData.areas.length;
+  // Só uma falha total interrompe a pesquisa. Um lote sem resultados válidos
+  // continua navegável enquanto ainda houver outras áreas da UF para consultar.
+  if (!businesses.length && firstError && successfulRequests === 0) throw firstError;
+  if (!businesses.length && !hasPendingAreas) {
     throw new SearchError(
       "vazio",
-      "O Google Maps não retornou estabelecimentos para essa busca no Brasil.",
+      requestedName
+        ? "Nenhuma empresa com nome relacionado foi encontrada nas áreas consultadas."
+        : "Nenhuma empresa foi encontrada nas áreas consultadas.",
       firstError?.detail,
     );
   }
+  if (hasPendingAreas) notes.push(`${stateData.areas.length - offset - areas.length} áreas ainda estão pendentes; use “Encontrar mais empresas” para continuar.`);
+  if (firstError) notes.push("Busca parcial: os resultados das áreas consultadas foram preservados.");
 
   const outcome: SearchOutcome = {
-    businesses,
-    total: businesses.length,
-    truncated: apiLimited,
-    cached: false,
-    areaLabel,
-    nextPageToken: null,
-    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, notes },
+    businesses, total: businesses.length, truncated: hasPendingAreas || !!firstError, cached: false, areaLabel, nextPageToken: null,
+    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, ...(hasPendingAreas ? { hasMoreAreas: true } : {}), notes },
   };
-
   searchCache.set(cacheKey, { at: Date.now(), value: outcome });
   return outcome;
 }
