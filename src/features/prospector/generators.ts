@@ -112,7 +112,7 @@ function sitePossibilities(business: Business) {
 export function buildMessages(business: Business, profile?: SenderProfile) {
   const nome = shortName(business);
   const categoria = business.category?.trim() || "negócio";
-  const curta = `Olá! Tudo bem? Falo com o responsável pela ${nome}?`;
+  const curta = "Oi! Tudo bem? Procurei mais informações sobre a empresa e não encontrei. Vocês não têm um site?";
   const natural = `Oi! Tudo bem? Falo com alguém responsável pela ${nome}?`;
   const comercial = `Olá, boa tarde! Tudo bem? Falo com o responsável pela ${nome}?`;
   const curiosidade = `Olá! Tudo bem? Falo com o responsável pela ${nome}? Tenho uma ideia específica para vocês.`;
