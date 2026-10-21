@@ -1,7 +1,6 @@
 /**
- * Segmentos com alto potencial de compra de site institucional.
- * O termo de busca é uma única expressão que o Google Places interpreta bem
- * (sem palavras empilhadas, que diluem a consulta e trazem resultados genéricos).
+ * Segmentos com potencial para presença digital profissional.
+ * Os termos são sugestões: a busca também aceita qualquer expressão digitada.
  */
 export type ProspectSegment = {
   label: string;
@@ -13,32 +12,22 @@ export type ProspectSegment = {
 };
 
 export const PROSPECT_SEGMENTS: ProspectSegment[] = [
-  { label: "Açaiteria", br: "açaiteria", brExtra: ["loja de açaí", "açaí delivery", "açaíteria", "casa de açaí", "acai shop"], us: "acai shop", usExtra: ["acai delivery"] },
-  { label: "Barbearias e salões", br: "barbearia", brExtra: ["salão de beleza", "cabeleireiro"], us: "barber shop", usExtra: ["hair salon"] },
-  { label: "Pizzarias e cafeterias", br: "pizzaria", brExtra: ["restaurante", "cafeteria"], us: "pizzeria", usExtra: ["cafe", "restaurant"] },
-  { label: "Lava-jatos", br: "lava-jato", brExtra: ["estética automotiva", "lavagem de carros"], us: "car wash", usExtra: ["auto detailing"] },
-  { label: "Clínicas odontológicas", br: "clínica odontológica", brExtra: ["dentista", "consultório odontológico"], us: "dental clinic", usExtra: ["dentist"] },
-  { label: "Escolas e cursos", br: "escola", brExtra: ["curso profissionalizante", "escola de idiomas"], us: "school", usExtra: ["training center"] },
-  { label: "Lojas de móveis", br: "loja de móveis", brExtra: ["móveis planejados", "marcenaria"], us: "furniture store", usExtra: ["cabinet maker"] },
-  { label: "Mercados e açougues", br: "mercado", brExtra: ["supermercado", "açougue", "mercearia"], us: "grocery store", usExtra: ["butcher shop"] },
+  { label: "Autoescolas e escolas", br: "autoescola", brExtra: ["escola", "curso profissionalizante", "escola de idiomas"], us: "driving school", usExtra: ["school", "training center"] },
+  { label: "Oficinas e centros automotivos", br: "oficina mecânica", brExtra: ["auto center", "mecânica automotiva", "estética automotiva"], us: "auto repair shop", usExtra: ["auto service", "car detailing"] },
+  { label: "Clínicas e consultórios", br: "clínica médica", brExtra: ["consultório", "clínica", "fisioterapia"], us: "medical clinic", usExtra: ["medical office", "physical therapy clinic"] },
+  { label: "Dentistas e saúde", br: "dentista", brExtra: ["clínica odontológica", "odontologia", "consultório odontológico"], us: "dentist", usExtra: ["dental clinic"] },
+  { label: "Pet shops e veterinária", br: "pet shop", brExtra: ["clínica veterinária", "veterinário", "banho e tosa"], us: "pet shop", usExtra: ["veterinary clinic", "pet grooming"] },
+  { label: "Beleza, barbearia e estética", br: "salão de beleza", brExtra: ["barbearia", "clínica de estética", "manicure"], us: "hair salon", usExtra: ["barber shop", "beauty salon"] },
+  { label: "Restaurantes e lanchonetes", br: "restaurante", brExtra: ["lanchonete", "hamburgueria", "pizzaria"], us: "restaurant", usExtra: ["fast food restaurant", "pizzeria"] },
+  { label: "Cafeterias e açaí", br: "cafeteria", brExtra: ["açaiteria", "loja de açaí", "casa de açaí"], us: "cafe", usExtra: ["acai shop", "coffee shop"] },
+  { label: "Energia solar", br: "energia solar", brExtra: ["energia fotovoltaica", "instalação de painéis solares"], us: "solar panel installer" },
+  { label: "Elétrica, hidráulica e manutenção", br: "eletricista", brExtra: ["encanador", "desentupidora", "manutenção residencial"], us: "electrician", usExtra: ["plumber", "handyman"] },
+  { label: "Construção e obras", br: "construtora", brExtra: ["empreiteira", "reformas e construção", "arquiteto"], us: "construction company", usExtra: ["general contractor", "remodeling contractor"] },
+  { label: "Imobiliárias e corretores", br: "imobiliária", brExtra: ["corretor de imóveis", "administradora de imóveis"], us: "real estate agency", usExtra: ["real estate agent"] },
+  { label: "Academias e atividades físicas", br: "academia", brExtra: ["estúdio de pilates", "crossfit", "personal trainer"], us: "gym", usExtra: ["fitness studio", "pilates studio"] },
+  { label: "Lojas de bairro e varejo", br: "loja de bairro", brExtra: ["mercearia", "loja de roupas", "loja de móveis"], us: "local store", usExtra: ["clothing store", "furniture store"] },
+  { label: "Profissionais e serviços locais", br: "prestador de serviços", brExtra: ["empresa de limpeza", "gráfica", "contabilidade"], us: "local service", usExtra: ["cleaning service", "print shop"] },
   { label: "Hotéis e turismo", br: "hotel", brExtra: ["pousada", "agência de turismo"], us: "hotel", usExtra: ["travel agency"] },
-  { label: "Tecnologia e consultoria", br: "empresa de tecnologia", brExtra: ["consultoria de tecnologia", "empresa de informática"], us: "technology company", usExtra: ["IT consultant"] },
-  { label: "Gráficas", br: "gráfica", brExtra: ["gráfica rápida", "comunicação visual"], us: "print shop", usExtra: ["sign shop"] },
-  { label: "Energia solar", br: "energia solar", brExtra: ["placas solares","energia fotovoltaica"], us: "solar panel installer" },
-  { label: "Oficinas", br: "oficina mecânica", brExtra: ["auto center","mecânica automotiva"], us: "auto repair shop" },
-  { label: "Eletricistas", br: "eletricista", brExtra: ["serviços elétricos","instalações elétricas"], us: "electrician" },
-  { label: "Encanadores", br: "encanador", brExtra: ["desentupidora","serviços hidráulicos"], us: "plumber" },
-  { label: "Construção", br: "construtora", brExtra: ["empreiteira","reformas e construção"], us: "construction company" },
-  { label: "Marcenarias", br: "marcenaria", brExtra: ["móveis planejados","marceneiro"], us: "carpenter" },
-  { label: "Vidraçarias", br: "vidraçaria", brExtra: ["vidros temperados","box para banheiro"], us: "glass company" },
-  { label: "Clínicas", br: "clínica", brExtra: ["consultório médico","clínica médica"], us: "medical clinic" },
-  { label: "Salões de beleza", br: "salão de beleza", brExtra: ["cabeleireiro","barbearia"], us: "hair salon" },
-  { label: "Restaurantes", br: "restaurante", brExtra: ["lanchonete","pizzaria"], us: "restaurant" },
-  { label: "Imobiliárias", br: "imobiliária", brExtra: ["corretor de imóveis","administradora de imóveis"], us: "real estate agency" },
-  { label: "Empresas de limpeza", br: "empresa de limpeza", brExtra: ["limpeza pós obra","diarista"], us: "cleaning company" },
-  { label: "Academias", br: "academia de ginástica", brExtra: ["academia","crossfit"], us: "gym" },
-  { label: "Fotógrafos", br: "estúdio fotográfico", brExtra: ["fotógrafo","fotografia de eventos"], us: "photographer" },
-  { label: "Segurança", br: "empresa de segurança eletrônica", brExtra: ["câmeras de segurança","alarmes e monitoramento"], us: "security company" },
 ];
 
 /** Descobre o segmento correspondente a um termo de busca já aplicado. */
