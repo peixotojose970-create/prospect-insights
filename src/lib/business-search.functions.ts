@@ -56,9 +56,17 @@ const SEARCH_FIELD_MASK = [
 const DETAILS_FIELD_MASK = [
   "id",
   "displayName",
+  "primaryTypeDisplayName",
+  "formattedAddress",
+  "addressComponents",
   "regularOpeningHours.weekdayDescriptions",
   "nationalPhoneNumber",
   "websiteUri",
+  "googleMapsUri",
+  "rating",
+  "userRatingCount",
+  "editorialSummary",
+  "reviews",
   "photos",
 ].join(",");
 
@@ -190,6 +198,12 @@ type PlaceResult = {
   googleMapsUri?: string;
   photos?: PlacePhoto[];
   regularOpeningHours?: { weekdayDescriptions?: string[] };
+  editorialSummary?: { text?: string };
+  reviews?: {
+    authorAttribution?: { displayName?: string };
+    rating?: number;
+    text?: { text?: string };
+  }[];
 };
 
 function component(components: AddressComponent[], type: string, short = false) {
@@ -407,6 +421,13 @@ export type PlaceDetailsResult =
         openingHours: string | null;
         phone: string | null;
         website: string | null;
+        category: string | null;
+        address: string | null;
+        mapsUrl: string | null;
+        rating: number | null;
+        reviews: number | null;
+        description: string | null;
+        publicReviews: { author: string | null; rating: number | null; text: string }[];
         photoRefs: string[];
         photoAttributions: string[];
       };
@@ -433,6 +454,20 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
           openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
           phone: place.nationalPhoneNumber ?? null,
           website: classifyWebsite(place.websiteUri).website,
+          category: place.primaryTypeDisplayName?.text ?? null,
+          address: place.formattedAddress ?? null,
+          mapsUrl: place.googleMapsUri ?? null,
+          rating: typeof place.rating === "number" ? place.rating : null,
+          reviews: typeof place.userRatingCount === "number" ? place.userRatingCount : null,
+          description: place.editorialSummary?.text ?? null,
+          publicReviews: (place.reviews ?? [])
+            .map((review) => ({
+              author: review.authorAttribution?.displayName ?? null,
+              rating: typeof review.rating === "number" ? review.rating : null,
+              text: review.text?.text?.trim() ?? "",
+            }))
+            .filter((review) => review.text.length > 0)
+            .slice(0, 5),
           photoRefs: (place.photos ?? []).map((p) => p.name).filter((n): n is string => !!n).slice(0, 6),
           photoAttributions: Array.from(
             new Set(

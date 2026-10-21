@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { buildSitePrompt } from "@/features/prospector/generators";
-import { NAO_DISPONIVEL_FONTE, formatPhone, orNotInformed } from "@/features/prospector/format";
+import { placeDetailsRepository } from "@/features/prospector/repository";
+import { formatPhone, orNotInformed } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
 import type { Business } from "@/types";
@@ -23,19 +25,61 @@ export function CreateSiteDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { logHistory, isSaved, profile } = useProspector();
+  const [enrichedBusiness, setEnrichedBusiness] = useState<Business | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setEnrichedBusiness(null);
+    if (!business?.placeId) return;
+    setLoadingDetails(true);
+    placeDetailsRepository
+      .detailsFor(business)
+      .then((result) => {
+        if (!active || !result.ok) return;
+        const details = result.details;
+        setEnrichedBusiness({
+          ...business,
+          openingHours: details.openingHours ?? business.openingHours,
+          phone: details.phone ?? business.phone,
+          website: details.website ?? business.website,
+          category: details.category ?? business.category,
+          address: details.address ?? business.address,
+          mapsUrl: details.mapsUrl ?? business.mapsUrl,
+          rating: details.rating ?? business.rating,
+          reviews: details.reviews ?? business.reviews,
+          description: details.description ?? business.description,
+          publicReviews: details.publicReviews,
+          photoRefs: details.photoRefs.length ? details.photoRefs : business.photoRefs,
+          photoAttributions: details.photoAttributions.length ? details.photoAttributions : business.photoAttributions,
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setLoadingDetails(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [business]);
+
   if (!business) return null;
-  const prompt = buildSitePrompt(business, profile);
+  const promptBusiness = enrichedBusiness?.id === business.id ? enrichedBusiness : business;
+  const prompt = buildSitePrompt(promptBusiness, profile);
+  const reputation = promptBusiness.rating !== null
+    ? `${promptBusiness.rating.toFixed(1)}${promptBusiness.reviews !== null ? ` · ${promptBusiness.reviews} avaliações` : ""}`
+    : "Não informado";
 
   const fields: [string, string][] = [
-    ["Nome", business.name],
-    ["Categoria", business.category],
-    ["Cidade", orNotInformed(business.city)],
-    ["Estado", orNotInformed(business.state)],
-    ["Avaliações", NAO_DISPONIVEL_FONTE],
-    ["Telefone", formatPhone(business.phone)],
-    ["Website", business.website ?? "Sem site informado na fonte"],
-    ["Instagram", business.instagram ?? "Não informado"],
-    ["Horário", business.openingHours ?? "Não informado"],
+    ["Nome", promptBusiness.name],
+    ["Categoria", promptBusiness.category],
+    ["Cidade", orNotInformed(promptBusiness.city)],
+    ["Estado", orNotInformed(promptBusiness.state)],
+    ["Avaliações", reputation],
+    ["Telefone", formatPhone(promptBusiness.phone)],
+    ["Website", promptBusiness.website ?? "Sem site informado na fonte"],
+    ["Instagram", promptBusiness.instagram ?? "Não informado"],
+    ["Horário", promptBusiness.openingHours ?? "Não informado"],
   ];
 
   return (
@@ -44,7 +88,9 @@ export function CreateSiteDialog({
         <DialogHeader>
           <DialogTitle>Preparar projeto do site</DialogTitle>
           <DialogDescription>
-            Dados públicos encontrados no Google Maps e prompt estruturado pronto para uso.
+            {loadingDetails
+              ? "Consultando os dados públicos detalhados no Google Maps antes de preparar o prompt."
+              : "Dados públicos encontrados no Google Maps e prompt estruturado pronto para uso."}
           </DialogDescription>
         </DialogHeader>
 
@@ -68,13 +114,14 @@ export function CreateSiteDialog({
         <DialogFooter className="border-t border-border pt-4">
           <Button
             className="h-11 w-full sm:h-9 sm:w-auto"
+            disabled={loadingDetails}
             onClick={() => {
               copyText(prompt, "Prompt copiado.");
               if (isSaved(business.id)) logHistory(business.id, "Prompt de site gerado");
             }}
           >
             <Copy className="size-4" aria-hidden />
-            Copiar prompt
+            {loadingDetails ? "Consultando dados…" : "Copiar prompt"}
           </Button>
 
         </DialogFooter>

@@ -19,6 +19,11 @@ export const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
 
 export type ScoreFactor = { label: string; points: number };
 export type HistoryEntry = { id: string; date: string; label: string };
+export type PublicReview = {
+  author: string | null;
+  rating: number | null;
+  text: string;
+};
 export type ContactType = "whatsapp" | "ligacao" | "instagram" | "outro";
 export type ProspectCountry = "BR" | "US";
 
@@ -55,6 +60,9 @@ export type Business = {
   reviews: number | null;
   photoRefs: string[];
   photoAttributions: string[];
+  /** Resumo editorial e avaliações públicas retornados pelo Google Places, quando disponíveis. */
+  description?: string | null;
+  publicReviews?: PublicReview[];
   score: number;
   scoreFactors: ScoreFactor[];
 };

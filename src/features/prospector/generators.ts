@@ -1,8 +1,6 @@
 import type { Business, Lead } from "@/types";
 import { NAO_DISPONIVEL_FONTE, formatPhone, fullAddress, orNotInformed, whatsappLabel } from "./format";
 
-const MISSING = "[CONFIRMAR COM O CLIENTE]";
-
 type SenderProfile = { personalName: string; companyName: string };
 
 function senderIntroduction(profile?: SenderProfile) {
@@ -19,59 +17,69 @@ function senderSignature(profile?: SenderProfile) {
 }
 
 export function buildSitePrompt(business: Business, profile?: SenderProfile) {
-  return `# PAPEL
-Você é um designer e desenvolvedor web sênior especializado em sites institucionais para empresas locais brasileiras.
+  const confirmed = (label: string, value: string | null | undefined) => (value?.trim() ? `- ${label}: ${value.trim()}` : "");
+  const hasPhone = !!business.phone;
+  const reputation = business.rating !== null && business.rating !== undefined
+    ? `${business.rating.toFixed(1)} no Google${business.reviews !== null && business.reviews !== undefined ? ` (${business.reviews} avaliações)` : ""}`
+    : null;
+  const reviewQuotes = (business.publicReviews ?? []).map((review) =>
+    `- “${review.text}”${review.author ? ` — ${review.author}` : ""}${review.rating !== null ? ` (${review.rating.toFixed(1)}/5)` : ""}`,
+  );
+  const missing = [
+    !business.description && "apresentação, história e diferenciais da empresa",
+    "serviços, produtos, preços e formas de atendimento confirmados",
+    !business.phone && "telefone e canal de WhatsApp",
+    !business.openingHours && "horários de funcionamento",
+    !business.photoRefs?.length && "fotos autorizadas para o site",
+  ].filter(Boolean);
 
-# CONTEXTO DA EMPRESA (dados públicos do Google Maps — não inventar nada além disto)
-Nome: ${business.name}
-Nicho / categoria: ${business.category}
-Endereço: ${fullAddress(business)}
-Cidade: ${orNotInformed(business.city)}
-Estado: ${orNotInformed(business.state)}
-Telefone: ${formatPhone(business.phone)}
-WhatsApp: ${whatsappLabel(business.phone)}
-Site informado na fonte: ${business.website ?? "não informado"}
-Instagram: ${business.instagram ?? "não informado"}
-Horário de funcionamento: ${business.openingHours ?? "não informado"}
-Avaliações / nota: ${NAO_DISPONIVEL_FONTE}
-Fonte: ${business.source} (${business.externalId})
-Responsável pelo projeto: ${senderSignature(profile) || "não informado"}
+  return `# PROJETO DE SITE — DADOS REAIS DA EMPRESA
+Você é um designer e desenvolvedor web sênior. Crie um site institucional profissional, personalizado para esta empresa local. Use exclusivamente os fatos abaixo; o projeto é conduzido pela Apex SLS, mas a Apex SLS não deve aparecer como proprietária ou marca do cliente.
 
-# OBJETIVO DO SITE
-Criar uma presença digital profissional, transmitindo credibilidade local e convertendo
-visitantes em contato direto por WhatsApp e telefone.
+## Identificação e posicionamento
+- Empresa: ${business.name}
+- Segmento/categoria informada pelo Google: ${business.category}
+- Região: ${[business.city, business.state].filter(Boolean).join(" — ") || "não informada"}
+${confirmed("Descrição pública", business.description)}
 
-# IDENTIDADE VISUAL
-- Estética limpa, moderna e adequada ao nicho "${business.category}".
-- Paleta sóbria com uma única cor de destaque.
-- Tipografia legível, hierarquia clara, espaçamento generoso.
+## Dados confirmados na fonte Google Maps
+- Endereço: ${fullAddress(business)}
+${confirmed("Telefone", business.phone ? formatPhone(business.phone) : null)}
+${hasPhone ? `- WhatsApp: usar o mesmo número somente como CTA de contato; não afirmar que aceita pedidos ou agendamentos por WhatsApp.` : ""}
+${confirmed("Site atual", business.website)}
+${confirmed("Instagram", business.instagram)}
+${confirmed("Outra rede/link público", business.socialUrl)}
+${confirmed("Horários", business.openingHours)}
+${confirmed("Perfil no Google Maps", business.mapsUrl ?? business.sourceUrl)}
+${confirmed("Reputação", reputation)}
+${business.photoRefs?.length ? `- Há ${business.photoRefs.length} foto(s) pública(s) do Google Maps disponíveis para referência visual; só use fotos que forem efetivamente fornecidas ao projeto e preserve as atribuições necessárias.` : ""}
 
-# ESTRUTURA DO SITE
-1. Hero — nome, proposta de valor, cidade e CTA principal.
-2. Sobre — apresentação curta e honesta.
-3. Serviços — ${MISSING} (não foram encontrados serviços específicos na fonte; não inventar serviços).
-4. Diferenciais — apenas pontos objetivos confirmados pelo cliente.
-5. Localização — endereço e mapa (dados acima).
-6. FAQ — dúvidas frequentes do nicho, sem afirmações não confirmadas.
-7. CTA final — contato por WhatsApp e telefone.
+## Objetivo comercial
+Gerar confiança para pessoas que pesquisam por ${business.category.toLowerCase()}${business.city ? ` em ${business.city}` : " na região"} e conduzi-las ao contato pelos canais confirmados. Não presumir conversão por agendamento, pedido, orçamento ou visita sem confirmação.
 
-# CTA
-CTA primário: falar no WhatsApp (${formatPhone(business.phone)}).
-CTA secundário: ligar agora.
+## Direção visual
+Defina uma direção visual contemporânea e compatível com o segmento “${business.category}”, com boa hierarquia, tipografia legível e uma paleta coerente. Evite layouts genéricos: use o nome, a localização, a categoria e os dados reais para dar personalidade à página.
 
-# RESPONSIVIDADE
-Mobile-first, testado em 390x844, 768x1024 e 1440x900.
+## Seções recomendadas
+- Hero: nome da empresa, mensagem de valor sem promessas não confirmadas e CTA ${hasPhone ? "para contato por WhatsApp/telefone" : "para contato (canal a confirmar)"}.
+${business.description ? "- Apresentação: adaptar a descrição pública acima sem ampliar ou inventar a história da empresa." : "- Apresentação: criar uma área discreta e editável internamente; não exibir texto de preenchimento ao visitante."}
+- Serviços/produtos: só criar cards para itens explicitamente confirmados. Como a fonte não detalha itens, deixe esta seção fora do site público ou pronta para preenchimento no editor, sem placeholders visíveis.
+${reputation ? "- Prova social: destacar visualmente a nota e a quantidade de avaliações reais do Google, mantendo os números exatos." : ""}
+${reviewQuotes.length ? `- Avaliações públicas que podem ser usadas literalmente, com autoria e nota somente quando indicadas:
+${reviewQuotes.join("\n")}` : "- Não criar depoimentos, nomes de clientes, estrelas ou números de avaliações fictícios."}
+${business.address ? "- Localização: exibir o endereço confirmado e um link para o perfil no Google Maps." : ""}
+${hasPhone ? "- Contato e CTA final: telefone e WhatsApp com o número confirmado." : ""}
 
-# SEO
-- Title com nome + serviço + cidade (até 60 caracteres).
-- Meta description até 160 caracteres.
-- Um único H1, headings semânticos, alt em todas as imagens.
-- JSON-LD LocalBusiness apenas com dados confirmados.
+## SEO e experiência
+- Criar title e meta description locais usando somente nome, categoria e cidade confirmados.
+- Usar um H1 semântico, dados estruturados LocalBusiness apenas com dados reais e alt text descritivo nas imagens.
+- Desenvolver mobile-first e validar a experiência em 390x844, 768x1024 e 1440x900.
 
-# REGRAS DE CONTEÚDO (OBRIGATÓRIO)
-NÃO INVENTAR: serviços, preços, notas, depoimentos, certificações, história ou promoções.
-Não afirmar quantidade de avaliações ou nota — esses dados não existem nesta fonte.
-Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser confirmado.`;
+## Informações que precisam de confirmação antes de publicar
+${missing.length ? missing.map((item) => `- ${item}`).join("\n") : "- Nenhuma lacuna crítica identificada nos dados recebidos; validar o conteúdo final com o cliente."}
+
+## Regras obrigatórias
+Nunca invente serviços, produtos, preços, promoções, certificações, equipe, história, depoimentos, notas, quantidade de avaliações ou canais de atendimento. Não publique placeholders, marcadores de confirmação ou textos genéricos para os visitantes; quando faltar informação, omita a seção pública ou deixe o campo apenas editável no projeto.`;
 }
 
 function senderParts(profile?: SenderProfile) {
