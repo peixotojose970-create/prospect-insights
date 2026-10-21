@@ -103,8 +103,6 @@ export type SavedSearch = {
   category: string;
   city: string;
   state: string;
-  /** Localidades extras incluídas explicitamente nesta busca salva. */
-  locations?: string[];
   country?: ProspectCountry;
   term?: string;
   query: string;
@@ -114,17 +112,15 @@ export type SavedSearch = {
 
 export type SearchCriteria = {
   category: string;
-  /** Cidade, bairro ou região principal informada pelo usuário. */
+  /** Termo opcional para localizar um nome de empresa; nos EUA mantém a cidade. */
   city: string;
   state: string;
-  /** Localidades explícitas que compõem a busca; quando ausente, usa a cobertura estadual planejada. */
-  locations?: string[];
-  /** Termo opcional para localizar um nome de empresa; nos EUA mantém a cidade. */
+  /** Nome ou expressão opcional que recebe prioridade na busca estadual brasileira. */
   term?: string;
   country?: ProspectCountry;
   limit?: number;
   pageToken?: string;
-  /** Deslocamento explícito para explorar o próximo lote de localidades. */
+  /** Deslocamento explícito para explorar um lote rotativo de termos complementares. */
   discoveryOffset?: number;
 };
 
@@ -141,12 +137,8 @@ export type SearchOutcome = {
     requests: number;
     rawResults: number;
     duplicatesRemoved: number;
-    /** Há novas localidades programadas para o próximo lote. */
+    /** Há novas áreas da UF programadas para o próximo lote. */
     hasMoreAreas?: boolean;
-    /** Localidades efetivamente consultadas neste lote (não representa cobertura total). */
-    areasSearched?: string[];
-    /** Quantidade de localidades ainda não consultadas no plano atual. */
-    pendingAreas?: number;
     notes: string[];
   };
 };
