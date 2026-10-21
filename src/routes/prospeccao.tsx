@@ -123,14 +123,6 @@ function FilterFields(p: FilterProps) {
               ))}
             </SelectContent>
           </Select>
-          <Input
-            className="h-10"
-            value={p.category}
-            onChange={(e) => p.setCategory(e.target.value)}
-            placeholder="Ou digite outro segmento"
-            aria-label="Categoria ou segmento personalizado"
-          />
-          <p className="text-[11px] leading-relaxed text-muted-foreground">Você pode substituir a sugestão por qualquer categoria, segmento amplo ou termo comercial.</p>
         </div>
         {isUS ? (
           <div className="space-y-2">
