@@ -171,7 +171,7 @@ function Configuracoes() {
             <Input
               id="company-name"
               value={profile.companyName}
-              placeholder="Ex.: Nextor Studio"
+              placeholder="Ex.: Apex SLS"
               onChange={(event) => setProfile({ ...profile, companyName: event.target.value })}
             />
           </div>

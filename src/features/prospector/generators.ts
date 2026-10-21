@@ -76,7 +76,7 @@ Onde faltar informação, usar ${MISSING} e listar ao final tudo que precisa ser
 
 function senderParts(profile?: SenderProfile) {
   const name = profile?.personalName.trim() || "Alysson";
-  const company = profile?.companyName.trim() || "Nextor Studio";
+  const company = profile?.companyName.trim() || "Apex SLS";
   return { name, company, signature: `${name} — ${company}` };
 }
 

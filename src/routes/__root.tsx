@@ -78,16 +78,20 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
+    title: "PROSPECTOR | Apex SLS",
     meta: [
       { charSet: "utf-8" },
       {
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      { name: "author", content: "Prospector" },
+      { name: "author", content: "Apex SLS" },
+      { name: "description", content: "PROSPECTOR, a plataforma de prospecção da Apex SLS." },
+      { property: "og:title", content: "PROSPECTOR | Apex SLS" },
+      { property: "og:description", content: "Plataforma de prospecção da Apex SLS." },
       { name: "theme-color", content: "#0b6fa4" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Prospector" },
+      { name: "apple-mobile-web-app-title", content: "PROSPECTOR | Apex SLS" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

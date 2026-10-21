@@ -171,9 +171,9 @@ function Navigation({ pathname, collapsed = false, onNavigate }: { pathname: str
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link to="/" className={cn("flex items-center gap-3", compact && "justify-center")} aria-label="Prospector: ir para o painel">
+    <Link to="/" className={cn("flex items-center gap-3", compact && "justify-center")} aria-label="Apex SLS Prospector: ir para o painel">
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Target className="size-5" /></span>
-      {!compact ? <span className="text-base font-bold tracking-tight text-white">PROSPECTOR</span> : null}
+      {!compact ? <span className="leading-tight"><span className="block text-base font-bold tracking-tight text-white">PROSPECTOR</span><span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Apex SLS</span></span> : null}
     </Link>
   );
 }
@@ -235,7 +235,7 @@ function ShellInner({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" className={cn("-ml-2 size-10", mode === "desktop" ? "md:hidden" : "md:inline-flex")} onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></Button>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground sm:text-base">{pageTitle}</p>
-            <p className="hidden text-xs text-muted-foreground lg:block">PROSPECTOR</p>
+            <p className="hidden text-xs text-muted-foreground lg:block">PROSPECTOR · Apex SLS</p>
           </div>
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="icon" className="size-10" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}</Button>

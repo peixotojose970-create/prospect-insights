@@ -1,7 +1,7 @@
 {
-  "name": "Prospector",
-  "short_name": "Prospector",
-  "description": "Aplicativo de prospecção B2B para encontrar, qualificar e organizar empresas.",
+  "name": "PROSPECTOR | Apex SLS",
+  "short_name": "PROSPECTOR",
+  "description": "Plataforma de prospecção B2B da Apex SLS para encontrar, qualificar e organizar empresas.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
