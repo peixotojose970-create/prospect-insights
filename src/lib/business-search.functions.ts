@@ -275,6 +275,8 @@ const searchSchema = z.object({
   category: z.string().trim().min(1).max(80),
   // Mantido para compatibilidade com buscas salvas antigas; a busca BR usa UF + term.
   city: z.string().trim().max(120).optional().default(""),
+  /** Cidades, bairros ou regiões escolhidos explicitamente pelo usuário. */
+  locations: z.array(z.string().trim().min(1).max(120)).max(30).optional().default([]),
   state: z.string().trim().length(2),
   term: z.string().trim().max(120).optional().default(""),
   limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(),
@@ -348,8 +350,12 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
 
   const pageSize = data.limit ?? MAX_PAGE_SIZE;
   const offset = data.discoveryOffset ?? 0;
-  const areas = stateData.areas.slice(offset, offset + 3);
-  if (!areas.length) throw new SearchError("vazio", "Todas as áreas planejadas desse estado já foram consultadas.");
+  // Uma localidade digitada (inclusive bairro ou região) é sempre respeitada.
+  // A expansão só acontece para os nomes que o usuário incluiu explicitamente.
+  const selectedAreas = [...new Set(data.locations.map((area) => area.trim()).filter(Boolean))];
+  const plannedAreas = selectedAreas.length ? selectedAreas : stateData.areas;
+  const areas = plannedAreas.slice(offset, offset + 3);
+  if (!areas.length) throw new SearchError("vazio", selectedAreas.length ? "Todas as localidades selecionadas já foram consultadas." : "Todas as áreas planejadas desse estado já foram consultadas.");
 
   const requestedName = data.term.trim();
   const primaryTerm = requestedName || data.category;
@@ -357,8 +363,8 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   const alternateTerm = aliases.find((item) => normalizeText(item) !== normalizeText(data.category));
   const queryTerms = alternateTerm ? [primaryTerm, alternateTerm] : [primaryTerm];
   const queries = areas.flatMap((area) => queryTerms.map((term) => ({ area, text: `${term} em ${area}, ${stateData.name}, Brasil` })));
-  const areaLabel = `${stateData.name} (${state})`;
-  const cacheKey = `${state}|${data.category}|${requestedName}|${offset}|${pageSize}|v4`.toLowerCase();
+  const areaLabel = selectedAreas.length ? selectedAreas.join(" · ") : `${stateData.name} (${state})`;
+  const cacheKey = `${state}|${data.category}|${requestedName}|${selectedAreas.join("|")}|${offset}|${pageSize}|v5`.toLowerCase();
   const hit = searchCache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ...hit.value, cached: true };
 
@@ -389,7 +395,8 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   }
 
   const businesses = [...byId.values()];
-  const hasPendingAreas = offset + areas.length < stateData.areas.length;
+  const pendingAreas = Math.max(0, plannedAreas.length - offset - areas.length);
+  const hasPendingAreas = pendingAreas > 0;
   // Só uma falha total interrompe a pesquisa. Um lote sem resultados válidos
   // continua navegável enquanto ainda houver outras áreas da UF para consultar.
   if (!businesses.length && firstError && successfulRequests === 0) throw firstError;
@@ -402,12 +409,14 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
       firstError?.detail,
     );
   }
-  if (hasPendingAreas) notes.push(`${stateData.areas.length - offset - areas.length} áreas ainda estão pendentes; use “Encontrar mais empresas” para continuar.`);
+  if (hasPendingAreas) notes.push(`${pendingAreas} ${selectedAreas.length ? "localidade selecionada" : "área planejada"}${pendingAreas === 1 ? " permanece" : "s permanecem"} pendente${pendingAreas === 1 ? "" : "s"}; use “Encontrar mais empresas” para continuar.`);
+  notes.push("Cada consulta usa uma página de até 20 resultados do Google Maps; resultados além desse limite podem não aparecer neste lote.");
+  if (!selectedAreas.length) notes.push("Cobertura estadual usa apenas as cidades planejadas exibidas por lote; ela não representa todos os municípios da UF.");
   if (firstError) notes.push("Busca parcial: os resultados das áreas consultadas foram preservados.");
 
   const outcome: SearchOutcome = {
     businesses, total: businesses.length, truncated: hasPendingAreas || !!firstError, cached: false, areaLabel, nextPageToken: null,
-    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, ...(hasPendingAreas ? { hasMoreAreas: true } : {}), notes },
+    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, areasSearched: areas, pendingAreas, ...(hasPendingAreas ? { hasMoreAreas: true } : {}), notes },
   };
   searchCache.set(cacheKey, { at: Date.now(), value: outcome });
   return outcome;

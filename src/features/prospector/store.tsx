@@ -263,10 +263,22 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       const results = append ? [...prev.results, ...outcome.businesses] : outcome.businesses;
       const seen = new Set<string>();
       const unique = results.filter((b) => (seen.has(b.id) ? false : (seen.add(b.id), true)));
+      const previousCoverage = append ? prev.outcome?.coverage : undefined;
+      const coverage = previousCoverage && outcome.coverage
+        ? {
+            ...outcome.coverage,
+            queries: previousCoverage.queries + outcome.coverage.queries,
+            requests: previousCoverage.requests + outcome.coverage.requests,
+            rawResults: previousCoverage.rawResults + outcome.coverage.rawResults,
+            duplicatesRemoved: previousCoverage.duplicatesRemoved + outcome.coverage.duplicatesRemoved,
+            areasSearched: [...new Set([...(previousCoverage.areasSearched ?? []), ...(outcome.coverage.areasSearched ?? [])])],
+            notes: [...previousCoverage.notes, ...outcome.coverage.notes],
+          }
+        : outcome.coverage;
       return {
         status: "success",
         results: unique,
-        outcome: { ...outcome, total: unique.length },
+        outcome: { ...outcome, total: unique.length, ...(coverage ? { coverage } : {}) },
         error: null,
         criteria,
       };
@@ -281,9 +293,10 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
           category: criteria.category,
           city: criteria.city,
           state: criteria.state,
+          ...(criteria.locations?.length ? { locations: criteria.locations } : {}),
           country: criteria.country ?? "BR",
           ...(criteria.term ? { term: criteria.term } : {}),
-          query: criteria.term ? `${criteria.category} · ${criteria.term} em ${criteria.state}` : `${criteria.category} em ${criteria.state}`,
+          query: criteria.term ? `${criteria.category} · ${criteria.term} em ${criteria.locations?.join(" · ") || criteria.city || criteria.state}` : `${criteria.category} em ${criteria.locations?.join(" · ") || criteria.city || criteria.state}`,
           at: stamp(),
           results: outcome.total,
         },

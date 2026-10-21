@@ -66,6 +66,11 @@ const DEFAULT_CATEGORY: Record<Country, string> = {
   US: US_CATEGORY_LABELS[0],
 };
 
+function parseLocations(city: string, expanded: string) {
+  // Vírgulas fazem parte de endereços como "Pinheiros, São Paulo"; use ponto e vírgula ou nova linha para separar locais.
+  return [...new Set([city, ...expanded.split(/[;\n]/)].map((value) => value.trim()).filter(Boolean))].slice(0, 30);
+}
+
 type FilterProps = {
   idPrefix: string;
   country: Country;
@@ -74,6 +79,8 @@ type FilterProps = {
   setCategory: (v: string) => void;
   city: string;
   setCity: (v: string) => void;
+  locationsText: string;
+  setLocationsText: (v: string) => void;
   state: string;
   setState: (v: string) => void;
   onlyNoSite: boolean;
@@ -132,12 +139,18 @@ function FilterFields(p: FilterProps) {
           />
           <p className="text-[11px] leading-relaxed text-muted-foreground">Você pode substituir a sugestão por qualquer categoria, segmento amplo ou termo comercial.</p>
         </div>
-        {isUS ? (
-          <div className="space-y-2">
-            <Label htmlFor={`${p.idPrefix}-cidade`}>Cidade</Label>
-            <Input id={`${p.idPrefix}-cidade`} className="h-11" value={p.city} onChange={(e) => p.setCity(e.target.value)} placeholder="Ex.: Miami" list="cidades-eua" />
-          </div>
-        ) : null}
+        <div className="space-y-2">
+          <Label htmlFor={`${p.idPrefix}-cidade`}>{isUS ? "Cidade" : "Cidade, bairro ou região"}</Label>
+          <Input
+            id={`${p.idPrefix}-cidade`}
+            className="h-11"
+            value={p.city}
+            onChange={(e) => p.setCity(e.target.value)}
+            placeholder={isUS ? "Ex.: Miami" : "Ex.: Pinheiros, São Paulo"}
+            {...(isUS ? { list: "cidades-eua" } : {})}
+          />
+          {!isUS ? <p className="text-[11px] leading-relaxed text-muted-foreground">Preencha para buscar só nesta localidade; deixe vazio para usar as cidades planejadas do estado.</p> : null}
+        </div>
         <div className="space-y-2">
           <Label>{isUS ? "Estado" : "Estado brasileiro"}</Label>
           <Select value={p.state} onValueChange={p.setState}>
@@ -153,6 +166,20 @@ function FilterFields(p: FilterProps) {
           {!isUS ? <p className="text-[11px] text-muted-foreground">A busca consulta cidades diferentes do estado em lotes progressivos.</p> : null}
         </div>
       </div>
+
+      {!isUS ? (
+        <div className="space-y-2 border-t border-border pt-4">
+          <Label htmlFor={`${p.idPrefix}-locais`}>Expandir para localidades específicas</Label>
+          <Input
+            id={`${p.idPrefix}-locais`}
+            className="h-11"
+            value={p.locationsText}
+            onChange={(e) => p.setLocationsText(e.target.value)}
+            placeholder="Ex.: Vila Madalena, São Paulo; Osasco; Taboão da Serra"
+          />
+          <p className="text-[11px] leading-relaxed text-muted-foreground">Separe por ponto e vírgula ou quebra de linha. Somente os locais exibidos aqui serão incluídos; a busca avança em lotes de até 3 localidades.</p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
         <label className="flex min-h-11 items-center gap-3 text-sm text-foreground">
@@ -200,6 +227,7 @@ function Prospeccao() {
   const [country, setCountryState] = useState<Country>("BR");
   const [category, setCategory] = useState(DEFAULT_CATEGORY.BR);
   const [city, setCity] = useState("");
+  const [locationsText, setLocationsText] = useState("");
   const [state, setState] = useState(DEFAULT_STATE.BR);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
@@ -216,6 +244,7 @@ function Prospeccao() {
     setCategory(DEFAULT_CATEGORY[next]);
     setState(DEFAULT_STATE[next]);
     setCity("");
+    setLocationsText("");
     setQuery("");
   };
 
@@ -239,6 +268,8 @@ function Prospeccao() {
     setCategory,
     city,
     setCity,
+    locationsText,
+    setLocationsText,
     state,
     setState,
     onlyNoSite,
@@ -252,6 +283,15 @@ function Prospeccao() {
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
   const activeSegment = segmentByTerm(category, isUS);
+  const selectedLocations = useMemo(() => parseLocations(city, locationsText), [city, locationsText]);
+  const buildCriteria = (nextCategory = category) => ({
+    category: nextCategory,
+    city,
+    state,
+    ...(!isUS && selectedLocations.length ? { locations: selectedLocations } : {}),
+    ...(!isUS && query.trim() ? { term: query.trim() } : {}),
+    ...(isUS ? { country: "US" as const } : {}),
+  });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,18 +299,9 @@ function Prospeccao() {
       setFiltersOpen(true);
       return;
     }
-    // No Brasil, o texto livre é exclusivamente um nome/termo: não altera a
-    // categoria nem a UF escolhidas e nunca é interpretado como uma cidade.
-    const term = isUS ? "" : query.trim();
     setDiscoveryOffset(0);
     setFiltersOpen(false);
-    void runSearch({
-      category,
-      city,
-      state,
-      ...(term ? { term } : {}),
-      ...(isUS ? { country: "US" as const } : {}),
-    });
+    void runSearch(buildCriteria());
   };
 
 
@@ -370,12 +401,9 @@ function Prospeccao() {
                     return;
                   }
                   setDiscoveryOffset(0);
-                  void runSearch({
-                    category: term,
-                    city,
-                    state,
-                    ...(isUS ? { country: "US" as const } : {}),
-                  });
+                  // Trocar o segmento sempre remove o nome digitado da busca anterior.
+                  const { term: ignoredTerm, ...segmentCriteria } = buildCriteria(term);
+                  void runSearch(segmentCriteria);
                 }}
               >
                 {s.label}
@@ -386,7 +414,7 @@ function Prospeccao() {
         {activeSegment ? (
           <p className="border-t border-border pt-3 text-xs text-muted-foreground">
             Busca configurada para <span className="font-medium text-foreground">{category}</span>
-            {isUS ? (city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : "") : ` em todo o estado de ${BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name}`}.
+            {isUS ? (city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : "") : selectedLocations.length ? ` nas localidades selecionadas: ${selectedLocations.join(" · ")}` : ` nas cidades planejadas de ${BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name}`}.
           </p>
         ) : null}
         {isUS && !city.trim() ? (
@@ -417,8 +445,7 @@ function Prospeccao() {
               onClick={() => {
                 setFiltersOpen(false);
                 setDiscoveryOffset(0);
-                if (!isUS || city.trim())
-                  void runSearch({ category, city, state, ...(!isUS && query.trim() ? { term: query.trim() } : {}), ...(isUS ? { country: "US" as const } : {}) });
+                if (!isUS || city.trim()) void runSearch(buildCriteria());
               }}
             >
               Aplicar
@@ -442,6 +469,7 @@ function Prospeccao() {
                   setCountry(savedCountry);
                   setCategory(s.category);
                   setCity(s.city);
+                  setLocationsText((s.locations ?? []).filter((location) => location !== s.city).join("; "));
                   setState(s.state);
                   setQuery(s.term ?? "");
                   setDiscoveryOffset(0);
@@ -449,6 +477,7 @@ function Prospeccao() {
                     category: s.category,
                     city: s.city,
                     state: s.state,
+                    ...(s.locations?.length ? { locations: s.locations } : {}),
                     ...(s.term ? { term: s.term } : {}),
                     ...(savedCountry === "US" ? { country: "US" as const } : {}),
                   });
@@ -550,7 +579,7 @@ function Prospeccao() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Categoria: <span className="font-medium text-foreground">{category}</span>
-                    {isUS ? (city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null) : <> · Estado: <span className="font-medium text-foreground">{BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name} ({state})</span></>}
+                    {isUS ? (city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null) : selectedLocations.length ? <> · Locais selecionados: <span className="font-medium text-foreground">{selectedLocations.join(" · ")}</span></> : <> · Estado: <span className="font-medium text-foreground">{BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name} ({state})</span></>}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -577,13 +606,18 @@ function Prospeccao() {
                 </div>
               </div>
               {search.outcome?.coverage ? (
-                <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-                  {search.outcome.coverage.queries} consultas · {search.outcome.coverage.requests} páginas ·{" "}
-                  {search.outcome.coverage.rawResults} encontrados · {search.outcome.coverage.duplicatesRemoved} duplicados ·{" "}
-                  {search.results.length} únicas · {search.results.filter((b) => !b.website).length} sem site informado ·{" "}
-                  {search.results.filter((b) => !!b.website).length} com site · {results.length} exibidas
-                  {search.outcome.coverage.notes.length ? ` · ${search.outcome.coverage.notes.join(" ")}` : ""}
-                </p>
+                <div className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                  <p>
+                    {search.outcome.coverage.queries} consultas · {search.outcome.coverage.requests} páginas ·{" "}
+                    {search.outcome.coverage.rawResults} encontrados · {search.outcome.coverage.duplicatesRemoved} duplicados ·{" "}
+                    {search.results.length} únicas · {search.results.filter((b) => !b.website).length} sem site informado ·{" "}
+                    {search.results.filter((b) => !!b.website).length} com site · {results.length} exibidas
+                  </p>
+                  {search.outcome.coverage.areasSearched?.length ? (
+                    <p className="mt-2">Localidades consultadas: <span className="font-medium text-foreground">{search.outcome.coverage.areasSearched.join(" · ")}</span>{search.outcome.coverage.pendingAreas ? ` · ${search.outcome.coverage.pendingAreas} pendente(s)` : ""}</p>
+                  ) : null}
+                  {search.outcome.coverage.notes.length ? <p className="mt-2">{search.outcome.coverage.notes.join(" ")}</p> : null}
+                </div>
               ) : null}
             </section>
 
