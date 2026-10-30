@@ -138,11 +138,11 @@ function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; activ
           to={item.to}
           onClick={onNavigate}
           className={cn(
-            "group flex min-h-11 items-center rounded-lg px-3 text-sm font-medium transition-colors",
+            "group flex min-h-10 items-center rounded-lg px-3 text-sm font-medium transition-[background-color,color,box-shadow] duration-150",
             collapsed ? "justify-center" : "gap-3",
             active
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-slate-300 hover:bg-white/10 hover:text-white",
+              ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--primary)]"
+              : "text-slate-400 hover:bg-white/7 hover:text-white", 
           )}
         >
           <item.icon className="size-[18px] shrink-0" aria-hidden />
@@ -172,8 +172,8 @@ function Navigation({ pathname, collapsed = false, onNavigate }: { pathname: str
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link to="/" className={cn("flex items-center gap-3", compact && "justify-center")} aria-label="Apex SLS Prospector: ir para o painel">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Target className="size-5" /></span>
-      {!compact ? <span className="leading-tight"><span className="block text-base font-bold tracking-tight text-white">PROSPECTOR</span><span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Apex SLS</span></span> : null}
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_4px_14px_rgb(0_0_0/0.16)]"><Target className="size-[18px]" /></span>
+      {!compact ? <span className="leading-tight"><span className="block text-[15px] font-bold tracking-[-0.02em] text-white">PROSPECTOR</span><span className="mt-0.5 block text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Apex SLS</span></span> : null}
     </Link>
   );
 }
@@ -210,12 +210,12 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, [menuOpen]);
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-slate-950 text-slate-100">
-      <div className={cn("flex h-[72px] items-center border-b border-white/10", collapsed ? "justify-center px-2" : "px-5")}><Brand compact={collapsed} /></div>
-      <div className="flex-1 overflow-y-auto px-3 py-5"><Navigation pathname={pathname} collapsed={collapsed} onNavigate={() => setMenuOpen(false)} /></div>
-      <div className="space-y-3 border-t border-white/10 p-3">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      <div className={cn("flex h-[72px] items-center border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-5")}><Brand compact={collapsed} /></div>
+      <div className="flex-1 overflow-y-auto px-3 py-6"><Navigation pathname={pathname} collapsed={collapsed} onNavigate={() => setMenuOpen(false)} /></div>
+      <div className="space-y-3 border-t border-sidebar-border p-3">
         <NavLink item={{ to: "/configuracoes", label: "Configurações", icon: Settings }} active={pathname === "/configuracoes"} collapsed={collapsed} onNavigate={() => setMenuOpen(false)} />
-        {!collapsed ? <InstallAppMenuItem className="[&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-slate-100 [&_button:hover]:bg-white/10" /> : null}
+        {!collapsed ? <InstallAppMenuItem className="[&_button]:border-white/10 [&_button]:bg-white/5 [&_button]:text-slate-200 [&_button:hover]:bg-white/10" /> : null}
       </div>
     </div>
   );
@@ -231,15 +231,15 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       <div className={cn("min-h-screen min-w-0 transition-[margin] duration-200", mode === "desktop" && "md:ml-60", mode === "desktop" && collapsed && "md:ml-[72px]")}>
         <InstallAppStrip />
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-border/80 bg-background/90 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75 sm:px-6 lg:px-8">
           <Button variant="ghost" size="icon" className={cn("-ml-2 size-10", mode === "desktop" ? "md:hidden" : "md:inline-flex")} onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></Button>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground sm:text-base">{pageTitle}</p>
-            <p className="hidden text-xs text-muted-foreground lg:block">PROSPECTOR · Apex SLS</p>
+            <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground sm:text-base">{pageTitle}</p>
+            <p className="mt-0.5 hidden text-[11px] font-medium text-muted-foreground lg:block">PROSPECTOR · Apex SLS</p>
           </div>
-          <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="size-10" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}</Button>
-            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="relative size-10" aria-label="Ver follow-ups" asChild><Link to="/follow-ups"><Bell className="size-[18px]" />{alerts > 0 ? <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-danger" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button variant="ghost" size="icon" className="size-10 rounded-full" onClick={() => setDark(!dark)} aria-label="Alternar tema">{dark ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}</Button>
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="relative size-10 rounded-full" aria-label="Ver follow-ups" asChild><Link to="/follow-ups"><Bell className="size-[18px]" />{alerts > 0 ? <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-danger ring-2 ring-background" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
           </div>
         </header>
         <main className="min-w-0 px-3 py-5 sm:px-6 sm:py-6 lg:px-8"><div className="mx-auto max-w-7xl space-y-5 sm:space-y-6">{children}</div></main>
