@@ -84,10 +84,10 @@ function Oportunidades() {
             type="button"
             onClick={() => toggle(f.key)}
             className={cn(
-              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition-colors sm:min-h-0 sm:py-1.5",
+              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1.5",
               active.includes(f.key)
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground",
+                ? "border-primary/70 bg-primary/10 text-primary shadow-[0_1px_2px_0_rgb(15_23_42/0.06)]"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
           >
             <f.icon className="size-3.5" aria-hidden />

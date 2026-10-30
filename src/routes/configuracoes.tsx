@@ -32,10 +32,10 @@ export const Route = createFileRoute("/configuracoes")({
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <Card className="gap-4 p-5">
-      <div>
+    <Card className="gap-5 p-5 sm:p-6">
+      <div className="border-b border-border/70 pb-4">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
       {children}
     </Card>

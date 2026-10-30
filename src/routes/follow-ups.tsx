@@ -47,7 +47,8 @@ function FollowUps() {
         <div className="space-y-6">
           {days.map((day) => (
             <section key={day} className="space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className={day < today ? "size-2 rounded-full bg-danger" : day === today ? "size-2 rounded-full bg-primary" : "size-2 rounded-full bg-muted-foreground/50"} aria-hidden />
                 {day === today ? "Hoje" : day.split("-").reverse().join("/")}
                 {day < today ? " · atrasado" : ""}
               </h2>

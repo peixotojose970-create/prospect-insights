@@ -43,7 +43,7 @@ export function StatusBadge({ status, className }: { status: LeadStatus; classNa
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-[0.01em]",
         statusStyles[status],
         className,
       )}
@@ -124,10 +124,11 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center sm:px-6 sm:py-14">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center shadow-[0_1px_2px_0_rgb(15_23_42/0.03)] sm:px-6 sm:py-14">
+      <span className="mb-3 size-2 rounded-full bg-primary/70" aria-hidden />
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
-      {action ? <div className="mt-4 w-full sm:w-auto">{action}</div> : null}
+      <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
+      {action ? <div className="mt-5 w-full sm:w-auto">{action}</div> : null}
     </div>
   );
 }

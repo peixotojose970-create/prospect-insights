@@ -39,7 +39,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile: bottom sheet com altura limitada e rolagem. Desktop: modal centralizado.
-        "fixed bottom-0 left-[50%] z-50 grid max-h-[92dvh] w-full max-w-lg translate-x-[-50%] gap-4 overflow-y-auto rounded-t-2xl border bg-background p-5 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-[50%] sm:max-h-[85dvh] sm:translate-y-[-50%] sm:rounded-lg sm:p-6 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+        "fixed bottom-0 left-[50%] z-50 grid max-h-[92dvh] w-full max-w-lg translate-x-[-50%] gap-4 overflow-y-auto rounded-t-2xl border border-border/80 bg-card p-5 shadow-[0_-12px_36px_rgb(15_23_42/0.16)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-[50%] sm:max-h-[85dvh] sm:translate-y-[-50%] sm:rounded-xl sm:p-6 sm:shadow-[0_24px_64px_rgb(15_23_42/0.18)] sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}

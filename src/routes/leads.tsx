@@ -147,7 +147,7 @@ function Leads() {
         }
       />
 
-      <Card className="grid gap-3 p-4 sm:grid-cols-3">
+      <Card className="grid gap-3 border-border/70 bg-muted/30 p-4 sm:grid-cols-3">
         <div className="relative sm:col-span-1">
           <Search className="absolute top-3.5 left-3 size-4 text-muted-foreground sm:top-2.5" aria-hidden />
           <Input

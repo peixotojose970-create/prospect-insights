@@ -107,9 +107,9 @@ function WorkSavedLeads() {
           }
         />
 
-        <Card className="gap-0 divide-y divide-border p-0">
+        <Card className="gap-0 divide-y divide-border overflow-hidden p-0">
           {leads.map((l) => (
-            <label key={l.id} className="flex cursor-pointer items-start gap-3 px-4 py-3">
+            <label key={l.id} className="flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45">
               <Checkbox
                 checked={!!picked[l.id]}
                 onCheckedChange={() => toggle(l.id)}

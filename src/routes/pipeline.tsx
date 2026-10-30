@@ -132,11 +132,11 @@ function Pipeline() {
                   const id = e.dataTransfer.getData("text/plain");
                   if (id) setStatus(id, column.value as LeadStatus);
                 }}
-                className="w-72 shrink-0 rounded-lg border border-border bg-muted/30 p-3"
+                className="w-72 shrink-0 rounded-xl border border-border/80 bg-muted/35 p-3 shadow-[0_1px_2px_0_rgb(15_23_42/0.03)]"
               >
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between border-b border-border/70 px-1 pb-3">
                   <h2 className="text-sm font-semibold text-foreground">{column.label}</h2>
-                  <span className="rounded-md bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                  <span className="rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground">
                     {items.length}
                   </span>
                 </div>
