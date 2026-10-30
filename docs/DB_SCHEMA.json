@@ -224,7 +224,7 @@
     }
   ],
   "triggers": [],
-  "gerado_em": "2026-10-10T16:35:08.928177+00:00",
+  "gerado_em": "2026-10-30T19:58:38.771395+00:00",
   "rls_ativo": {
     "prospector_accounts": true,
     "prospector_access_keys": true,
@@ -257,5 +257,5 @@
     }
   ],
   "triggers_auth_users": [],
-  "geckoai_sincronizado_em": "2026-10-10T16:35:08.967Z"
+  "geckoai_sincronizado_em": "2026-10-30T19:58:35.863Z"
 }
