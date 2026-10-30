@@ -105,7 +105,8 @@ export default function ResultsMap({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3"><div><p className="text-sm font-semibold text-foreground">Distribuição geográfica</p><p className="text-xs text-muted-foreground">Empresas localizadas nos resultados atuais</p></div><span className="rounded-full bg-primary/8 px-2.5 py-1 text-[11px] font-semibold text-primary">Mapa</span></div>
       <div ref={containerRef} className="h-[320px] w-full" role="application" aria-label="Mapa dos resultados" />
       <p className="border-t border-border bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground">
         Mapa © Google · Maps JavaScript API · exibindo até {MAX_MARKERS} marcadores

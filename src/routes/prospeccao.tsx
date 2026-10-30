@@ -318,11 +318,12 @@ function Prospeccao() {
         ))}
       </datalist>
 
-      <Card className="gap-5 border-border/80 p-4 shadow-sm sm:p-5">
+      <Card className="relative gap-5 overflow-hidden border-border/80 p-4 shadow-sm sm:p-5">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-primary/70" />
         <form onSubmit={submit} className="space-y-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div className="min-w-0 flex-1 space-y-2">
-              <Label htmlFor="busca" className="font-semibold">O que você procura?</Label>
+              <div className="flex items-center justify-between gap-3"><Label htmlFor="busca" className="font-semibold">O que você procura?</Label><span className="hidden rounded-full bg-primary/8 px-2.5 py-1 text-[11px] font-semibold text-primary sm:inline-flex">Pesquisa inteligente</span></div>
               <Input
                 id="busca"
                 data-global-search
@@ -562,10 +563,11 @@ function Prospeccao() {
           />
         ) : (
           <>
-            <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm sm:p-5" aria-label="Resumo da busca">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <section className="relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:p-5" aria-label="Resumo da busca">
+              <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+              <div className="flex flex-col gap-4 pl-2 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resultados da busca</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Resultados da busca</p>
                   <p className="mt-1 text-lg font-semibold text-foreground">
                     {results.length} resultados
                     <span className="text-sm font-normal text-muted-foreground">

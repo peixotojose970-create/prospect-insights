@@ -140,8 +140,9 @@ export function LeadWorkspace() {
       >
         {business ? (
           <>
-            <SheetHeader className="relative shrink-0 border-b border-border bg-card px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] text-left sm:p-6">
-              <SheetTitle className="min-w-0 break-words pr-10 text-xl leading-snug sm:text-lg">{business.name || "Não informado"}</SheetTitle>
+            <SheetHeader className="relative shrink-0 border-b border-border bg-card px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] text-left sm:p-6">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Detalhes da empresa</p>
+              <SheetTitle className="min-w-0 break-words pr-10 text-xl leading-snug tracking-tight sm:text-lg">{business.name || "Não informado"}</SheetTitle>
               <SheetDescription className="min-w-0 break-words pr-6 text-sm leading-relaxed">
                 {[business.category, business.city, business.state].filter(Boolean).join(" · ") || "Não informado"}
               </SheetDescription>
@@ -221,21 +222,16 @@ function LeadDetail({ business }: { business: Business | Lead }) {
 
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-x-hidden p-3.5 sm:space-y-6 sm:p-6">
-      <section className="min-w-0 space-y-3">
+      <section className="min-w-0 space-y-3 rounded-xl border border-primary/15 bg-primary/[0.025] p-4">
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Lead Score</p>
-            <p className="text-3xl font-bold tabular-nums text-foreground">{score}</p>
-          </div>
+          <div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Potencial comercial</p><div className="mt-1 flex items-baseline gap-2"><p className="text-3xl font-bold tracking-tight tabular-nums text-foreground">{score}</p><span className="text-xs text-muted-foreground">de 100 pontos</span></div></div>
           {lead ? <StatusBadge status={leadStatus} /> : null}
         </div>
-        <ScoreBar score={score} />
+        <ScoreBar score={score} className="h-2" />
         {scoreFactors.length > 0 ? (
-          <ul className="min-w-0 space-y-1 break-words text-xs text-muted-foreground">
+          <ul className="min-w-0 space-y-1.5 break-words text-xs text-muted-foreground">
             {scoreFactors.map((f) => (
-              <li key={f.label}>
-                +{f.points} · {f.label}
-              </li>
+              <li key={f.label} className="flex gap-2"><span className="font-semibold text-primary">+{f.points}</span><span>{f.label}</span></li>
             ))}
           </ul>
         ) : null}

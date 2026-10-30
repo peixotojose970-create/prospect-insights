@@ -60,10 +60,10 @@ export function LeadCard({
     <Card
       className={
         selected
-          ? "gap-3 border-primary bg-primary/5 p-3.5 ring-1 ring-primary/30 transition-colors sm:p-4"
+          ? "gap-4 border-primary bg-primary/5 p-3.5 ring-1 ring-primary/30 shadow-sm transition-all sm:p-4"
           : !business.website
-            ? "gap-3 border-danger/35 bg-danger/5 p-3.5 transition-colors hover:border-danger/55 sm:p-4"
-            : "gap-3 p-3.5 transition-colors hover:border-primary/30 sm:p-4"
+            ? "gap-4 border-danger/30 bg-danger/[0.035] p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-danger/55 hover:shadow-md sm:p-4"
+            : "gap-4 border-border/80 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:p-4"
       }
     >
       <div className="flex items-start justify-between gap-3">
