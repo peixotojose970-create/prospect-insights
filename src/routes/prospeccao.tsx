@@ -391,18 +391,17 @@ function Prospeccao() {
           ) : null}
         </div>
         <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
-          {PROSPECT_SEGMENTS.map((s) => {
-            const term = isUS ? s.us : s.br;
-            const active = category === term;
+          {segments.map((s) => {
+            const active = category === s.term;
             return (
               <Button
-                key={s.label}
+                key={s.key}
                 type="button"
                 size="sm"
                 variant={active ? "default" : "outline"}
                 className="h-9 rounded-md px-3"
                 onClick={() => {
-                  setCategory(term);
+                  setCategory(s.term);
                   // A busca livre não pode sobrescrever o segmento escolhido.
                   setQuery("");
                   if (isUS && !city.trim()) {
@@ -411,7 +410,7 @@ function Prospeccao() {
                   }
                   setDiscoveryOffset(0);
                   // Trocar o segmento sempre remove o nome digitado da busca anterior.
-                  const { term: ignoredTerm, ...segmentCriteria } = buildCriteria(term);
+                  const { term: ignoredTerm, ...segmentCriteria } = buildCriteria(s.term);
                   void runSearch(segmentCriteria);
                 }}
               >
@@ -603,6 +602,15 @@ function Prospeccao() {
                     <CheckSquare className="size-4" aria-hidden />
                     {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!results.some((b) => b.email?.trim())}
+                    onClick={() => selectMany(results.filter((b) => b.email?.trim()))}
+                  >
+                    <Mail className="size-4" aria-hidden />
+                    Selecionar todos com e-mail
+                  </Button>
                   <Button size="sm" variant="outline" asChild>
                     <Link to="/rapido">
                       <Zap className="size-4" aria-hidden />
@@ -671,7 +679,7 @@ function Prospeccao() {
         )
       ) : null}
 
-      <SourceNotice />
+      <SourceNotice country={country} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>
