@@ -66,6 +66,9 @@ function Leads() {
       );
   }, [leads, term, status, sort]);
 
+  const pickedLeads = useMemo(() => rows.filter((l) => picked.includes(l.id)), [rows, picked]);
+  const withEmail = useMemo(() => rows.filter((l) => l.email?.trim()), [rows]);
+
   const importCsv = async (file: File) => {
     try {
       const text = await file.text();
@@ -187,7 +190,39 @@ function Leads() {
             <SelectItem value="recente">Salvos recentemente</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          className="h-11 sm:col-span-3 sm:h-9 sm:justify-self-start"
+          disabled={withEmail.length === 0}
+          onClick={() => setPicked(withEmail.map((l) => l.id))}
+        >
+          <Mail className="size-4" aria-hidden />
+          Selecionar todos com e-mail ({withEmail.length})
+        </Button>
       </Card>
+
+      {pickedLeads.length > 0 ? (
+        <Card className="flex flex-wrap items-center gap-2 border-primary/40 bg-primary/5 p-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <CheckCircle2 className="size-4 text-primary" aria-hidden />
+            {pickedLeads.length} {pickedLeads.length === 1 ? "lead selecionado" : "leads selecionados"}
+          </p>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="h-10" onClick={() => void copyEmails(pickedLeads)}>
+              <Mail className="size-4" aria-hidden />
+              Copiar e-mails
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => exportEmailsCsv(pickedLeads, "leads-emails.csv")}>
+              <FileSpreadsheet className="size-4" aria-hidden />
+              Exportar CSV
+            </Button>
+            <Button size="sm" variant="ghost" className="h-10" onClick={() => setPicked([])}>
+              <X className="size-4" aria-hidden />
+              Limpar
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
 
       {rows.length === 0 ? (
