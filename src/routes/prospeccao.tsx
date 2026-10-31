@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,7 +17,7 @@ import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
-import { PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
+import { PROSPECT_SEGMENTS, US_PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
@@ -283,6 +283,14 @@ function Prospeccao() {
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
   const activeSegment = segmentByTerm(category, isUS);
+  // Cada país tem sua própria lista de segmentos (nomes e termos de busca).
+  const segments = useMemo(
+    () =>
+      isUS
+        ? US_PROSPECT_SEGMENTS.map((s) => ({ key: s.label, label: s.label, term: s.term }))
+        : PROSPECT_SEGMENTS.map((s) => ({ key: s.label, label: s.label, term: s.br })),
+    [isUS],
+  );
   const selectedLocations = useMemo(() => parseLocations(city, locationsText), [city, locationsText]);
   const buildCriteria = (nextCategory = category) => ({
     category: nextCategory,
