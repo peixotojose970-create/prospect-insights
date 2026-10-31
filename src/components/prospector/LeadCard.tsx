@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CallScriptDialog } from "@/components/prospector/CallScriptDialog";
-import { EmailInput } from "@/components/prospector/EmailInput";
 import { MessageDialog } from "@/components/prospector/MessageDialog";
 import { OpportunityDialog } from "@/components/prospector/OpportunityDialog";
 import { formatPhone, fullAddress, ratingLabel, whatsappLink } from "@/features/prospector/format";
@@ -115,12 +114,6 @@ export function LeadCard({
         <li className="flex items-center gap-2">
           <Globe className="size-3.5 shrink-0" aria-hidden />
           <SiteBadge business={business} />
-        </li>
-        <li className="flex items-center gap-2">
-          <Mail className="size-3.5 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1">
-            <EmailInput id={business.id} name={business.name} email={business.email} />
-          </span>
         </li>
       </ul>
 
