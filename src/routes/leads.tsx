@@ -1,11 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Search, Upload } from "lucide-react";
+import { CheckCircle2, Download, FileSpreadsheet, Mail, Search, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmailInput } from "@/components/prospector/EmailInput";
+import { copyEmails, exportEmailsCsv } from "@/features/prospector/emails";
 import { toCsv } from "@/features/prospector/generators";
 import { formatPhone } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
@@ -43,7 +46,11 @@ function Leads() {
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState<LeadStatus | "todos">("todos");
   const [sort, setSort] = useState<"score" | "nome" | "recente">("score");
+  const [picked, setPicked] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const togglePick = (id: string) =>
+    setPicked((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
 
   const rows = useMemo(() => {
     const t = term.trim().toLowerCase();
