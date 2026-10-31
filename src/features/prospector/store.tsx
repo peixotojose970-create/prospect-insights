@@ -86,6 +86,8 @@ type Store = {
   sourceName: string;
   saveLead: (business: Business) => void;
   removeLead: (id: string) => void;
+  /** E-mail preenchido manualmente — sincroniza busca, seleção e lead salvo. */
+  setEmail: (id: string, email: string) => void;
   setStatus: (id: string, status: LeadStatus) => void;
   setNotes: (id: string, notes: string) => void;
   registerContact: (id: string, type: ContactType, note: string) => void;
@@ -502,6 +504,18 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
           leads: prev.leads.filter((l) => l.id !== id),
           followUps: prev.followUps.filter((f) => f.leadId !== id),
         })),
+      setEmail: (id, email) => {
+        const value = email.trim();
+        setState((prev) => ({
+          ...prev,
+          leads: prev.leads.map((l) => (l.id === id ? { ...l, email: value || null } : l)),
+          selection: prev.selection.map((b) => (b.id === id ? { ...b, email: value || null } : b)),
+        }));
+        setSearch((prev) => ({
+          ...prev,
+          results: prev.results.map((b) => (b.id === id ? { ...b, email: value || null } : b)),
+        }));
+      },
       setStatus: (id, status) => {
         patchLead(id, (l) => ({
           ...l,
