@@ -246,9 +246,17 @@ function Leads() {
         {/* Mobile: cards de leitura rápida. Desktop: tabela completa. */}
         <div className="space-y-3 lg:hidden">
           {rows.map((l) => (
-            <Card key={l.id} className="gap-2 p-4">
+            <Card key={l.id} className={picked.includes(l.id) ? "gap-2 border-primary bg-primary/5 p-4 ring-1 ring-primary/30" : "gap-2 p-4"}>
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <label className="-m-1 flex shrink-0 cursor-pointer items-start p-1">
+                  <Checkbox
+                    checked={picked.includes(l.id)}
+                    onCheckedChange={() => togglePick(l.id)}
+                    aria-label={`Selecionar ${l.name}`}
+                    className="size-5"
+                  />
+                </label>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">{l.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {l.category}
@@ -263,6 +271,7 @@ function Leads() {
                 <SiteBadge business={l} />
               </div>
               <p className="text-xs text-muted-foreground">{formatPhone(l.phone)}</p>
+              <EmailInput id={l.id} name={l.name} email={l.email} className="h-10 text-xs" />
               {l.nextAction ? (
                 <p className="text-xs font-medium text-foreground">Próxima ação: {l.nextAction}</p>
               ) : null}
