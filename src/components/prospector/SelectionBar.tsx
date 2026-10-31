@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Download, Loader2, MessageCircle, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, FileSpreadsheet, Loader2, Mail, MessageCircle, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BulkMessagesDialog } from "@/components/prospector/BulkMessagesDialog";
+import { copyEmails, exportEmailsCsv } from "@/features/prospector/emails";
 import { formatPhone, whatsappLink } from "@/features/prospector/format";
 import { useProspector, type BatchSaveResult } from "@/features/prospector/store";
 import type { Business, LeadStatus } from "@/types";
@@ -104,6 +105,14 @@ export function SelectionBar() {
             <Button size="sm" className="h-10" onClick={() => setMessagesOpen(true)}>
               <MessageCircle className="size-4" aria-hidden />
               Enviar mensagens
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => void copyEmails(selection)}>
+              <Mail className="size-4" aria-hidden />
+              <span className="hidden sm:inline">Copiar e-mails</span>
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => exportEmailsCsv(selection)}>
+              <FileSpreadsheet className="size-4" aria-hidden />
+              <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
             <Button size="sm" variant="outline" className="h-10" onClick={() => setSaveOpen(true)}>
               <Save className="size-4" aria-hidden />

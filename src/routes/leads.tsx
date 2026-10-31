@@ -1,11 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Search, Upload } from "lucide-react";
+import { CheckCircle2, Download, FileSpreadsheet, Mail, Search, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmailInput } from "@/components/prospector/EmailInput";
+import { copyEmails, exportEmailsCsv } from "@/features/prospector/emails";
 import { toCsv } from "@/features/prospector/generators";
 import { formatPhone } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
@@ -43,7 +46,11 @@ function Leads() {
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState<LeadStatus | "todos">("todos");
   const [sort, setSort] = useState<"score" | "nome" | "recente">("score");
+  const [picked, setPicked] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const togglePick = (id: string) =>
+    setPicked((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
 
   const rows = useMemo(() => {
     const t = term.trim().toLowerCase();
@@ -58,6 +65,9 @@ function Leads() {
         sort === "score" ? b.score - a.score : sort === "nome" ? a.name.localeCompare(b.name) : b.savedAt.localeCompare(a.savedAt),
       );
   }, [leads, term, status, sort]);
+
+  const pickedLeads = useMemo(() => rows.filter((l) => picked.includes(l.id)), [rows, picked]);
+  const withEmail = useMemo(() => rows.filter((l) => l.email?.trim()), [rows]);
 
   const importCsv = async (file: File) => {
     try {
@@ -180,7 +190,39 @@ function Leads() {
             <SelectItem value="recente">Salvos recentemente</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          className="h-11 sm:col-span-3 sm:h-9 sm:justify-self-start"
+          disabled={withEmail.length === 0}
+          onClick={() => setPicked(withEmail.map((l) => l.id))}
+        >
+          <Mail className="size-4" aria-hidden />
+          Selecionar todos com e-mail ({withEmail.length})
+        </Button>
       </Card>
+
+      {pickedLeads.length > 0 ? (
+        <Card className="flex flex-wrap items-center gap-2 border-primary/40 bg-primary/5 p-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <CheckCircle2 className="size-4 text-primary" aria-hidden />
+            {pickedLeads.length} {pickedLeads.length === 1 ? "lead selecionado" : "leads selecionados"}
+          </p>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="h-10" onClick={() => void copyEmails(pickedLeads)}>
+              <Mail className="size-4" aria-hidden />
+              Copiar e-mails
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => exportEmailsCsv(pickedLeads, "leads-emails.csv")}>
+              <FileSpreadsheet className="size-4" aria-hidden />
+              Exportar CSV
+            </Button>
+            <Button size="sm" variant="ghost" className="h-10" onClick={() => setPicked([])}>
+              <X className="size-4" aria-hidden />
+              Limpar
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
 
       {rows.length === 0 ? (
@@ -204,9 +246,17 @@ function Leads() {
         {/* Mobile: cards de leitura rápida. Desktop: tabela completa. */}
         <div className="space-y-3 lg:hidden">
           {rows.map((l) => (
-            <Card key={l.id} className="gap-2 p-4">
+            <Card key={l.id} className={picked.includes(l.id) ? "gap-2 border-primary bg-primary/5 p-4 ring-1 ring-primary/30" : "gap-2 p-4"}>
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <label className="-m-1 flex shrink-0 cursor-pointer items-start p-1">
+                  <Checkbox
+                    checked={picked.includes(l.id)}
+                    onCheckedChange={() => togglePick(l.id)}
+                    aria-label={`Selecionar ${l.name}`}
+                    className="size-5"
+                  />
+                </label>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">{l.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {l.category}
@@ -221,6 +271,7 @@ function Leads() {
                 <SiteBadge business={l} />
               </div>
               <p className="text-xs text-muted-foreground">{formatPhone(l.phone)}</p>
+              <EmailInput id={l.id} name={l.name} email={l.email} className="h-10 text-xs" />
               {l.nextAction ? (
                 <p className="text-xs font-medium text-foreground">Próxima ação: {l.nextAction}</p>
               ) : null}
