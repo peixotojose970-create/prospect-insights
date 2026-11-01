@@ -45,7 +45,7 @@ export function siteState(business: Business): SiteState {
 
 export function siteLabel(business: Business) {
   if (business.website) return "Site próprio encontrado";
-  if (business.socialUrl) return "Sem site (só rede social/link)";
+  if (business.socialUrl) return "Sem site · só rede social";
   return "Sem site informado (a verificar)";
 }
 
