@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SaleDialog } from "@/components/prospector/SaleDialog";
+import { UsageMeter } from "@/components/prospector/UsageMeter";
 import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SourceNotice, StatusBadge } from "@/features/prospector/ui";
@@ -53,7 +54,7 @@ function Dashboard() {
     return { counts, max: Math.max(1, ...counts), totalInPeriod };
   }, [leads, period]);
   const openSale = (sale: Sale | null = null) => { setEditing(sale); setDialogOpen(true); };
-  return <div className="space-y-6"><PageHeader title="Painel" subtitle="Acompanhe sua prospecção, vendas e recebimentos." actions={<div className="flex gap-2"><Button variant="outline" asChild><Link to="/prospeccao">Buscar empresas</Link></Button><Button onClick={() => openSale()}><Plus className="mr-1 size-4" />Registrar venda</Button></div>} /><InstallAppCard />
+  return <div className="space-y-6"><PageHeader title="Painel" subtitle="Acompanhe sua prospecção, vendas e recebimentos." actions={<div className="flex gap-2"><Button variant="outline" asChild><Link to="/prospeccao">Buscar empresas</Link></Button><Button onClick={() => openSale()}><Plus className="mr-1 size-4" />Registrar venda</Button></div>} /><UsageMeter /><InstallAppCard />
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
       <section className="relative overflow-hidden rounded-[24px] bg-gradient-brand p-6 text-primary-foreground shadow-glow animate-rise sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-primary-foreground/10 blur-2xl" />

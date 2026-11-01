@@ -35,6 +35,8 @@ type Persisted = {
   /** Seleção temporária de empresas (persiste entre pesquisas e recarregamentos). */
   selection: Business[];
   profile: { personalName: string; companyName: string };
+  /** E-mails preenchidos manualmente, por empresa (a Places API não retorna e-mail). */
+  emails: Record<string, string>;
 };
 
 export type BatchSaveOptions = { tag?: string | undefined; status?: LeadStatus | undefined };
@@ -107,6 +109,8 @@ type Store = {
   saveSelected: (options?: BatchSaveOptions) => BatchSaveResult;
   profile: Persisted["profile"];
   setProfile: (profile: Persisted["profile"]) => void;
+  emailOf: (business: Business) => string;
+  setEmail: (business: Business, email: string) => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -120,6 +124,7 @@ const emptyState: Persisted = {
   monthlySalesGoal: 0,
   selection: [],
   profile: { personalName: "", companyName: "" },
+  emails: {},
 };
 
 function parsePersisted(raw: string | null): Persisted {
@@ -144,6 +149,9 @@ function parsePersisted(raw: string | null): Persisted {
             companyName: typeof parsed.profile.companyName === "string" ? parsed.profile.companyName : "",
           }
         : { personalName: "", companyName: "" },
+      emails: parsed.emails && typeof parsed.emails === "object" && !Array.isArray(parsed.emails)
+        ? Object.fromEntries(Object.entries(parsed.emails).filter(([, v]) => typeof v === "string"))
+        : {},
     };
   } catch {
     return emptyState;
@@ -315,7 +323,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
 
   const value = useMemo<Store>(() => {
-    const { leads, followUps, activities, savedSearches, sales, monthlySalesGoal, selection, profile } = state;
+    const { leads, followUps, activities, savedSearches, sales, monthlySalesGoal, selection, profile, emails } = state;
     const selectedIds = new Set(selection.map((b) => b.id));
     return {
       leads,
@@ -341,6 +349,13 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       selection,
       profile,
       setProfile: (nextProfile) => setState((prev) => ({ ...prev, profile: nextProfile })),
+      emailOf: (business) => (emails[business.id] ?? business.email ?? "").trim(),
+      setEmail: (business, email) =>
+        setState((prev) => ({
+          ...prev,
+          emails: { ...prev.emails, [business.id]: email },
+          leads: prev.leads.map((l) => (l.id === business.id ? { ...l, email: email.trim() || null } : l)),
+        })),
       isSelected: (id) => selectedIds.has(id),
       toggleSelected: (business) =>
         setState((prev) => {

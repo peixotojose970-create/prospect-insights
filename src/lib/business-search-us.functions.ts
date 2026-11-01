@@ -12,12 +12,14 @@ const FIELD_MASK = ["places.id","places.displayName","places.formattedAddress","
 type AddressComponent = { longText?: string; shortText?: string; types?: string[] };
 type PlacePhoto = { name?: string; authorAttributions?: { displayName?: string }[] };
 type PlaceResult = { id?: string; displayName?: { text?: string }; primaryTypeDisplayName?: { text?: string }; formattedAddress?: string; addressComponents?: AddressComponent[]; location?: { latitude?: number; longitude?: number }; rating?: number; userRatingCount?: number; nationalPhoneNumber?: string; websiteUri?: string; googleMapsUri?: string; photos?: PlacePhoto[] };
-type ErrorCode = "vazio" | "config" | "permissao" | "rede" | "timeout" | "rate-limit";
+type ErrorCode = "vazio" | "config" | "permissao" | "rede" | "timeout" | "rate-limit" | "limite";
 export type USSearchResult = { ok: true; outcome: SearchOutcome } | { ok: false; code: ErrorCode; message: string; detail?: string };
 function component(components: AddressComponent[], type: string, short = false) { const found = components.find((c) => c.types?.includes(type)); return found ? (short ? found.shortText : found.longText) ?? null : null; }
 function credentials() { const lovableKey = process.env["LOVABLE_API_KEY"]; const mapsKey = process.env["GOOGLE_MAPS_API_KEY"]; if (!lovableKey || !mapsKey) throw Object.assign(new Error("Google Maps não está configurado."), { code: "config" as ErrorCode }); return { lovableKey, mapsKey }; }
 async function callPlaces(body: unknown) {
   const { lovableKey, mapsKey } = credentials();
+  const { chargePlacesCall, UsageBlockedError } = await import("./places-usage.server");
+  try { await chargePlacesCall(); } catch (error) { if (error instanceof UsageBlockedError) throw Object.assign(new Error(error.message), { code: "limite" as ErrorCode }); console.error("[USAGE] falha ao registrar chamada", error); }
   const response = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, { method: "POST", headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": mapsKey, "Content-Type": "application/json", "X-Goog-FieldMask": FIELD_MASK }, body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   const text = await response.text();
   if (!response.ok) { const detail = text.slice(0, 500); const code: ErrorCode = response.status === 429 ? "rate-limit" : response.status === 401 || response.status === 403 ? "permissao" : "rede"; throw Object.assign(new Error(code === "permissao" ? "É necessário configurar o Google Cloud." : "Não foi possível consultar o Google Maps."), { code, detail }); }

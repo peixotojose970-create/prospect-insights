@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      places_api_settings: {
+        Row: {
+          id: number
+          monthly_limit: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          monthly_limit?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          monthly_limit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      places_api_usage: {
+        Row: {
+          calls: number
+          month: string
+          updated_at: string
+        }
+        Insert: {
+          calls?: number
+          month: string
+          updated_at?: string
+        }
+        Update: {
+          calls?: number
+          month?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prospector_access_keys: {
         Row: {
           account_number: number
@@ -105,6 +141,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_places_usage: {
+        Args: { p_calls: number; p_month: string }
+        Returns: number
+      }
       prospector_is_active_admin: { Args: never; Returns: boolean }
     }
     Enums: {

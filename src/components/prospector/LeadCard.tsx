@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmailField } from "@/components/prospector/EmailTools";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -116,6 +117,7 @@ export function LeadCard({
           <SiteBadge business={business} />
         </li>
       </ul>
+      {selectable ? <EmailField business={business as Business} /> : null}
 
       {usMailto ? (
         <Button size="sm" variant="secondary" className="h-10 w-full" asChild>

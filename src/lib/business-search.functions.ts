@@ -25,7 +25,8 @@ export type SearchErrorCode =
   | "rede"
   | "local"
   | "config"
-  | "permissao";
+  | "permissao"
+  | "limite";
 
 export type SearchResult =
   | { ok: true; outcome: SearchOutcome }
@@ -115,6 +116,13 @@ async function callPlaces(
   init: { method: "GET" | "POST"; fieldMask: string; body?: unknown },
 ): Promise<unknown> {
   const { lovableKey, mapsKey } = credentials();
+  const { chargePlacesCall, UsageBlockedError } = await import("./places-usage.server");
+  try {
+    await chargePlacesCall();
+  } catch (error) {
+    if (error instanceof UsageBlockedError) throw new SearchError("limite", error.message);
+    console.error("[USAGE] falha ao registrar chamada", error);
+  }
   const startedAt = Date.now();
 
   let response: Response;

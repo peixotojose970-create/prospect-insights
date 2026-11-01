@@ -1,6 +1,8 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckSquare, Loader2, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { UsageMeter } from "@/components/prospector/UsageMeter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,6 +56,7 @@ const errorHints: Record<string, string> = {
   rede: "Não foi possível realizar a busca. Verifique sua conexão.",
   local: "Escolha um estado brasileiro válido para realizar a busca.",
   config: "Google Maps não está configurado.",
+  limite: "Limite mensal de buscas atingido. Aumente o limite em Configurações para continuar.",
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
@@ -221,6 +224,7 @@ function Prospeccao() {
     isSelected,
     selectMany,
     deselectMany,
+    emailOf,
   } = useProspector();
 
   const [query, setQuery] = useState("");
@@ -311,6 +315,7 @@ function Prospeccao() {
         title="Prospecção"
         subtitle="Encontre empresas reais e identifique oportunidades comerciais."
       />
+      <UsageMeter estimate={isUS ? "Cada busca gasta 1 chamada por página (até 20 empresas)." : "Esta busca em lote pode gastar até 9 chamadas (3 páginas × até 3 consultas)."} />
 
       <datalist id="cidades-eua">
         {US_CITY_SUGGESTIONS.map((c) => (
@@ -594,6 +599,15 @@ function Prospeccao() {
                   >
                     <CheckSquare className="size-4" aria-hidden />
                     {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const withEmail = results.filter((b) => emailOf(b));
+                    if (!withEmail.length) { toast.error("Nenhum resultado tem e-mail preenchido."); return; }
+                    selectMany(withEmail);
+                    toast.success(`${withEmail.length} com e-mail selecionados.`);
+                  }}>
+                    <Mail className="size-4" aria-hidden />
+                    Selecionar todos com e-mail
                   </Button>
                   <Button size="sm" variant="outline" asChild>
                     <Link to="/rapido">
