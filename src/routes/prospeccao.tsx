@@ -54,6 +54,7 @@ const errorHints: Record<string, string> = {
   rede: "Não foi possível realizar a busca. Verifique sua conexão.",
   local: "Escolha um estado brasileiro válido para realizar a busca.",
   config: "Google Maps não está configurado.",
+  limite: "Limite mensal de buscas atingido. Aumente o limite em Configurações para continuar.",
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
