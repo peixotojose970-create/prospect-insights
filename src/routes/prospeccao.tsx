@@ -21,6 +21,12 @@ import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
 import { segmentByTerm, segmentsForCountry } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
+import { citiesOf, regionOfCity, regionsOf } from "@/data/geo";
+import { GeoCombobox } from "@/components/prospector/GeoCombobox";
+
+function regionLabel(country: string, region: string) {
+  return country === "BR" && region in BRAZILIAN_STATES ? `${BRAZILIAN_STATES[region as keyof typeof BRAZILIAN_STATES].name} (${region})` : region;
+}
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
 
@@ -152,32 +158,38 @@ function FilterFields(p: FilterProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${p.idPrefix}-cidade`}>{isUS ? "Cidade" : "Cidade, bairro ou região"}</Label>
-          <Input
+          <GeoCombobox
             id={`${p.idPrefix}-cidade`}
-            className="h-11"
             value={p.city}
-            onChange={(e) => p.setCity(e.target.value)}
             placeholder={CITY_EXAMPLE[p.country]}
-            {...(p.country === "US" ? { list: "cidades-eua" } : {})}
+            searchPlaceholder="Pesquisar cidade..."
+            allowCustom
+            clearable
+            options={citiesOf(p.country, p.state || undefined).map((c) => ({ value: c.city, label: c.city, hint: regionLabel(p.country, c.region) }))}
+            onSelect={(o) => {
+              p.setCity(o?.value ?? "");
+              const r = o && (o.hint ? citiesOf(p.country).find((c) => c.city === o.value && regionLabel(p.country, c.region) === o.hint)?.region : regionOfCity(p.country, o.value));
+              if (r) p.setState(r);
+            }}
           />
           {!isUS ? <p className="text-[11px] leading-relaxed text-muted-foreground">Preencha para buscar só nesta localidade; deixe vazio para usar as cidades planejadas do estado.</p> : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${p.idPrefix}-regiao`}>{isEU ? "Região (opcional)" : isUS ? "Estado" : "Estado brasileiro"}</Label>
-          {isEU ? (
-            <Input id={`${p.idPrefix}-regiao`} className="h-11" value={p.state} onChange={(e) => p.setState(e.target.value)} placeholder={({ PT: "Ex.: Porto", ES: "Ex.: Cataluña", FR: "Ex.: Provence", IT: "Ex.: Lombardia" } as Record<string, string>)[p.country] ?? ""} />
-          ) : (
-          <Select value={p.state} onValueChange={p.setState}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {states.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {isUS ? s : `${BRAZILIAN_STATES[s as keyof typeof BRAZILIAN_STATES].name} (${s})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          )}
+          <GeoCombobox
+            id={`${p.idPrefix}-regiao`}
+            value={p.state}
+            placeholder={({ PT: "Ex.: Norte", ES: "Ex.: Cataluña", FR: "Ex.: Occitanie", IT: "Ex.: Lombardia" } as Record<string, string>)[p.country] ?? "Escolha"}
+            searchPlaceholder={isEU ? "Pesquisar região..." : "Pesquisar estado..."}
+            clearable={isEU}
+            options={(isEU ? regionsOf(p.country) : states).map((s) => ({ value: s, label: regionLabel(p.country, s) }))}
+            onSelect={(o) => {
+              if (!o && !isEU) return;
+              const next = o?.value ?? "";
+              p.setState(next);
+              if (next && p.city && !citiesOf(p.country, next).some((c) => c.city === p.city) && regionOfCity(p.country, p.city)) p.setCity("");
+            }}
+          />
           {!isUS ? <p className="text-[11px] text-muted-foreground">A busca consulta cidades diferentes do estado em lotes progressivos.</p> : null}
         </div>
       </div>
