@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { UsageMeter } from "@/components/prospector/UsageMeter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -314,6 +315,7 @@ function Prospeccao() {
         title="Prospecção"
         subtitle="Encontre empresas reais e identifique oportunidades comerciais."
       />
+      <UsageMeter estimate={isUS ? "Cada busca gasta 1 chamada por página (até 20 empresas)." : "Esta busca em lote pode gastar até 9 chamadas (3 páginas × até 3 consultas)."} />
 
       <datalist id="cidades-eua">
         {US_CITY_SUGGESTIONS.map((c) => (

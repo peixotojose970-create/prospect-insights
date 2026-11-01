@@ -179,6 +179,9 @@ function Configuracoes() {
         <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente neste navegador.</p>
       </Section>
 
+      <ApiLimitSection />
+      <AccentSection />
+
       <Section title="Seus dados" description="Faça um backup recuperável dos dados deste navegador quando precisar.">
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={downloadBackup}>
@@ -202,5 +205,57 @@ function Configuracoes() {
         <SourceNotice />
       </Section>
     </div>
+  );
+}
+
+function ApiLimitSection() {
+  const { data } = usePlacesUsage();
+  const qc = useQueryClient();
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { if (data) setValue(String(data.limit)); }, [data?.limit]);
+  const save = async () => {
+    const limit = Math.round(Number(value));
+    if (!Number.isFinite(limit) || limit < 10) return void toast.error("Informe um limite de pelo menos 10 buscas.");
+    setSaving(true);
+    try {
+      const next = await setPlacesLimit({ data: { limit } });
+      qc.setQueryData(usageQueryKey, next);
+      toast.success("Limite mensal atualizado.");
+    } catch {
+      toast.error("Não foi possível salvar o limite.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Section title="Controle de custo do Google" description="Cada chamada à Places API é contada por mês. Aviso em 90% do limite; bloqueio em 95%.">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="api-limit">Limite mensal de buscas</Label>
+          <Input id="api-limit" type="number" min={10} className="w-44" value={value} onChange={(e) => setValue(e.target.value)} />
+        </div>
+        <Button onClick={() => void save()} disabled={saving}>Salvar limite</Button>
+      </div>
+      {data ? <p className="text-xs text-muted-foreground">{data.calls} de {data.limit} buscas usadas neste mês · aviso em {data.warnAt} · bloqueio em {data.blockAt}.</p> : null}
+    </Section>
+  );
+}
+
+function AccentSection() {
+  const [accent, setAccent] = useState<AccentId>("carmesim");
+  useEffect(() => setAccent(readAccent()), []);
+  return (
+    <Section title="Cor de destaque" description="Troca a cor dos botões, menu e gráficos.">
+      <div className="flex flex-wrap gap-2">
+        {ACCENTS.map((a) => (
+          <button key={a.id} type="button" onClick={() => { applyAccent(a.id); setAccent(a.id); }} aria-pressed={accent === a.id}
+            className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all ${accent === a.id ? "border-foreground/60 bg-accent" : "border-border hover:border-foreground/30"}`}>
+            <span className="size-4 rounded-full" style={{ background: `linear-gradient(135deg, oklch(0.63 0.24 ${a.hue}), oklch(0.33 0.14 ${a.hue}))` }} aria-hidden />
+            {a.label}
+          </button>
+        ))}
+      </div>
+    </Section>
   );
 }
