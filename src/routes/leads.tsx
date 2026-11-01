@@ -302,6 +302,7 @@ function Leads() {
             </tbody>
           </table>
         </Card>
+        {rows.length > shown.length ? <div className="flex justify-center"><Button variant="outline" onClick={() => setLimit((n) => n + PAGE)}>Mostrar mais ({rows.length - shown.length} restantes)</Button></div> : null}
         </>
       )}
 

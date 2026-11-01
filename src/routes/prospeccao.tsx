@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquare, Loader2, Mail, Map as MapIcon, Search, SlidersHorizontal, Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -254,6 +254,7 @@ function Prospeccao() {
 
   const isUS = country === "US";
 
+  const [limit, setLimit] = useState(50);
   const results = useMemo(() => {
     return search.results
       .filter((b) => (onlyNoSite ? !b.website : true))
@@ -647,12 +648,17 @@ function Prospeccao() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
-              {results.map((b) => (
+              {results.slice(0, limit).map((b) => (
                 <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} selectable />
               ))}
             </div>
 
             <div className="flex flex-wrap justify-center gap-2">
+              {results.length > limit ? (
+                <Button variant="outline" className="h-12 w-full sm:w-auto" onClick={() => setLimit((n) => n + 50)}>
+                  Mostrar mais ({results.length - limit} restantes)
+                </Button>
+              ) : null}
               {search.outcome?.nextPageToken ? (
                 <Button variant="outline" className="h-12 w-full sm:w-auto" onClick={() => void loadMore()} disabled={loadingMore}>
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
