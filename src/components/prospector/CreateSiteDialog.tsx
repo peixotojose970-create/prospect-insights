@@ -48,7 +48,7 @@ export function CreateSiteDialog({
           mapsUrl: details.mapsUrl ?? business.mapsUrl,
           rating: details.rating ?? business.rating,
           reviews: details.reviews ?? business.reviews,
-          description: details.description ?? business.description,
+          description: details.description ?? business.description ?? null,
           publicReviews: details.publicReviews,
           photoRefs: details.photoRefs.length ? details.photoRefs : business.photoRefs,
           photoAttributions: details.photoAttributions.length ? details.photoAttributions : business.photoAttributions,
