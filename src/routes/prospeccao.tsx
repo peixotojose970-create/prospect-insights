@@ -63,7 +63,7 @@ const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Uni
 const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL" };
 const DEFAULT_CATEGORY: Record<Country, string> = {
   BR: CATEGORY_LABELS[0] ?? "Restaurante",
-  US: US_CATEGORY_LABELS[0],
+  US: US_CATEGORY_LABELS[0] ?? "house cleaning",
 };
 
 function parseLocations(city: string, expanded: string) {
