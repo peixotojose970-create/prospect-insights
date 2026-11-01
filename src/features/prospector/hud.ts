@@ -20,7 +20,7 @@ export function readHud(): HudId {
 
 export function applyHud(id: HudId, persist = true) {
   const root = document.documentElement;
-  root.dataset.hud = id;
+  root.setAttribute("data-hud", id);
   root.classList.toggle("dark", id !== "antiga");
   if (persist) {
     try {
