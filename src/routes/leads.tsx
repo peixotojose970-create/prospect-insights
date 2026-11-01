@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Search, Upload } from "lucide-react";
+import { Download, Mail, Search, Upload } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EmailField, EmailSelectionBar } from "@/components/prospector/EmailTools";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,7 +41,16 @@ function download(name: string, content: string) {
 }
 
 function Leads() {
-  const { leads, openLead, saveLead } = useProspector();
+  const { leads, openLead, saveLead, emailOf } = useProspector();
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const togglePick = (id: string) => setPicked((p) => ({ ...p, [id]: !p[id] }));
+  const pickedLeads = leads.filter((l) => picked[l.id]);
+  const selectAllWithEmail = () => {
+    const withEmail = rows.filter((l) => emailOf(l));
+    if (!withEmail.length) return void toast.error("Nenhum lead tem e-mail preenchido.");
+    setPicked((p) => ({ ...p, ...Object.fromEntries(withEmail.map((l) => [l.id, true])) }));
+    toast.success(`${withEmail.length} com e-mail selecionados.`);
+  };
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState<LeadStatus | "todos">("todos");
   const [sort, setSort] = useState<"score" | "nome" | "recente">("score");
@@ -118,6 +129,10 @@ function Leads() {
           <>
             <Button asChild className="h-11 sm:h-9" disabled={leads.length === 0}>
               <Link to="/trabalhar-leads">Trabalhar leads salvos</Link>
+            </Button>
+            <Button variant="outline" className="h-11 sm:h-9" disabled={leads.length === 0} onClick={selectAllWithEmail}>
+              <Mail className="size-4" aria-hidden />
+              Selecionar todos com e-mail
             </Button>
             <Button variant="outline" className="h-11 sm:h-9" onClick={() => fileRef.current?.click()}>
               <Upload className="size-4" aria-hidden />
@@ -206,7 +221,8 @@ function Leads() {
           {rows.map((l) => (
             <Card key={l.id} className="gap-2 p-4">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <Checkbox checked={!!picked[l.id]} onCheckedChange={() => togglePick(l.id)} aria-label={`Selecionar ${l.name}`} className="mt-0.5 size-5" />
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">{l.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {l.category}
@@ -221,6 +237,7 @@ function Leads() {
                 <SiteBadge business={l} />
               </div>
               <p className="text-xs text-muted-foreground">{formatPhone(l.phone)}</p>
+              <EmailField business={l} />
               {l.nextAction ? (
                 <p className="text-xs font-medium text-foreground">Próxima ação: {l.nextAction}</p>
               ) : null}
@@ -232,12 +249,14 @@ function Leads() {
         </div>
 
         <Card className="hidden overflow-x-auto p-0 lg:block">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="border-b border-border text-left text-xs text-muted-foreground">
               <tr>
+                <th className="w-10 px-4 py-3"><Checkbox checked={rows.length > 0 && rows.every((l) => picked[l.id])} onCheckedChange={(v) => setPicked((p) => ({ ...p, ...Object.fromEntries(rows.map((l) => [l.id, v === true])) }))} aria-label="Selecionar todos" /></th>
                 <th className="px-4 py-3 font-medium">Empresa</th>
                 <th className="px-4 py-3 font-medium">Local</th>
                 <th className="px-4 py-3 font-medium">Telefone</th>
+                <th className="px-4 py-3 font-medium">E-mail</th>
                 <th className="px-4 py-3 font-medium">Site</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Score</th>
@@ -247,6 +266,7 @@ function Leads() {
             <tbody className="divide-y divide-border">
               {rows.map((l) => (
                 <tr key={l.id} className="hover:bg-muted/40">
+                  <td className="px-4 py-3"><Checkbox checked={!!picked[l.id]} onCheckedChange={() => togglePick(l.id)} aria-label={`Selecionar ${l.name}`} /></td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-foreground">{l.name}</p>
                     <p className="text-xs text-muted-foreground">{l.category}</p>
@@ -255,6 +275,7 @@ function Leads() {
                     {[l.city, l.state].filter(Boolean).join(" - ") || "Não informado"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatPhone(l.phone)}</td>
+                  <td className="min-w-48 px-4 py-3"><EmailField business={l} /></td>
                   <td className="px-4 py-3">
                     <SiteBadge business={l} />
                   </td>
@@ -277,6 +298,7 @@ function Leads() {
         </>
       )}
 
+      <EmailSelectionBar items={pickedLeads} onClear={() => setPicked({})} />
       <SourceNotice />
     </div>
   );
