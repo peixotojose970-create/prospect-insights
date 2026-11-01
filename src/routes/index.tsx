@@ -60,7 +60,7 @@ function Dashboard() {
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-foreground/75">Prospecção</p>
         <h2 className="mt-3 max-w-md text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Sua próxima venda começa agora</h2>
         <p className="mt-3 max-w-md text-sm text-primary-foreground/80">Encontre empresas, salve leads e transforme conversas em clientes.</p>
-        <Button asChild className="mt-6 bg-primary-foreground bg-none text-brand-deep shadow-lg hover:bg-primary-foreground/90"><Link to="/prospeccao">Buscar empresas <ArrowRight className="size-4" /></Link></Button>
+        <Link to="/prospeccao" className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary-foreground px-6 text-sm font-semibold text-brand-deep shadow-lg transition-transform hover:-translate-y-0.5">Buscar empresas <ArrowRight className="size-4" /></Link>
       </section>
       <section className="relative flex min-h-[200px] flex-col justify-between overflow-hidden rounded-[24px] border border-border bg-background p-6 shadow-[0_24px_50px_-24px_oklch(0_0_0/0.9)] animate-rise">
         <div className="pointer-events-none absolute -bottom-20 -right-10 size-56 rounded-full bg-primary/25 blur-3xl" />
