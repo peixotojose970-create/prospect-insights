@@ -78,7 +78,7 @@ function exportSelection(selection: Business[]) {
 
 /** Barra fixa com as ações em lote da seleção. */
 export function SelectionBar() {
-  const { selection, clearSelection } = useProspector();
+  const { selection, clearSelection, emailOf } = useProspector();
   const [listOpen, setListOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
@@ -112,6 +112,14 @@ export function SelectionBar() {
             <Button size="sm" variant="outline" className="h-10" onClick={() => exportSelection(selection)}>
               <Download className="size-4" aria-hidden />
               <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => void copyEmails(selection, emailOf)}>
+              <Mail className="size-4" aria-hidden />
+              Copiar e-mails
+            </Button>
+            <Button size="sm" variant="outline" className="h-10" onClick={() => exportEmailsCsv(selection, emailOf)}>
+              <Download className="size-4" aria-hidden />
+              <span className="hidden sm:inline">CSV de e-mails</span>
             </Button>
             <Button size="sm" variant="ghost" className="h-10" onClick={() => setClearOpen(true)}>
               <Trash2 className="size-4" aria-hidden />

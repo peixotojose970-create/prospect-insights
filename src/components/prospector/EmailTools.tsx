@@ -68,32 +68,36 @@ function ignoredNote(ignored: number) {
   return ignored ? ` ${ignored} sem e-mail ${ignored === 1 ? "foi ignorado" : "foram ignorados"}.` : "";
 }
 
+export async function copyEmails(items: Business[], emailOf: (b: Business) => string) {
+  const { withEmail, ignored } = collectEmails(items, emailOf);
+  if (!withEmail.length) return void toast.error(`Nenhum lead selecionado tem e-mail.${ignoredNote(ignored)}`);
+  try {
+    await navigator.clipboard.writeText(withEmail.map((e) => e.email).join(", "));
+    toast.success(`${withEmail.length} e-mails copiados.${ignoredNote(ignored)}`);
+  } catch {
+    toast.error("Não foi possível copiar neste navegador.");
+  }
+}
+
+export function exportEmailsCsv(items: Business[], emailOf: (b: Business) => string) {
+  const { withEmail, ignored } = collectEmails(items, emailOf);
+  if (!withEmail.length) return void toast.error(`Nenhum lead selecionado tem e-mail.${ignoredNote(ignored)}`);
+  const header = "nome,e-mail,categoria,cidade,estado,telefone";
+  const rows = withEmail.map(({ business: b, email }) => [b.name, email, b.category, b.city, b.state, b.phone].map(csvCell).join(","));
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + [header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "emails-prospector.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success(`${withEmail.length} leads exportados.${ignoredNote(ignored)}`);
+}
+
 export function EmailSelectionBar({ items, onClear }: { items: Business[]; onClear: () => void }) {
   const { emailOf } = useProspector();
   if (items.length === 0) return null;
-  const copy = async () => {
-    const { withEmail, ignored } = collectEmails(items, emailOf);
-    if (!withEmail.length) return toast.error(`Nenhum lead selecionado tem e-mail.${ignoredNote(ignored)}`);
-    try {
-      await navigator.clipboard.writeText(withEmail.map((e) => e.email).join(", "));
-      toast.success(`${withEmail.length} e-mails copiados.${ignoredNote(ignored)}`);
-    } catch {
-      toast.error("Não foi possível copiar neste navegador.");
-    }
-  };
-  const exportCsv = () => {
-    const { withEmail, ignored } = collectEmails(items, emailOf);
-    if (!withEmail.length) return toast.error(`Nenhum lead selecionado tem e-mail.${ignoredNote(ignored)}`);
-    const header = "nome,e-mail,categoria,cidade,estado,telefone";
-    const rows = withEmail.map(({ business: b, email }) => [b.name, email, b.category, b.city, b.state, b.phone].map(csvCell).join(","));
-    const url = URL.createObjectURL(new Blob(["\uFEFF" + [header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "emails-prospector.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(`${withEmail.length} leads exportados.${ignoredNote(ignored)}`);
-  };
+  const copy = () => copyEmails(items, emailOf);
+  const exportCsv = () => exportEmailsCsv(items, emailOf);
   return (
     <div className="glass-card sticky bottom-24 z-30 flex flex-wrap items-center gap-2 rounded-full px-4 py-2.5 animate-rise md:bottom-4">
       <span className="text-sm font-semibold">{items.length} selecionado{items.length === 1 ? "" : "s"}</span>

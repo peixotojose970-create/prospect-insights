@@ -222,6 +222,7 @@ function Prospeccao() {
     isSelected,
     selectMany,
     deselectMany,
+    emailOf,
   } = useProspector();
 
   const [query, setQuery] = useState("");
@@ -595,6 +596,15 @@ function Prospeccao() {
                   >
                     <CheckSquare className="size-4" aria-hidden />
                     {allVisibleSelected ? "Desmarcar resultados" : "Selecionar resultados"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const withEmail = results.filter((b) => emailOf(b));
+                    if (!withEmail.length) { toast.error("Nenhum resultado tem e-mail preenchido."); return; }
+                    selectMany(withEmail);
+                    toast.success(`${withEmail.length} com e-mail selecionados.`);
+                  }}>
+                    <Mail className="size-4" aria-hidden />
+                    Selecionar todos com e-mail
                   </Button>
                   <Button size="sm" variant="outline" asChild>
                     <Link to="/rapido">
