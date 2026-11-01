@@ -19,7 +19,7 @@ import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
-import { PROSPECT_SEGMENTS, US_SEGMENTS, segmentByTerm } from "@/data/segments";
+import { segmentByTerm, segmentsForCountry } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
@@ -697,7 +697,7 @@ function Prospeccao() {
         )
       ) : null}
 
-      <SourceNotice country={isUS ? "US" : "BR"} />
+      <SourceNotice country={country} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>
