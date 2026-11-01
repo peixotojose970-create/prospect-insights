@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useDebounced } from "@/hooks/use-debounced";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download, Mail, Search, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +41,8 @@ function download(name: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+const PAGE = 50;
+
 function Leads() {
   const { leads, openLead, saveLead, emailOf } = useProspector();
   const [picked, setPicked] = useState<Record<string, boolean>>({});
@@ -52,12 +55,13 @@ function Leads() {
     toast.success(`${withEmail.length} com e-mail selecionados.`);
   };
   const [term, setTerm] = useState("");
+  const debouncedTerm = useDebounced(term);
   const [status, setStatus] = useState<LeadStatus | "todos">("todos");
   const [sort, setSort] = useState<"score" | "nome" | "recente">("score");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const rows = useMemo(() => {
-    const t = term.trim().toLowerCase();
+    const t = debouncedTerm.trim().toLowerCase();
     return leads
       .filter((l) => (status === "todos" ? true : l.status === status))
       .filter((l) =>
@@ -68,7 +72,10 @@ function Leads() {
       .sort((a, b) =>
         sort === "score" ? b.score - a.score : sort === "nome" ? a.name.localeCompare(b.name) : b.savedAt.localeCompare(a.savedAt),
       );
-  }, [leads, term, status, sort]);
+  }, [leads, debouncedTerm, status, sort]);
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [debouncedTerm, status, sort]);
+  const shown = rows.slice(0, limit);
 
   const importCsv = async (file: File) => {
     try {
@@ -218,7 +225,7 @@ function Leads() {
         <>
         {/* Mobile: cards de leitura rápida. Desktop: tabela completa. */}
         <div className="space-y-3 lg:hidden">
-          {rows.map((l) => (
+          {shown.map((l) => (
             <Card key={l.id} className="gap-2 p-4">
               <div className="flex items-start justify-between gap-2">
                 <Checkbox checked={!!picked[l.id]} onCheckedChange={() => togglePick(l.id)} aria-label={`Selecionar ${l.name}`} className="mt-0.5 size-5" />
@@ -264,7 +271,7 @@ function Leads() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((l) => (
+              {shown.map((l) => (
                 <tr key={l.id} className="hover:bg-muted/40">
                   <td className="px-4 py-3"><Checkbox checked={!!picked[l.id]} onCheckedChange={() => togglePick(l.id)} aria-label={`Selecionar ${l.name}`} /></td>
                   <td className="px-4 py-3">
@@ -295,6 +302,7 @@ function Leads() {
             </tbody>
           </table>
         </Card>
+        {rows.length > shown.length ? <div className="flex justify-center"><Button variant="outline" onClick={() => setLimit((n) => n + PAGE)}>Mostrar mais ({rows.length - shown.length} restantes)</Button></div> : null}
         </>
       )}
 

@@ -254,7 +254,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       <div className={cn("min-h-screen min-w-0 pb-24", mode === "desktop" && "md:ml-[100px] md:pb-0")}>
         <InstallAppStrip />
-        <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-border/60 bg-background/95 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="hidden min-w-0 lg:block lg:w-44">
             <p className="truncate text-base font-bold tracking-[-0.01em] text-foreground">{pageTitle}</p>
             <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">PROSPECTOR · Apex SLS</p>
@@ -262,7 +262,7 @@ function ShellInner({ children }: { children: ReactNode }) {
           <PageSearch />
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <span className="hidden items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-primary sm:inline-flex">
-              <span className="relative flex size-2"><span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-75" /><span className="relative size-2 rounded-full bg-primary" /></span>AO VIVO
+              <span className="relative flex size-2"><span className="relative size-2 rounded-full bg-primary" /></span>AO VIVO
             </span>
             <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="relative size-10" aria-label="Ver follow-ups" asChild><Link to="/follow-ups"><Bell className="size-[18px]" strokeWidth={1.6} />{alerts > 0 ? <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-primary ring-2 ring-background" /> : null}</Link></Button></TooltipTrigger><TooltipContent>{alerts} leads interessados</TooltipContent></Tooltip>
             <DropdownMenu>
@@ -284,7 +284,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <button type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" className="grid size-11 place-items-center rounded-full text-sidebar-foreground/80 hover:bg-sidebar-accent"><Menu className="size-5" strokeWidth={1.6} /></button>
       </nav>
 
-      {menuOpen ? <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu de navegação"><button className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" /><aside className="relative h-full w-[min(82vw,300px)] shadow-2xl animate-rise"><Button variant="ghost" size="icon" className="absolute right-3 top-4 z-10 size-10 text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X className="size-5" /></Button>{drawer}</aside></div> : null}
+      {menuOpen ? <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu de navegação"><button className="absolute inset-0 bg-background/80" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" /><aside className="relative h-full w-[min(82vw,300px)] shadow-2xl animate-rise"><Button variant="ghost" size="icon" className="absolute right-3 top-4 z-10 size-10 text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X className="size-5" /></Button>{drawer}</aside></div> : null}
       <LeadWorkspace />
     </div>
   );

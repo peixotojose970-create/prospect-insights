@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAfterPaint } from "@/hooks/use-debounced";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Bell, Flame, Globe, Plus, Target, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ function Dashboard() {
   ] as const;
   const salesStats = [["Vendas fechadas", valid.length], ["Faturamento total", money.format(total)], ["Valor recebido", money.format(received)], ["Valor a receber", money.format(total - received)], ["Vendas do mês", valid.filter((sale) => monthKey(sale.saleDate) === currentMonth).length], ["Ticket médio", money.format(valid.length ? total / valid.length : 0)]];
   const progress = monthlySalesGoal > 0 ? Math.min(100, (currentReceived / monthlySalesGoal) * 100) : 0;
+  const chartReady = useAfterPaint();
   const [period, setPeriod] = useState<(typeof periods)[number]["id"]>("1m");
   const closedLeads = leads.filter((l) => l.status === "fechado").length;
   const chart = useMemo(() => {
@@ -57,14 +59,14 @@ function Dashboard() {
   return <div className="space-y-6"><PageHeader title="Painel" subtitle="Acompanhe sua prospecção, vendas e recebimentos." actions={<div className="flex gap-2"><Button variant="outline" asChild><Link to="/prospeccao">Buscar empresas</Link></Button><Button onClick={() => openSale()}><Plus className="mr-1 size-4" />Registrar venda</Button></div>} /><UsageMeter /><InstallAppCard />
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
       <section className="relative overflow-hidden rounded-[24px] bg-gradient-brand p-6 text-primary-foreground shadow-glow animate-rise sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-primary-foreground/10 blur-2xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-primary-foreground/10 hidden" />
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-foreground/75">Prospecção</p>
         <h2 className="mt-3 max-w-md text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Sua próxima venda começa agora</h2>
         <p className="mt-3 max-w-md text-sm text-primary-foreground/80">Encontre empresas, salve leads e transforme conversas em clientes.</p>
         <Link to="/prospeccao" className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary-foreground px-6 text-sm font-semibold text-brand-deep shadow-lg transition-transform hover:-translate-y-0.5">Buscar empresas <ArrowRight className="size-4" /></Link>
       </section>
-      <section className="relative flex min-h-[200px] flex-col justify-between overflow-hidden rounded-[24px] border border-border bg-background p-6 shadow-[0_24px_50px_-24px_oklch(0_0_0/0.9)] animate-rise">
-        <div className="pointer-events-none absolute -bottom-20 -right-10 size-56 rounded-full bg-primary/25 blur-3xl" />
+      <section className="relative flex min-h-[200px] flex-col justify-between overflow-hidden rounded-[24px] border border-border bg-background p-6 shadow-sm animate-rise">
+        <div className="pointer-events-none absolute -bottom-20 -right-10 size-56 rounded-full bg-primary/25 hidden" />
         <div className="flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Leads fechados</span><Target className="size-5 text-primary" strokeWidth={1.6} /></div>
         <div className="flex gap-1.5" aria-hidden><span className="h-7 w-10 rounded-md bg-gradient-to-br from-warning/80 to-warning/30" /></div>
         <div><p className="text-5xl font-bold tabular-nums tracking-tight">{closedLeads}</p><p className="mt-2 font-mono text-xs tracking-[0.3em] text-muted-foreground">PROSPECTOR · APEX SLS</p></div>
@@ -75,7 +77,7 @@ function Dashboard() {
         <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Leads salvos no período</p><p className="mt-1 text-4xl font-bold tabular-nums tracking-tight">{chart.totalInPeriod}</p></div>
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">{periods.map((p) => <button key={p.id} type="button" onClick={() => setPeriod(p.id)} aria-pressed={period === p.id} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${period === p.id ? "border-transparent bg-gradient-brand text-primary-foreground shadow-glow" : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>{p.label}</button>)}</div>
       </div>
-      <div className="flex h-32 items-end gap-1.5">{chart.counts.map((c, i) => <div key={i} className="flex-1 rounded-t-lg bg-gradient-to-t from-brand-deep to-brand transition-all duration-500" style={{ height: `${Math.max(4, (c / chart.max) * 100)}%`, opacity: c ? 1 : 0.25 }} title={`${c} leads`} />)}</div>
+      <div className="flex h-32 items-end gap-1.5">{!chartReady ? <div className="h-full w-full rounded-lg bg-muted/40" /> : chart.counts.map((c, i) => <div key={i} className="flex-1 rounded-t-lg bg-primary transition-[height] duration-150" style={{ height: `${Math.max(4, (c / chart.max) * 100)}%`, opacity: c ? 1 : 0.25 }} title={`${c} leads`} />)}</div>
     </Card>
     <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">{stats.map((s) => <Card key={s.label} className="group relative gap-3 overflow-hidden border-border/80 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"><div className="absolute inset-x-0 top-0 h-0.5 bg-primary/70 opacity-0 transition-opacity group-hover:opacity-100" /><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-muted-foreground">{s.label}</p><span className="grid size-9 place-items-center rounded-lg bg-primary/8 text-primary"><s.icon className="size-4" /></span></div><p className="text-3xl font-bold tracking-tight tabular-nums">{s.value}</p><Link to={s.to} className="text-xs font-semibold text-primary transition-colors hover:text-primary/75">Ver detalhes →</Link></Card>)}</div>
     <section className="space-y-4"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Visão financeira</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Financeiro de vendas</h2><p className="text-sm text-muted-foreground">Registros manuais, sem cobranças automáticas.</p></div></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{salesStats.map(([label, value]) => <Card key={String(label)} className="gap-1.5 border-border/80 p-4 shadow-sm"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p></Card>)}</div><Card className="gap-4 border-primary/15 bg-primary/[0.025] p-4 shadow-sm"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Acompanhamento</p><h3 className="mt-1 font-semibold">Meta mensal de recebimentos</h3><p className="text-sm text-muted-foreground">{money.format(currentReceived)} recebidos neste mês.</p></div><label className="grid gap-1.5 text-sm font-medium">Meta (R$)<Input className="w-44 bg-background" type="number" min="0" step="0.01" value={monthlySalesGoal || ""} onChange={(e) => setMonthlySalesGoal(Math.max(0, Number(e.target.value)))} /></label></div>{monthlySalesGoal > 0 ? <><div className="h-2.5 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-gradient-brand transition-all" style={{ width: `${progress}%` }} /></div><p className="text-xs font-medium text-muted-foreground">{progress.toFixed(0)}% da meta mensal alcançada.</p></> : <p className="text-xs text-muted-foreground">Defina uma meta para acompanhar o progresso.</p>}{previousReceived > 0 && <p className="text-xs text-muted-foreground">Mês anterior: {money.format(previousReceived)} recebidos.</p>}</Card></section>

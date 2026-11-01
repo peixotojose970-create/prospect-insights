@@ -75,7 +75,7 @@
   --brand: oklch(0.63 0.24 var(--brand-hue));
   --brand-deep: oklch(0.33 0.14 var(--brand-hue));
   --gradient-brand: linear-gradient(135deg, var(--brand), var(--brand-deep));
-  --shadow-glow: 0 10px 30px -10px color-mix(in oklab, var(--brand) 55%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--brand) 35%, transparent);
   --glass: oklch(0.17 0.006 var(--brand-hue) / 0.62);
   --glass-border: color-mix(in oklab, var(--brand) 22%, oklch(1 0 0 / 8%));
   --background: oklch(0.1 0 0);
@@ -123,7 +123,7 @@
   --brand: oklch(0.63 0.24 var(--brand-hue));
   --brand-deep: oklch(0.33 0.14 var(--brand-hue));
   --gradient-brand: linear-gradient(135deg, var(--brand), var(--brand-deep));
-  --shadow-glow: 0 10px 30px -10px color-mix(in oklab, var(--brand) 55%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--brand) 35%, transparent);
   --glass: oklch(0.17 0.006 var(--brand-hue) / 0.62);
   --glass-border: color-mix(in oklab, var(--brand) 22%, oklch(1 0 0 / 8%));
   --background: oklch(0.1 0 0);
@@ -229,9 +229,8 @@ pre,
 @utility glass-card {
   background-color: var(--glass);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: 0 20px 50px -24px oklch(0 0 0 / 0.7), inset 0 1px 0 oklch(1 0 0 / 5%);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.35);
+  transition: border-color 0.15s ease;
   &:hover {
     border-color: color-mix(in oklab, var(--brand) 38%, transparent);
   }
@@ -243,7 +242,7 @@ pre,
 }
 
 @utility animate-rise {
-  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise 0.15s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -251,9 +250,7 @@ pre,
 }
 
 /* ===== HUD futurista leve: sem blur, glow ou animações contínuas ===== */
-html[data-hud="leve"] .glass-card,
-html[data-hud="leve"] .backdrop-blur-sm,
-html[data-hud="leve"] [class*="backdrop-blur"] {
+html [class*="backdrop-blur"] {
   backdrop-filter: none !important;
 }
 html[data-hud="leve"] .glass-card {
@@ -263,8 +260,8 @@ html[data-hud="leve"] .glass-card {
   transition: border-color 0.15s ease;
 }
 html[data-hud="leve"] .shadow-glow { box-shadow: none; }
-html[data-hud="leve"] .animate-ping,
-html[data-hud="leve"] .animate-pulse { animation: none !important; }
+html .animate-ping,
+html .animate-pulse { animation: none !important; }
 html[data-hud="leve"] .animate-rise { animation-duration: 0.15s; }
 html[data-hud="leve"] body { background-image: none; }
 
