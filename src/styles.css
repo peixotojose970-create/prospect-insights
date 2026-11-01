@@ -249,3 +249,72 @@ pre,
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ===== HUD futurista leve: sem blur, glow ou animações contínuas ===== */
+html[data-hud="leve"] .glass-card,
+html[data-hud="leve"] .backdrop-blur-sm,
+html[data-hud="leve"] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+html[data-hud="leve"] .glass-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
+  transition: border-color 0.15s ease;
+}
+html[data-hud="leve"] .shadow-glow { box-shadow: none; }
+html[data-hud="leve"] .animate-ping,
+html[data-hud="leve"] .animate-pulse { animation: none !important; }
+html[data-hud="leve"] .animate-rise { animation-duration: 0.15s; }
+html[data-hud="leve"] body { background-image: none; }
+
+/* ===== HUD antiga: tema claro, azul #0b6fa4, cartões simples ===== */
+html[data-hud="antiga"] {
+  --brand: #0b6fa4;
+  --brand-deep: #085a85;
+  --gradient-brand: linear-gradient(var(--brand), var(--brand));
+  --shadow-glow: none;
+  --background: oklch(0.98 0.004 240);
+  --foreground: oklch(0.22 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 240);
+  --primary: var(--brand);
+  --secondary: oklch(0.95 0.006 240);
+  --secondary-foreground: oklch(0.25 0.02 240);
+  --muted: oklch(0.95 0.006 240);
+  --muted-foreground: oklch(0.5 0.02 240);
+  --accent: oklch(0.93 0.02 240);
+  --accent-foreground: oklch(0.22 0.02 240);
+  --border: oklch(0.9 0.008 240);
+  --input: oklch(0.88 0.008 240);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.3 0.02 240);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.01 240);
+  --sidebar-accent-foreground: oklch(0.22 0.02 240);
+  --sidebar-border: oklch(0.9 0.008 240);
+  --sidebar-ring: var(--brand);
+}
+html[data-hud="antiga"] body { background-image: none; color-scheme: light; }
+html[data-hud="antiga"] .glass-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.06);
+  transition: border-color 0.15s ease;
+}
+html[data-hud="antiga"] [class*="backdrop-blur"] { backdrop-filter: none !important; }
+html[data-hud="antiga"] .shadow-glow { box-shadow: none; }
+html[data-hud="antiga"] .animate-ping,
+html[data-hud="antiga"] .animate-pulse,
+html[data-hud="antiga"] .animate-rise { animation: none !important; }
+html[data-hud="antiga"] .rounded-\[24px\] { border-radius: 0.75rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
