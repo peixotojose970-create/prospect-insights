@@ -136,18 +136,6 @@ function Configuracoes() {
         {pendingMode && pendingMode !== mode ? <Button onClick={() => { selectMode(pendingMode); setPendingMode(null); }}>Aplicar modo</Button> : null}
       </Section>
 
-      <Section title="Aparência" description="Escolha entre tema claro e escuro.">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setTheme(false)}>
-            <Sun className="size-4" aria-hidden />
-            Claro
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setTheme(true)}>
-            <Moon className="size-4" aria-hidden />
-            Escuro
-          </Button>
-        </div>
-      </Section>
 
       <Section title="Preferências de prospecção" description="Aplicadas às próximas buscas nesta sessão.">
         <div className="space-y-3">
