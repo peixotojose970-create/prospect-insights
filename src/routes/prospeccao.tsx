@@ -262,6 +262,7 @@ function Prospeccao() {
       .filter((b) => b.score >= minScore)
       .sort((a, b) => Number(!!a.website) - Number(!!b.website) || b.score - a.score);
   }, [search.results, onlyNoSite, onlyPhone, minScore]);
+  useEffect(() => setLimit(50), [search.results, onlyNoSite, onlyPhone, minScore]);
 
   const allVisibleSelected = results.length > 0 && results.every((b) => isSelected(b.id));
 
