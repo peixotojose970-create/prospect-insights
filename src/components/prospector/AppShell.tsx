@@ -254,7 +254,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       <div className={cn("min-h-screen min-w-0 pb-24", mode === "desktop" && "md:ml-[100px] md:pb-0")}>
         <InstallAppStrip />
-        <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-border/60 bg-background/70 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b border-border/60 bg-background/95 px-3 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="hidden min-w-0 lg:block lg:w-44">
             <p className="truncate text-base font-bold tracking-[-0.01em] text-foreground">{pageTitle}</p>
             <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">PROSPECTOR · Apex SLS</p>
