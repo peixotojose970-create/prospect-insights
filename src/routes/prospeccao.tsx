@@ -165,7 +165,7 @@ function FilterFields(p: FilterProps) {
         <div className="space-y-2">
           <Label htmlFor={`${p.idPrefix}-regiao`}>{isEU ? "Região (opcional)" : isUS ? "Estado" : "Estado brasileiro"}</Label>
           {isEU ? (
-            <Input id={`${p.idPrefix}-regiao`} className="h-11" value={p.state} onChange={(e) => p.setState(e.target.value)} placeholder="Ex.: Catalunha" />
+            <Input id={`${p.idPrefix}-regiao`} className="h-11" value={p.state} onChange={(e) => p.setState(e.target.value)} placeholder={({ PT: "Ex.: Porto", ES: "Ex.: Cataluña", FR: "Ex.: Provence", IT: "Ex.: Lombardia" } as Record<string, string>)[p.country] ?? ""} />
           ) : (
           <Select value={p.state} onValueChange={p.setState}>
             <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
