@@ -28,6 +28,7 @@ import { LeadWorkspace } from "@/components/prospector/LeadPanel";
 import { ProspectorProvider, useProspector } from "@/features/prospector/store";
 import { cn } from "@/lib/utils";
 import { applyAccent, readAccent } from "@/features/prospector/accent";
+import { applyHud, readHud } from "@/features/prospector/hud";
 
 const mainNav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
@@ -217,7 +218,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const pageTitle = pageTitles[pathname] ?? "Prospector";
   const initials = (profile.personalName || "Você").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-  useEffect(() => { document.documentElement.classList.add("dark"); applyAccent(readAccent(), false); }, []);
+  useEffect(() => { applyHud(readHud(), false); applyAccent(readAccent(), false); }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuOpen(false); };
     window.addEventListener("keydown", onKey);

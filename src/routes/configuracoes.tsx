@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePlacesUsage, usageQueryKey } from "@/components/prospector/UsageMeter";
 import { setPlacesLimit } from "@/lib/places-usage.functions";
 import { ACCENTS, applyAccent, readAccent, type AccentId } from "@/features/prospector/accent";
+import { HUDS, applyHud, readHud, type HudId } from "@/features/prospector/hud";
 import { createFileRoute } from "@tanstack/react-router";
 import { Computer, Download, Moon, Smartphone, Sun, Upload } from "lucide-react";
 import { useDisplayMode, type DisplayMode } from "@/components/prospector/AppShell";
@@ -135,18 +136,6 @@ function Configuracoes() {
         {pendingMode && pendingMode !== mode ? <Button onClick={() => { selectMode(pendingMode); setPendingMode(null); }}>Aplicar modo</Button> : null}
       </Section>
 
-      <Section title="Aparência" description="Escolha entre tema claro e escuro.">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setTheme(false)}>
-            <Sun className="size-4" aria-hidden />
-            Claro
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setTheme(true)}>
-            <Moon className="size-4" aria-hidden />
-            Escuro
-          </Button>
-        </div>
-      </Section>
 
       <Section title="Preferências de prospecção" description="Aplicadas às próximas buscas nesta sessão.">
         <div className="space-y-3">
@@ -184,6 +173,7 @@ function Configuracoes() {
       </Section>
 
       <ApiLimitSection />
+      <AppearanceSection />
       <AccentSection />
 
       <Section title="Seus dados" description="Faça um backup recuperável dos dados deste navegador quando precisar.">
@@ -259,6 +249,42 @@ function AccentSection() {
             {a.label}
           </button>
         ))}
+      </div>
+    </Section>
+  );
+}
+
+const HUD_PREVIEW: Record<HudId, { bg: string; side: string; card: string; line: string; btn: string }> = {
+  leve: { bg: "#141414", side: "#5a1a14", card: "#232323", line: "#3a3a3a", btn: "#d9342b" },
+  futurista: { bg: "#0a0a0a", side: "linear-gradient(#d9342b,#5a1a14)", card: "rgba(60,30,28,.6)", line: "#5a2a25", btn: "linear-gradient(135deg,#e5483d,#5a1a14)" },
+  antiga: { bg: "#f6f8fa", side: "#ffffff", card: "#ffffff", line: "#dde3e8", btn: "#0b6fa4" },
+};
+
+function AppearanceSection() {
+  const [hud, setHud] = useState<HudId>("leve");
+  useEffect(() => setHud(readHud()), []);
+  return (
+    <Section title="Aparência" description="Escolha o visual do app. A troca vale na hora, em todas as telas.">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {HUDS.map((h) => {
+          const p = HUD_PREVIEW[h.id];
+          const active = hud === h.id;
+          return (
+            <button key={h.id} type="button" aria-pressed={active} onClick={() => { applyHud(h.id); setHud(h.id); }}
+              className={`rounded-2xl border p-2 text-left transition-colors duration-150 ${active ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-foreground/30"}`}>
+              <div className="flex h-20 overflow-hidden rounded-xl border border-border" style={{ background: p.bg }} aria-hidden>
+                <div className="w-5" style={{ background: p.side, borderRight: `1px solid ${p.line}` }} />
+                <div className="flex flex-1 flex-col gap-1.5 p-2">
+                  <div className="h-6 rounded-md" style={{ background: p.card, border: `1px solid ${p.line}` }} />
+                  <div className="h-6 rounded-md" style={{ background: p.card, border: `1px solid ${p.line}` }} />
+                  <div className="h-2 w-10 rounded-full" style={{ background: p.btn }} />
+                </div>
+              </div>
+              <p className="mt-2 text-sm font-semibold">{h.label}{h.id === "leve" ? " (padrão)" : ""}</p>
+              <p className="text-xs text-muted-foreground">{h.description}</p>
+            </button>
+          );
+        })}
       </div>
     </Section>
   );
