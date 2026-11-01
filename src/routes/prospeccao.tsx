@@ -60,13 +60,19 @@ const errorHints: Record<string, string> = {
   permissao: "É necessário configurar o Google Cloud (APIs e billing) para utilizar esta integração.",
 };
 
-type Country = "BR" | "US";
+type Country = "BR" | "US" | "PT" | "ES" | "FR" | "IT";
 
-const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Unidos" };
-const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL" };
+const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Unidos", PT: "Portugal", ES: "Espanha", FR: "França", IT: "Itália" };
+const COUNTRY_FLAGS: Record<Country, string> = { BR: "🇧🇷", US: "🇺🇸", PT: "🇵🇹", ES: "🇪🇸", FR: "🇫🇷", IT: "🇮🇹" };
+const CITY_EXAMPLE: Record<Country, string> = { BR: "Ex.: Pinheiros, São Paulo", US: "Ex.: Miami", PT: "Ex.: Lisboa", ES: "Ex.: Madrid", FR: "Ex.: Lyon", IT: "Ex.: Milano" };
+const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL", PT: "", ES: "", FR: "", IT: "" };
 const DEFAULT_CATEGORY: Record<Country, string> = {
   BR: CATEGORY_LABELS[0] ?? "Restaurante",
   US: US_CATEGORY_LABELS[0] ?? "house cleaning",
+  PT: segmentsForCountry("PT")[0]!.us,
+  ES: segmentsForCountry("ES")[0]!.us,
+  FR: segmentsForCountry("FR")[0]!.us,
+  IT: segmentsForCountry("IT")[0]!.us,
 };
 
 function parseLocations(city: string, expanded: string) {
@@ -96,9 +102,10 @@ type FilterProps = {
 
 /** Campos de refinamento — reutilizados no painel desktop e no bottom sheet mobile. */
 function FilterFields(p: FilterProps) {
-  const isUS = p.country === "US";
-  const states: readonly string[] = isUS ? US_STATES : STATES;
-  const baseCategories: readonly string[] = isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
+  const isUS = p.country !== "BR";
+  const isEU = isUS && p.country !== "US";
+  const states: readonly string[] = p.country === "US" ? US_STATES : STATES;
+  const baseCategories: readonly string[] = isEU ? segmentsForCountry(p.country).map((s) => s.us) : isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
   // Termos vindos dos segmentos não estão na lista fixa: incluímos para o seletor
   // sempre refletir a categoria que será realmente pesquisada.
   const categories = baseCategories.includes(p.category) ? baseCategories : [p.category, ...baseCategories];
@@ -112,8 +119,9 @@ function FilterFields(p: FilterProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="BR">🇧🇷 {COUNTRY_LABELS.BR}</SelectItem>
-              <SelectItem value="US">🇺🇸 {COUNTRY_LABELS.US}</SelectItem>
+              {(Object.keys(COUNTRY_LABELS) as Country[]).map((c) => (
+                <SelectItem key={c} value={c}>{COUNTRY_FLAGS[c]} {COUNTRY_LABELS[c]}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -149,13 +157,16 @@ function FilterFields(p: FilterProps) {
             className="h-11"
             value={p.city}
             onChange={(e) => p.setCity(e.target.value)}
-            placeholder={isUS ? "Ex.: Miami" : "Ex.: Pinheiros, São Paulo"}
-            {...(isUS ? { list: "cidades-eua" } : {})}
+            placeholder={CITY_EXAMPLE[p.country]}
+            {...(p.country === "US" ? { list: "cidades-eua" } : {})}
           />
           {!isUS ? <p className="text-[11px] leading-relaxed text-muted-foreground">Preencha para buscar só nesta localidade; deixe vazio para usar as cidades planejadas do estado.</p> : null}
         </div>
         <div className="space-y-2">
-          <Label>{isUS ? "Estado" : "Estado brasileiro"}</Label>
+          <Label htmlFor={`${p.idPrefix}-regiao`}>{isEU ? "Região (opcional)" : isUS ? "Estado" : "Estado brasileiro"}</Label>
+          {isEU ? (
+            <Input id={`${p.idPrefix}-regiao`} className="h-11" value={p.state} onChange={(e) => p.setState(e.target.value)} placeholder="Ex.: Catalunha" />
+          ) : (
           <Select value={p.state} onValueChange={p.setState}>
             <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -166,6 +177,7 @@ function FilterFields(p: FilterProps) {
               ))}
             </SelectContent>
           </Select>
+          )}
           {!isUS ? <p className="text-[11px] text-muted-foreground">A busca consulta cidades diferentes do estado em lotes progressivos.</p> : null}
         </div>
       </div>
@@ -252,7 +264,8 @@ function Prospeccao() {
     setQuery("");
   };
 
-  const isUS = country === "US";
+  // Fora do Brasil, todos os países usam a busca estruturada por cidade.
+  const isUS = country !== "BR";
 
   const [limit, setLimit] = useState(50);
   const results = useMemo(() => {
@@ -288,7 +301,7 @@ function Prospeccao() {
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
-  const activeSegment = segmentByTerm(category, isUS);
+  const activeSegment = segmentByTerm(category, isUS, country);
   const selectedLocations = useMemo(() => parseLocations(city, locationsText), [city, locationsText]);
   const buildCriteria = (nextCategory = category) => ({
     category: nextCategory,
@@ -296,7 +309,7 @@ function Prospeccao() {
     state,
     ...(!isUS && selectedLocations.length ? { locations: selectedLocations } : {}),
     ...(!isUS && query.trim() ? { term: query.trim() } : {}),
-    ...(isUS ? { country: "US" as const } : {}),
+    ...(isUS ? { country } : {}),
   });
 
   const submit = (e: React.FormEvent) => {
@@ -390,7 +403,7 @@ function Prospeccao() {
           ) : null}
         </div>
         <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
-          {(isUS ? US_SEGMENTS : PROSPECT_SEGMENTS).map((s) => {
+          {segmentsForCountry(country).map((s) => {
             const term = isUS ? s.us : s.br;
             const active = category === term;
             return (
