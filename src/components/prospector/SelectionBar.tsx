@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Download, Loader2, MessageCircle, Save, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, Loader2, Mail, MessageCircle, Save, Trash2, X } from "lucide-react";
+import { copyEmails, exportEmailsCsv } from "@/components/prospector/EmailTools";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
