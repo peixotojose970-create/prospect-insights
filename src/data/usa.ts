@@ -26,21 +26,7 @@ export const US_CITY_SUGGESTIONS = [
   "Charlotte",
 ] as const;
 
-/** Tipos de negócio mais buscados na prospecção nos EUA. */
-export const US_CATEGORY_LABELS = [
-  "barbershop",
-  "hair salon",
-  "nail salon",
-  "dentist",
-  "auto repair",
-  "landscaping",
-  "roofing contractor",
-  "plumber",
-  "electrician",
-  "gym",
-  "restaurant",
-  "coffee shop",
-  "pet grooming",
-  "cleaning service",
-  "real estate agency",
-] as const;
+import { US_SEGMENTS } from "./segments";
+
+/** Tipos de negócio da prospecção nos EUA (termos usados na busca). */
+export const US_CATEGORY_LABELS: readonly string[] = US_SEGMENTS.map((s) => s.us);

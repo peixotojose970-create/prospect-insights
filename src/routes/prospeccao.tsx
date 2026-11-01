@@ -17,7 +17,7 @@ import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
-import { PROSPECT_SEGMENTS, segmentByTerm } from "@/data/segments";
+import { PROSPECT_SEGMENTS, US_SEGMENTS, segmentByTerm } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
@@ -63,7 +63,7 @@ const COUNTRY_LABELS: Record<Country, string> = { BR: "Brasil", US: "Estados Uni
 const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL" };
 const DEFAULT_CATEGORY: Record<Country, string> = {
   BR: CATEGORY_LABELS[0] ?? "Restaurante",
-  US: US_CATEGORY_LABELS[0],
+  US: US_CATEGORY_LABELS[0] ?? "house cleaning",
 };
 
 function parseLocations(city: string, expanded: string) {
@@ -383,7 +383,7 @@ function Prospeccao() {
           ) : null}
         </div>
         <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
-          {PROSPECT_SEGMENTS.map((s) => {
+          {(isUS ? US_SEGMENTS : PROSPECT_SEGMENTS).map((s) => {
             const term = isUS ? s.us : s.br;
             const active = category === term;
             return (
@@ -663,7 +663,7 @@ function Prospeccao() {
         )
       ) : null}
 
-      <SourceNotice />
+      <SourceNotice country={isUS ? "US" : "BR"} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
     </div>

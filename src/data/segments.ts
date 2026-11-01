@@ -30,10 +30,43 @@ export const PROSPECT_SEGMENTS: ProspectSegment[] = [
   { label: "Hotéis e turismo", br: "hotel", brExtra: ["pousada", "agência de turismo"], us: "hotel", usExtra: ["travel agency"] },
 ];
 
+/** Categorias de pequenos negócios americanos (nomes e termos em inglês). */
+export const US_SEGMENTS: ProspectSegment[] = [
+  { label: "Cleaning services", br: "", us: "house cleaning", usExtra: ["maid service", "commercial cleaning", "janitorial service"] },
+  { label: "Lawn care & landscaping", br: "", us: "lawn care", usExtra: ["landscaping", "tree service"] },
+  { label: "Pressure washing & window cleaning", br: "", us: "pressure washing", usExtra: ["window cleaning"] },
+  { label: "Barbershops", br: "", us: "barber shop", usExtra: [] },
+  { label: "Hair & beauty salons", br: "", us: "hair salon", usExtra: ["beauty salon"] },
+  { label: "Nail salons", br: "", us: "nail salon", usExtra: [] },
+  { label: "Auto detailing & car wash", br: "", us: "auto detailing", usExtra: ["car wash"] },
+  { label: "Auto repair & mobile mechanics", br: "", us: "auto repair shop", usExtra: ["mobile mechanic"] },
+  { label: "Towing & tire shops", br: "", us: "towing service", usExtra: ["tire shop"] },
+  { label: "Plumbers", br: "", us: "plumber", usExtra: [] },
+  { label: "Electricians", br: "", us: "electrician", usExtra: [] },
+  { label: "HVAC", br: "", us: "hvac contractor", usExtra: [] },
+  { label: "Roofing", br: "", us: "roofing contractor", usExtra: [] },
+  { label: "Handyman & general contractors", br: "", us: "handyman", usExtra: ["general contractor"] },
+  { label: "Painters & flooring", br: "", us: "house painter", usExtra: ["flooring contractor"] },
+  { label: "Pest control", br: "", us: "pest control service", usExtra: [] },
+  { label: "Pool service", br: "", us: "pool cleaning service", usExtra: [] },
+  { label: "Moving & junk removal", br: "", us: "moving company", usExtra: ["junk removal"] },
+  { label: "Fence, concrete & garage door", br: "", us: "fence contractor", usExtra: ["concrete contractor", "garage door repair"] },
+  { label: "Locksmith & appliance repair", br: "", us: "locksmith", usExtra: ["appliance repair"] },
+  { label: "Tattoo shops", br: "", us: "tattoo shop", usExtra: [] },
+  { label: "Pet grooming & dog boarding", br: "", us: "pet grooming", usExtra: ["dog boarding"] },
+  { label: "Personal trainers & yoga studios", br: "", us: "personal trainer", usExtra: ["yoga studio"] },
+  { label: "Massage & spas", br: "", us: "massage therapist", usExtra: ["day spa"] },
+  { label: "Photographers & event services", br: "", us: "photographer", usExtra: ["event planner"] },
+  { label: "Restaurants & food trucks", br: "", us: "restaurant", usExtra: ["food truck"] },
+  { label: "Bakeries, coffee shops & catering", br: "", us: "bakery", usExtra: ["coffee shop", "catering service"] },
+  { label: "Daycare & tutoring", br: "", us: "daycare", usExtra: ["tutoring service"] },
+  { label: "Driving schools", br: "", us: "driving school", usExtra: [] },
+];
+
 /** Descobre o segmento correspondente a um termo de busca já aplicado. */
 export function segmentByTerm(term: string, isUS: boolean) {
   const t = term.trim().toLowerCase();
-  return PROSPECT_SEGMENTS.find((s) => (isUS ? s.us : s.br).toLowerCase() === t) ?? null;
+  return isUS ? US_SEGMENTS.find((s) => s.us.toLowerCase() === t) ?? null : PROSPECT_SEGMENTS.find((s) => s.br.toLowerCase() === t) ?? null;
 }
 
 /** Consultas complementares do segmento (somente termos do mesmo ramo). */
