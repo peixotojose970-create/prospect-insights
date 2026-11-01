@@ -25,7 +25,7 @@ export type PublicReview = {
   text: string;
 };
 export type ContactType = "whatsapp" | "ligacao" | "instagram" | "outro";
-export type ProspectCountry = "BR" | "US";
+export type ProspectCountry = "BR" | "US" | "PT" | "ES" | "FR" | "IT";
 
 export type Business = {
   id: string;

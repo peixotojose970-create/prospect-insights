@@ -25,19 +25,28 @@ async function callPlaces(body: unknown) {
   if (!response.ok) { const detail = text.slice(0, 500); const code: ErrorCode = response.status === 429 ? "rate-limit" : response.status === 401 || response.status === 403 ? "permissao" : "rede"; throw Object.assign(new Error(code === "permissao" ? "É necessário configurar o Google Cloud." : "Não foi possível consultar o Google Maps."), { code, detail }); }
   return JSON.parse(text) as { places?: PlaceResult[]; nextPageToken?: string };
 }
-function toBusiness(place: PlaceResult): Business | null {
+/** Restrição geográfica e idioma de cada país (regionCode + checagem do país retornado). */
+const COUNTRIES = {
+  US: { lang: "en-US", name: "United States", prep: "in", empty: "No businesses were found for this search in the United States." },
+  PT: { lang: "pt-PT", name: "Portugal", prep: "em", empty: "Nenhuma empresa encontrada para esta busca em Portugal." },
+  ES: { lang: "es", name: "España", prep: "en", empty: "Nenhuma empresa encontrada para esta busca na Espanha." },
+  FR: { lang: "fr", name: "France", prep: "à", empty: "Nenhuma empresa encontrada para esta busca na França." },
+  IT: { lang: "it", name: "Italia", prep: "a", empty: "Nenhuma empresa encontrada para esta busca na Itália." },
+} as const;
+type IntlCountry = keyof typeof COUNTRIES;
+function toBusiness(place: PlaceResult, expected: IntlCountry): Business | null {
   const components = place.addressComponents ?? []; const placeId = place.id; const name = place.displayName?.text; const lat = place.location?.latitude; const lon = place.location?.longitude; const country = component(components, "country", true)?.toUpperCase();
-  if (!placeId || !name || lat === undefined || lon === undefined || (country && country !== "US")) return null;
-  const base = { id: placeId, externalId: placeId, placeId, source: "Google Maps", sourceUrl: place.googleMapsUri ?? null, mapsUrl: place.googleMapsUri ?? null, name, category: place.primaryTypeDisplayName?.text ?? "Not informed", street: component(components, "route"), houseNumber: component(components, "street_number"), neighborhood: component(components, "sublocality_level_1") ?? component(components, "sublocality"), city: component(components, "locality") ?? component(components, "administrative_area_level_2"), state: component(components, "administrative_area_level_1", true), postalCode: component(components, "postal_code"), address: place.formattedAddress ?? null, phone: place.nationalPhoneNumber ?? null, website: classifyWebsite(place.websiteUri).website, socialUrl: classifyWebsite(place.websiteUri).socialUrl, instagram: classifyWebsite(place.websiteUri).instagram, country: "US" as const, email: null, openingHours: null, latitude: lat, longitude: lon, rating: typeof place.rating === "number" ? place.rating : null, reviews: typeof place.userRatingCount === "number" ? place.userRatingCount : null, photoRefs: (place.photos ?? []).map((p) => p.name).filter((v): v is string => !!v).slice(0, 6), photoAttributions: Array.from(new Set((place.photos ?? []).flatMap((p) => p.authorAttributions ?? []).map((a) => a.displayName).filter((v): v is string => !!v))).slice(0, 6) };
+  if (!placeId || !name || lat === undefined || lon === undefined || country !== expected) return null;
+  const base = { id: placeId, externalId: placeId, placeId, source: "Google Maps", sourceUrl: place.googleMapsUri ?? null, mapsUrl: place.googleMapsUri ?? null, name, category: place.primaryTypeDisplayName?.text ?? "Not informed", street: component(components, "route"), houseNumber: component(components, "street_number"), neighborhood: component(components, "sublocality_level_1") ?? component(components, "sublocality"), city: component(components, "locality") ?? component(components, "administrative_area_level_2"), state: component(components, "administrative_area_level_1", true), postalCode: component(components, "postal_code"), address: place.formattedAddress ?? null, phone: place.nationalPhoneNumber ?? null, website: classifyWebsite(place.websiteUri).website, socialUrl: classifyWebsite(place.websiteUri).socialUrl, instagram: classifyWebsite(place.websiteUri).instagram, country: expected, email: null, openingHours: null, latitude: lat, longitude: lon, rating: typeof place.rating === "number" ? place.rating : null, reviews: typeof place.userRatingCount === "number" ? place.userRatingCount : null, photoRefs: (place.photos ?? []).map((p) => p.name).filter((v): v is string => !!v).slice(0, 6), photoAttributions: Array.from(new Set((place.photos ?? []).flatMap((p) => p.authorAttributions ?? []).map((a) => a.displayName).filter((v): v is string => !!v))).slice(0, 6) };
   const { score, factors } = scoreBusiness(base); return { ...base, score, scoreFactors: factors };
 }
-const schema = z.object({ category: z.string().trim().min(1).max(80), city: z.string().trim().min(1).max(120), state: z.string().trim().max(30), limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(), pageToken: z.string().trim().max(2000).optional() });
+const schema = z.object({ country: z.enum(["US", "PT", "ES", "FR", "IT"]).default("US"), category: z.string().trim().min(1).max(80), city: z.string().trim().min(1).max(120), state: z.string().trim().max(30), limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(), pageToken: z.string().trim().max(2000).optional() });
 export const searchUSBusinesses = createServerFn({ method: "POST" }).inputValidator((data: unknown) => schema.parse(data)).handler(async ({ data }): Promise<USSearchResult> => {
   try {
-    const areaLabel = [data.city, data.state].filter(Boolean).join(", "); const payload = await callPlaces({ textQuery: `${data.category} in ${areaLabel}, United States`, languageCode: "en-US", regionCode: "US", pageSize: data.limit ?? MAX_PAGE_SIZE, ...(data.pageToken ? { pageToken: data.pageToken } : {}) });
-    const mapped = (payload.places ?? []).map(toBusiness).filter((b): b is Business => b !== null);
+    const cfg = COUNTRIES[data.country]; const areaLabel = [data.city, data.state].filter(Boolean).join(", "); const payload = await callPlaces({ textQuery: `${data.category} ${cfg.prep} ${areaLabel}, ${cfg.name}`, languageCode: cfg.lang, regionCode: data.country, pageSize: data.limit ?? MAX_PAGE_SIZE, ...(data.pageToken ? { pageToken: data.pageToken } : {}) });
+    const mapped = (payload.places ?? []).map((p) => toBusiness(p, data.country)).filter((b): b is Business => b !== null);
     const businesses = await attachEmails(mapped);
-    if (!businesses.length && !data.pageToken) return { ok: false, code: "vazio", message: "No businesses were found for this search in the United States." };
+    if (!businesses.length && !data.pageToken) return { ok: false, code: "vazio", message: cfg.empty };
     return { ok: true, outcome: { businesses, total: businesses.length, truncated: !!payload.nextPageToken, cached: false, areaLabel, nextPageToken: payload.nextPageToken ?? null } };
   } catch (error) {
     const e = error as Error & { code?: ErrorCode; detail?: string }; const code: ErrorCode = e.name === "TimeoutError" || e.name === "AbortError" ? "timeout" : e.code ?? "rede";

@@ -64,8 +64,9 @@ export const US_SEGMENTS: ProspectSegment[] = [
 ];
 
 /** Descobre o segmento correspondente a um termo de busca já aplicado. */
-export function segmentByTerm(term: string, isUS: boolean) {
+export function segmentByTerm(term: string, isUS: boolean, country?: string) {
   const t = term.trim().toLowerCase();
+  if (country && country !== "BR" && country !== "US") return segmentsForCountry(country).find((s) => s.us.toLowerCase() === t) ?? null;
   return isUS ? US_SEGMENTS.find((s) => s.us.toLowerCase() === t) ?? null : PROSPECT_SEGMENTS.find((s) => s.br.toLowerCase() === t) ?? null;
 }
 
@@ -73,4 +74,51 @@ export function segmentByTerm(term: string, isUS: boolean) {
 export function relatedTerms(term: string, isUS: boolean): string[] {
   const seg = segmentByTerm(term, isUS);
   return (isUS ? seg?.usExtra : seg?.brExtra) ?? [];
+}
+
+/** Países europeus com busca no idioma local (mesma integração do Google Places). */
+export type EuropeCountry = "PT" | "ES" | "FR" | "IT";
+
+/** [rótulo, termo principal, termos complementares] por país, no idioma local. */
+const EU_TERMS: Record<EuropeCountry, [string, string, string[]][]> = {
+  PT: [
+    ["Barbearias", "barbearia", []], ["Salões de beleza", "salão de beleza", ["cabeleireiro"]], ["Lavagem automóvel", "lavagem automóvel", []],
+    ["Jardinagem", "jardinagem", []], ["Limpeza", "empresa de limpeza", ["limpezas"]], ["Oficinas automóveis", "oficina automóvel", ["mecânico"]],
+    ["Eletricistas", "eletricista", []], ["Canalizadores", "canalizador", []], ["Construção e obras", "empresa de construção", ["remodelações"]],
+    ["Clínicas", "clínica", ["clínica dentária"]], ["Restaurantes", "restaurante", []], ["Imobiliárias", "imobiliária", ["agência imobiliária"]],
+    ["Ginásios", "ginásio", ["personal trainer"]], ["Fotógrafos", "fotógrafo", []], ["Painéis solares", "painéis solares", ["energia solar"]],
+  ],
+  ES: [
+    ["Barberías", "barbería", []], ["Peluquerías", "peluquería", ["salón de belleza"]], ["Lavado de coches", "lavado de coches", []],
+    ["Jardinería", "jardinería", []], ["Limpieza", "empresa de limpieza", []], ["Talleres mecánicos", "taller mecánico", []],
+    ["Electricistas", "electricista", []], ["Fontaneros", "fontanero", []], ["Construcción y reformas", "empresa de construcción", ["reformas"]],
+    ["Clínicas", "clínica", ["clínica dental"]], ["Restaurantes", "restaurante", []], ["Inmobiliarias", "inmobiliaria", []],
+    ["Gimnasios", "gimnasio", ["entrenador personal"]], ["Fotógrafos", "fotógrafo", []], ["Placas solares", "instalación de placas solares", ["energía solar"]],
+  ],
+  FR: [
+    ["Barbiers", "barbier", []], ["Salons de coiffure", "salon de coiffure", ["institut de beauté"]], ["Lavage auto", "lavage auto", []],
+    ["Jardinage", "jardinage", ["paysagiste"]], ["Nettoyage", "entreprise de nettoyage", []], ["Garages automobiles", "garage automobile", []],
+    ["Électriciens", "électricien", []], ["Plombiers", "plombier", []], ["Construction et rénovation", "entreprise de construction", ["rénovation"]],
+    ["Cliniques", "clinique", ["cabinet dentaire"]], ["Restaurants", "restaurant", []], ["Agences immobilières", "agence immobilière", []],
+    ["Salles de sport", "salle de sport", ["coach sportif"]], ["Photographes", "photographe", []], ["Panneaux solaires", "installateur panneaux solaires", []],
+  ],
+  IT: [
+    ["Barbieri", "barbiere", []], ["Parrucchieri", "parrucchiere", ["centro estetico"]], ["Autolavaggi", "autolavaggio", []],
+    ["Giardinaggio", "giardinaggio", []], ["Pulizie", "impresa di pulizie", []], ["Officine meccaniche", "officina meccanica", []],
+    ["Elettricisti", "elettricista", []], ["Idraulici", "idraulico", []], ["Edilizia e ristrutturazioni", "impresa edile", ["ristrutturazioni"]],
+    ["Cliniche", "clinica", ["studio dentistico"]], ["Ristoranti", "ristorante", []], ["Agenzie immobiliari", "agenzia immobiliare", []],
+    ["Palestre", "palestra", ["personal trainer"]], ["Fotografi", "fotografo", []], ["Pannelli solari", "installazione pannelli solari", []],
+  ],
+};
+
+/** Segmentos de cada país europeu; o termo local fica em `us` (caminho internacional). */
+export const EU_SEGMENTS: Record<EuropeCountry, ProspectSegment[]> = Object.fromEntries(
+  (Object.keys(EU_TERMS) as EuropeCountry[]).map((c) => [c, EU_TERMS[c].map(([label, term, extra]) => ({ label, br: "", us: term, usExtra: extra }))]),
+) as Record<EuropeCountry, ProspectSegment[]>;
+
+/** Lista de segmentos usada na tela para o país escolhido. */
+export function segmentsForCountry(country: string): ProspectSegment[] {
+  if (country === "US") return US_SEGMENTS;
+  if (country in EU_SEGMENTS) return EU_SEGMENTS[country as EuropeCountry];
+  return PROSPECT_SEGMENTS;
 }
