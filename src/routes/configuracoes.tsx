@@ -1,4 +1,8 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePlacesUsage, usageQueryKey } from "@/components/prospector/UsageMeter";
+import { setPlacesLimit } from "@/lib/places-usage.functions";
+import { ACCENTS, applyAccent, readAccent, type AccentId } from "@/features/prospector/accent";
 import { createFileRoute } from "@tanstack/react-router";
 import { Computer, Download, Moon, Smartphone, Sun, Upload } from "lucide-react";
 import { useDisplayMode, type DisplayMode } from "@/components/prospector/AppShell";
