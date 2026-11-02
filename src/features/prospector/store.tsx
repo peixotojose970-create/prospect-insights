@@ -1,9 +1,11 @@
+import { isContacted, readContacted, registerContacted } from "./contacted";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -195,6 +197,13 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state, hydrated]);
 
+  // Toda empresa abordada entra no registro permanente (nunca é removida dele).
+  useEffect(() => {
+    if (!hydrated) return;
+    registerContacted(state.leads.filter((l) => l.status !== "novo" || !!l.lastContact));
+  }, [state.leads, hydrated]);
+  const runSearchRef = useRef<(c: SearchCriteria, append?: boolean, fill?: number) => Promise<void>>(async () => {});
+
   const pushActivity = useCallback((label: string, lead: string) => {
     setState((prev) => ({
       ...prev,
@@ -208,7 +217,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
   const historyEntry = (label: string) => ({ id: `${Date.now()}-${Math.random()}`, date: stamp(), label });
 
-  const runSearch = useCallback(async (criteria: SearchCriteria, append = false) => {
+  const runSearch = useCallback(async (criteria: SearchCriteria, append = false, fill = 0) => {
     if (append) setLoadingMore(true);
     else setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
 
@@ -266,7 +275,17 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const outcome = result.outcome;
+    // Empresas já abordadas nunca reaparecem em novas pesquisas (todos os países).
+    const contactedSet = readContacted();
+    const fresh = result.outcome.businesses.filter((b) => !isContacted(b, contactedSet));
+    const hidden = result.outcome.businesses.length - fresh.length;
+    const outcome = {
+      ...result.outcome,
+      businesses: fresh,
+      ...(result.outcome.coverage && hidden
+        ? { coverage: { ...result.outcome.coverage, notes: [...result.outcome.coverage.notes, `${hidden} empresa(s) já abordada(s) ocultada(s).`] } }
+        : {}),
+    };
     setSearch((prev) => {
       const results = append ? [...prev.results, ...outcome.businesses] : outcome.businesses;
       const seen = new Set<string>();
@@ -292,6 +311,10 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       };
     });
 
+    // Busca substitutas na próxima página da fonte para repor as ocultadas (até 3 páginas extras).
+    if (hidden > 0 && outcome.nextPageToken && fill < 3) {
+      void runSearchRef.current({ ...criteria, pageToken: outcome.nextPageToken }, true, fill + 1);
+    }
     if (append) return;
     setState((prev) => ({
       ...prev,
@@ -314,6 +337,8 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       ].slice(0, 15),
     }));
   }, []);
+
+  runSearchRef.current = runSearch;
 
   const loadMore = useCallback(async () => {
     const token = search.outcome?.nextPageToken;

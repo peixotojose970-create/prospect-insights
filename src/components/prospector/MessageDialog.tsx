@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
+import { useApproaches } from "@/features/prospector/templates";
 import { normalizePhone, whatsappLabel, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
@@ -22,18 +22,17 @@ export function MessageDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { logHistory, isSaved, saveLead, registerContact, profile } = useProspector();
+  const approaches = useApproaches();
   if (!business) return null;
-  const messages = buildMessages(business, profile);
-  const seconds = buildSecondMessages(business, profile);
+  const messages: Record<string, string> = {};
+  const seconds: Record<string, string> = {};
+  for (const a of approaches.list) {
+    messages[a.key] = approaches.first(a.key, business, profile);
+    seconds[a.key] = approaches.second(a.key, business, profile);
+  }
   const wa = whatsappLink(business.phone);
   const digits = normalizePhone(business.phone);
-  const tabs: [keyof typeof messages, string][] = [
-    ["curta", "Curta"],
-    ["natural", "Natural"],
-    ["comercial", "Comercial"],
-    ["curiosidade", "Curiosidade"],
-    ["direto", "Direto"],
-  ];
+  const tabs: [string, string][] = approaches.list.map((a) => [a.key, a.label]);
 
   const ensureSaved = () => {
     if (!isSaved(business.id)) saveLead(business);
@@ -58,13 +57,13 @@ export function MessageDialog({
             <TabsContent key={key} value={key} className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
               <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-                {messages[key]}
+                {(messages[key] ?? "")}
               </p>
               <div className="grid gap-2 sm:flex sm:flex-wrap [&_button]:h-11 sm:[&_button]:h-9">
 
                 <Button
                   onClick={() => {
-                    copyText(messages[key], "Mensagem copiada.");
+                    copyText((messages[key] ?? ""), "Mensagem copiada.");
                     if (isSaved(business.id)) logHistory(business.id, "Mensagem copiada");
                   }}
                 >
@@ -74,7 +73,7 @@ export function MessageDialog({
                 {wa ? (
                   <Button variant="outline" asChild title={whatsappLabel(business.phone)}>
                     <a
-                      href={`${wa}?text=${encodeURIComponent(messages[key])}`}
+                      href={`${wa}?text=${encodeURIComponent((messages[key] ?? ""))}`}
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => {
@@ -116,13 +115,13 @@ export function MessageDialog({
                   2ª mensagem — envie depois que a pessoa responder ("Sim", "Sou eu", "Pois não"...)
                 </p>
                 <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-                  {seconds[key]}
+                  {(seconds[key] ?? "")}
                 </p>
                 <Button
                   variant="outline"
                   className="h-11 w-full sm:h-9 sm:w-auto"
                   onClick={() => {
-                    copyText(seconds[key], "2ª mensagem copiada.");
+                    copyText((seconds[key] ?? ""), "2ª mensagem copiada.");
                     if (isSaved(business.id)) logHistory(business.id, "2ª mensagem copiada");
                   }}
                 >

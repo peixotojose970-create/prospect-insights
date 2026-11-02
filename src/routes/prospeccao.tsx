@@ -172,6 +172,16 @@ function FilterFields(p: FilterProps) {
               if (r) p.setState(r);
             }}
           />
+          <SwipeChips
+            label="Deslize para ver cidades"
+            active={p.city}
+            options={citiesOf(p.country, p.state || undefined).slice(0, 40).map((c) => ({ value: c.city, label: c.city }))}
+            onPick={(v) => {
+              p.setCity(v);
+              const r = regionOfCity(p.country, v);
+              if (r && !p.state) p.setState(r);
+            }}
+          />
           {!isUS ? <p className="text-[11px] leading-relaxed text-muted-foreground">Preencha para buscar só nesta localidade; deixe vazio para usar as cidades planejadas do estado.</p> : null}
         </div>
         <div className="space-y-2">
@@ -188,6 +198,15 @@ function FilterFields(p: FilterProps) {
               const next = o?.value ?? "";
               p.setState(next);
               if (next && p.city && !citiesOf(p.country, next).some((c) => c.city === p.city) && regionOfCity(p.country, p.city)) p.setCity("");
+            }}
+          />
+          <SwipeChips
+            label="Deslize para ver estados"
+            active={p.state}
+            options={(isEU ? regionsOf(p.country) : states).map((s) => ({ value: s, label: isEU ? regionLabel(p.country, s) : s }))}
+            onPick={(next) => {
+              p.setState(next);
+              if (p.city && !citiesOf(p.country, next).some((c) => c.city === p.city) && regionOfCity(p.country, p.city)) p.setCity("");
             }}
           />
           {!isUS ? <p className="text-[11px] text-muted-foreground">A busca consulta cidades diferentes do estado em lotes progressivos.</p> : null}
@@ -712,6 +731,37 @@ function Prospeccao() {
       <SourceNotice country={country} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
       <SelectionBar />
+    </div>
+  );
+}
+
+/** Atalhos de local em linha horizontal, deslizáveis com o dedo — só no celular. */
+function SwipeChips({ label, options, active, onPick }: { label: string; options: { value: string; label: string }[]; active: string; onPick: (v: string) => void }) {
+  if (!options.length) return null;
+  return (
+    <div className="sm:hidden">
+      <p className="sr-only">{label}</p>
+      <div
+        role="listbox"
+        aria-label={label}
+        className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+      >
+        {options.map((o) => {
+          const on = o.value === active;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="option"
+              aria-selected={on}
+              onClick={() => onPick(o.value)}
+              className={`h-9 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors ${on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/40 text-foreground"}`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

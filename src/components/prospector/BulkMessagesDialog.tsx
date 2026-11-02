@@ -16,21 +16,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatPhone, whatsappLink } from "@/features/prospector/format";
-import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
+import { useApproaches } from "@/features/prospector/templates";
 import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
 import type { Business } from "@/types";
 
-type Style = "curta" | "natural" | "comercial" | "curiosidade" | "direto";
+type Style = string;
 type Status = "pendente" | "enviado" | "pulado";
 
-const STYLE_LABELS: Record<Style, string> = {
-  curta: "Curta",
-  natural: "Natural",
-  comercial: "Comercial",
-  curiosidade: "Curiosidade",
-  direto: "Direto",
-};
 
 /** Preparação e fila manual de mensagens de WhatsApp para as empresas selecionadas. */
 export function BulkMessagesDialog({
@@ -41,6 +34,7 @@ export function BulkMessagesDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const { selection, profile } = useProspector();
+  const approaches = useApproaches();
   const [style, setStyle] = useState<Style>("natural");
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [chosen, setChosen] = useState<string[]>([]);
@@ -51,14 +45,14 @@ export function BulkMessagesDialog({
   // Mensagens geradas a partir dos dados reais de cada empresa.
   const generated = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const b of selection) map[b.id] = buildMessages(b, profile)[style];
+    for (const b of selection) map[b.id] = approaches.first(style, b, profile);
     return map;
-  }, [selection, profile, style]);
+  }, [selection, profile, style, approaches]);
   const seconds = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const b of selection) map[b.id] = buildSecondMessages(b, profile)[style];
+    for (const b of selection) map[b.id] = approaches.second(style, b, profile);
     return map;
-  }, [selection, profile, style]);
+  }, [selection, profile, style, approaches]);
   const [secondEdits, setSecondEdits] = useState<Record<string, string>>({});
   const secondFor = (b: Business) => secondEdits[b.id] ?? seconds[b.id] ?? "";
   const SecondBlock = ({ b }: { b: Business }) => (
@@ -121,9 +115,9 @@ export function BulkMessagesDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(STYLE_LABELS) as Style[]).map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {STYLE_LABELS[s]}
+                {approaches.list.map((s) => (
+                  <SelectItem key={s.key} value={s.key}>
+                    {s.label}
                   </SelectItem>
                 ))}
               </SelectContent>

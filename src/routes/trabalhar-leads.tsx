@@ -8,20 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
+import { useApproaches } from "@/features/prospector/templates";
 import { formatPhone, ratingLabel, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SiteBadge, SourceNotice, copyText } from "@/features/prospector/ui";
 
-const STYLES = [
-  { value: "curta", label: "Curta" },
-  { value: "natural", label: "Natural" },
-  { value: "comercial", label: "Comercial" },
-  { value: "curiosidade", label: "Desperta curiosidade" },
-  { value: "direto", label: "Direto" },
-] as const;
-
-type Style = (typeof STYLES)[number]["value"];
+type Style = string;
 
 export const Route = createFileRoute("/trabalhar-leads")({
   head: () => ({
@@ -46,6 +38,7 @@ export const Route = createFileRoute("/trabalhar-leads")({
 
 function WorkSavedLeads() {
   const { leads, profile, openLead } = useProspector();
+  const approaches = useApproaches();
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [running, setRunning] = useState(false);
   const [index, setIndex] = useState(0);
@@ -138,9 +131,9 @@ function WorkSavedLeads() {
     );
   }
 
-  const generated = buildMessages(current, profile)[style];
+  const generated = approaches.first(style, current, profile);
   const text = edits[current.id] ?? generated;
-  const second = secondEdits[current.id] ?? buildSecondMessages(current, profile)[style];
+  const second = secondEdits[current.id] ?? approaches.second(style, current, profile);
   const wa = whatsappLink(current.phone);
 
   return (
@@ -190,8 +183,8 @@ function WorkSavedLeads() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {STYLES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
+              {approaches.list.map((s) => (
+                <SelectItem key={s.key} value={s.key}>
                   {s.label}
                 </SelectItem>
               ))}

@@ -17,6 +17,13 @@ import { InstallAppCard } from "@/components/prospector/InstallApp";
 import { toCsv } from "@/features/prospector/generators";
 import { useProspector } from "@/features/prospector/store";
 import { PageHeader, SourceNotice } from "@/features/prospector/ui";
+import { Textarea } from "@/components/ui/textarea";
+import { buildMessages, buildSecondMessages } from "@/features/prospector/generators";
+import {
+  BUILTIN_STYLES, TEMPLATE_VARIABLES, deleteCustom, restoreBuiltin, saveCustom, saveOverride, useTemplatesState,
+  type BuiltinKey,
+} from "@/features/prospector/templates";
+import type { Business } from "@/types";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -172,6 +179,7 @@ function Configuracoes() {
         <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente neste navegador.</p>
       </Section>
 
+      <TemplatesSection />
       <ApiLimitSection />
       <AppearanceSection />
       <AccentSection />
@@ -286,6 +294,101 @@ function AppearanceSection() {
           );
         })}
       </div>
+    </Section>
+  );
+}
+
+/** Empresa-exemplo só para mostrar o texto padrão com variáveis no editor. */
+const SAMPLE = {
+  id: "", name: "{empresa}", category: "{categoria}", city: "{cidade}", neighborhood: "{bairro}", state: "",
+  rating: null, reviews: null, website: null, phone: null, address: null,
+} as unknown as Business;
+const SAMPLE_PROFILE = { personalName: "{meu_nome}", companyName: "{minha_empresa}" };
+
+function TemplatesSection() {
+  const state = useTemplatesState();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [first, setFirst] = useState("");
+  const [second, setSecond] = useState("");
+
+  const open = (key: string) => {
+    if (key.startsWith("custom:")) {
+      const c = state.custom.find((t) => `custom:${t.id}` === key);
+      setTitle(c?.title ?? "Novo modelo"); setFirst(c?.first ?? ""); setSecond(c?.second ?? "");
+    } else {
+      const k = key as BuiltinKey;
+      const o = state.overrides[k];
+      setTitle(o?.title || BUILTIN_STYLES.find((b) => b.key === k)!.label);
+      setFirst(o?.first || buildMessages(SAMPLE, SAMPLE_PROFILE)[k]);
+      setSecond(o?.second || buildSecondMessages(SAMPLE, SAMPLE_PROFILE)[k]);
+    }
+    setEditing(key);
+  };
+
+  const save = () => {
+    if (!editing) return;
+    if (!first.trim()) { toast.error("A 1ª mensagem não pode ficar vazia."); return; }
+    if (editing.startsWith("custom:")) saveCustom({ id: editing.slice(7), title: title.trim() || "Modelo sem nome", first, second });
+    else saveOverride(editing as BuiltinKey, { title: title.trim(), first, second });
+    toast.success("Modelo salvo. Já vale em todas as telas de abordagem.");
+    setEditing(null);
+  };
+
+  const rows = [
+    ...BUILTIN_STYLES.map((b) => ({ key: b.key as string, label: state.overrides[b.key]?.title || b.label, custom: false, edited: !!state.overrides[b.key] })),
+    ...state.custom.map((c) => ({ key: `custom:${c.id}`, label: c.title, custom: true, edited: false })),
+  ];
+
+  return (
+    <Section title="Modelos de Abordagem" description="Edite os textos usados em Abordar empresa, mensagens em lote e Trabalhar leads salvos.">
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border p-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{r.label}</p>
+              <p className="text-xs text-muted-foreground">{r.custom ? "Personalizado" : r.edited ? "Padrão editado" : "Padrão original"}</p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-1">
+              <Button size="sm" variant="outline" onClick={() => open(r.key)}>Editar</Button>
+              {!r.custom && r.edited ? (
+                <Button size="sm" variant="ghost" onClick={() => { restoreBuiltin(r.key as BuiltinKey); toast.success("Texto original restaurado."); }}>Restaurar</Button>
+              ) : null}
+              {r.custom ? (
+                <Button size="sm" variant="ghost" onClick={() => { deleteCustom(r.key.slice(7)); if (editing === r.key) setEditing(null); toast.success("Modelo excluído."); }}>Excluir</Button>
+              ) : null}
+            </div>
+          </div>
+        ))}
+        <Button variant="outline" className="w-full sm:w-auto" onClick={() => { const id = `${Date.now()}`; setTitle("Novo modelo"); setFirst(""); setSecond(""); setEditing(`custom:${id}`); }}>
+          Criar novo modelo
+        </Button>
+      </div>
+
+      {editing ? (
+        <div className="mt-4 space-y-3 rounded-xl border border-border p-3">
+          <div className="space-y-1">
+            <Label htmlFor="tpl-title">Nome da abordagem</Label>
+            <Input id="tpl-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="tpl-first">1ª mensagem — abertura</Label>
+            <Textarea id="tpl-first" rows={4} value={first} onChange={(e) => setFirst(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="tpl-second">2ª mensagem — apresentação</Label>
+            <Textarea id="tpl-second" rows={6} value={second} onChange={(e) => setSecond(e.target.value)} />
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Variáveis trocadas pelos dados de cada lead: {TEMPLATE_VARIABLES.map((v) => `${v.tag} (${v.label.toLowerCase()})`).join(", ")}.
+            Enquanto um modelo padrão não for editado, ele continua montado automaticamente com nota, avaliações e situação do site.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={save}>Salvar</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+          </div>
+        </div>
+      ) : null}
     </Section>
   );
 }
