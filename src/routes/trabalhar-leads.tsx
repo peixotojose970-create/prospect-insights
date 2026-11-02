@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { LanguagePicker } from "@/features/prospector/language";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Copy, MessageCircle, Play, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +46,11 @@ function WorkSavedLeads() {
   const [style, setStyle] = useState<Style>("natural");
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [secondEdits, setSecondEdits] = useState<Record<string, string>>({});
+  // Trocar o idioma mostra a versão traduzida, descartando edições no idioma anterior.
+  useEffect(() => {
+    setEdits({});
+    setSecondEdits({});
+  }, [approaches.lang]);
 
   const queue = useMemo(() => leads.filter((l) => picked[l.id]), [leads, picked]);
   const selectedCount = queue.length;
@@ -178,6 +184,7 @@ function WorkSavedLeads() {
         </div>
 
         <div className="space-y-2">
+          <LanguagePicker />
           <Select value={style} onValueChange={(v) => setStyle(v as Style)}>
             <SelectTrigger className="h-11 sm:h-9">
               <SelectValue />

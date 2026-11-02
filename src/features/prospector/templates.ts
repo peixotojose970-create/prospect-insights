@@ -1,3 +1,4 @@
+import { translate, useMessageLang } from "./language";
 import { useSyncExternalStore } from "react";
 import type { Business } from "@/types";
 import { buildMessages, buildSecondMessages } from "./generators";
@@ -105,6 +106,7 @@ export function fillTemplate(text: string, b: Business, profile?: SenderProfile)
 /** Lista de abordagens (padrão + personalizadas) e textos finais por lead, usados em toda a plataforma. */
 export function useApproaches() {
   const state = useTemplatesState();
+  const lang = useMessageLang();
   const list = [
     ...BUILTIN_STYLES.map((s) => ({ key: s.key as string, label: state.overrides[s.key]?.title?.trim() || s.label })),
     ...state.custom.map((c) => ({ key: `custom:${c.id}`, label: c.title || "Modelo sem nome" })),
@@ -122,7 +124,8 @@ export function useApproaches() {
   };
   return {
     list,
-    first: (key: string, b: Business, profile?: SenderProfile) => resolve(key, b, profile, 1),
-    second: (key: string, b: Business, profile?: SenderProfile) => resolve(key, b, profile, 2),
+    first: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 1), lang),
+    second: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 2), lang),
+    lang,
   };
 }

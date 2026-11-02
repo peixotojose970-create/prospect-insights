@@ -31,6 +31,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import type { Business } from "@/types";
 
 // Leaflet só funciona no navegador: carregado depois da hidratação.
+const MAP_PREF_KEY = "prospector:map-minimized:v1";
 const ResultsMap = lazy(() => import("@/components/prospector/ResultsMap"));
 
 export const Route = createFileRoute("/prospeccao")({
@@ -281,7 +282,17 @@ function Prospeccao() {
   const [minScore, setMinScore] = useState(0);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  // Preferência do mapa: fica salva neste navegador e só muda quando o usuário clica.
+  const [mapMinimized, setMapMinimizedState] = useState(true);
+  useEffect(() => {
+    const saved = window.localStorage.getItem(MAP_PREF_KEY);
+    setMapMinimizedState(saved === null ? window.matchMedia("(max-width: 767px)").matches : saved === "1");
+  }, []);
+  const toggleMap = () =>
+    setMapMinimizedState((v) => {
+      window.localStorage.setItem(MAP_PREF_KEY, v ? "0" : "1");
+      return !v;
+    });
   const [discoveryOffset, setDiscoveryOffset] = useState(0);
 
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
@@ -661,9 +672,9 @@ function Prospeccao() {
                       Modo rápido
                     </Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="md:hidden" onClick={() => setShowMap((v) => !v)}>
+                  <Button size="sm" variant="outline" onClick={toggleMap} aria-pressed={!mapMinimized}>
                     <MapIcon className="size-4" aria-hidden />
-                    {showMap ? "Ocultar mapa" : "Ver mapa"}
+                    {mapMinimized ? "Expandir mapa" : "Minimizar mapa"}
                   </Button>
                 </div>
               </div>
@@ -683,14 +694,16 @@ function Prospeccao() {
               ) : null}
             </section>
 
-            {/* No celular o mapa só carrega quando pedido, para economizar dados. */}
-            <div className={showMap ? "block" : "hidden md:block"}>
+            {/* Minimizado, o mapa é descarregado de verdade (nada roda em segundo plano). */}
+            {mapMinimized ? null : (
+            <div>
               <ClientOnly fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
                 <Suspense fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
                   <ResultsMap businesses={results} onSelect={(b: Business) => openLead(b.id)} />
                 </Suspense>
               </ClientOnly>
             </div>
+            )}
 
             <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {results.slice(0, limit).map((b) => (

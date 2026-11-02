@@ -1,3 +1,4 @@
+import { LanguagePicker } from "@/features/prospector/language";
 import { Copy, MessageCircle, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,7 @@ export function MessageDialog({
           <DialogTitle>Abordar empresa</DialogTitle>
           <DialogDescription>{business.name} — escolha o tom da abordagem.</DialogDescription>
         </DialogHeader>
+        <LanguagePicker />
         <Tabs defaultValue="curta">
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:flex">
             {tabs.map(([key, label]) => (

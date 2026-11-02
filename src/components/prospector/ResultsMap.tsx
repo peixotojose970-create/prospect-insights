@@ -49,6 +49,9 @@ export default function ResultsMap({
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guarda o callback mais recente sem recriar os marcadores a cada renderização da página.
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   const key = mapProvider.browserKey;
 
@@ -89,12 +92,25 @@ export default function ResultsMap({
     for (const business of shown) {
       const position = { lat: business.latitude, lng: business.longitude };
       const marker = new window.google.maps.Marker({ position, map, title: business.name });
-      marker.addListener("click", () => onSelect(business));
+      marker.addListener("click", () => onSelectRef.current(business));
       markersRef.current.push(marker);
       bounds.extend(position);
     }
     map.fitBounds(bounds, 32);
-  }, [ready, businesses, onSelect]);
+  }, [ready, businesses]);
+
+  // Ao recolher/sair da tela, remove marcadores e listeners para liberar memória.
+  useEffect(() => {
+    return () => {
+      for (const marker of markersRef.current) {
+        window.google?.maps.event.clearInstanceListeners(marker);
+        marker.setMap(null);
+      }
+      markersRef.current = [];
+      if (mapRef.current) window.google?.maps.event.clearInstanceListeners(mapRef.current);
+      mapRef.current = null;
+    };
+  }, []);
 
   if (error) {
     return (

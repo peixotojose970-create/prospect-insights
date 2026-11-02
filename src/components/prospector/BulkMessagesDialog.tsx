@@ -1,3 +1,4 @@
+import { LanguagePicker } from "@/features/prospector/language";
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, MessageCircle, Pause, Play, SkipForward } from "lucide-react";
 import { toast } from "sonner";
@@ -78,7 +79,7 @@ export function BulkMessagesDialog({
     setQueueOn(false);
     setIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, style]);
+  }, [open, style, approaches.lang]);
 
   const textFor = (b: Business) => texts[b.id] ?? generated[b.id] ?? "";
   const queue = useMemo(() => selection.filter((b) => chosen.includes(b.id)), [selection, chosen]);
@@ -110,6 +111,7 @@ export function BulkMessagesDialog({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <Label>Tipo de abordagem</Label>
+            <LanguagePicker />
             <Select value={style} onValueChange={(v) => setStyle(v as Style)}>
               <SelectTrigger className="h-11 w-full sm:w-52">
                 <SelectValue />
