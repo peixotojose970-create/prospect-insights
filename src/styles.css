@@ -315,3 +315,14 @@ html[data-hud="antiga"] .rounded-\[24px\] { border-radius: 0.75rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Celular: alvos de toque maiores, sem zoom no iOS ao focar campos, sem rolagem lateral */
+@media (max-width: 767px) {
+  html, body { overflow-x: hidden; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+  button, [role="button"], a[href] { touch-action: manipulation; }
+  [role="tab"] { min-height: 2.5rem; }
+  [role="menuitem"], [role="option"] { min-height: 2.75rem; }
+  table { font-size: 0.8125rem; }
+  img, video, canvas, iframe { max-width: 100%; }
+}
