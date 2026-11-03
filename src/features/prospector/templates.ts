@@ -1,4 +1,4 @@
-import { translate, useMessageLang } from "./language";
+import { resolveLang, translate, useMessageLang } from "./language";
 import { useSyncExternalStore } from "react";
 import type { Business } from "@/types";
 import { buildMessages, buildSecondMessages } from "./generators";
@@ -124,8 +124,8 @@ export function useApproaches() {
   };
   return {
     list,
-    first: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 1), lang),
-    second: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 2), lang),
+    first: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 1), resolveLang(lang, b.country)),
+    second: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 2), resolveLang(lang, b.country)),
     lang,
   };
 }

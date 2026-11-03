@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const LANG_NAMES = { es: "Spanish (Español neutro)", en: "American English" } as const;
+const LANG_NAMES = { "pt-PT": "European Portuguese (português de Portugal, natural for Portugal, e.g. 'telemóvel', 'está a', formal 'você'/3rd person)", es: "Spanish from Spain (español de España)", fr: "French from France", it: "Italian from Italy", en: "American English" } as const;
 
 /**
  * Traduz mensagens de abordagem mantendo a mesma estratégia: só muda o idioma.
@@ -11,7 +11,7 @@ export const translateMessages = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
       .object({
-        lang: z.enum(["es", "en"]),
+        lang: z.enum(["pt-PT", "es", "fr", "it", "en"]),
         texts: z.array(z.string().max(4000)).min(1).max(40),
       })
       .parse(data),

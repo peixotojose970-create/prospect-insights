@@ -2,18 +2,34 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { translateMessages } from "@/lib/translate.functions";
 
-export type MessageLang = "pt" | "es" | "en";
-export const MESSAGE_LANGS: { key: MessageLang; label: string }[] = [
-  { key: "pt", label: "Português" },
+export type MessageLang = "pt" | "pt-PT" | "es" | "fr" | "it" | "en";
+/** "auto" = idioma segue o país de cada empresa (padrão). */
+export type LangMode = MessageLang | "auto";
+export const MESSAGE_LANGS: { key: LangMode; label: string }[] = [
+  { key: "auto", label: "Automático (pelo país)" },
+  { key: "pt", label: "Português (BR)" },
+  { key: "pt-PT", label: "Português (PT)" },
   { key: "es", label: "Español" },
+  { key: "fr", label: "Français" },
+  { key: "it", label: "Italiano" },
   { key: "en", label: "English" },
 ];
+const COUNTRY_LANG: Record<string, MessageLang> = { BR: "pt", PT: "pt-PT", ES: "es", FR: "fr", IT: "it", US: "en" };
+/** Idioma da abordagem para o país do estabelecimento (sem país = Brasil). */
+export function langForCountry(country: string | null | undefined): MessageLang {
+  return COUNTRY_LANG[(country ?? "BR").toUpperCase()] ?? "pt";
+}
+/** Idioma final de uma mensagem: escolha manual ou, no automático, o país da empresa. */
+export function resolveLang(mode: LangMode, country: string | null | undefined): MessageLang {
+  return mode === "auto" ? langForCountry(country) : mode;
+}
+const VALID = new Set<string>(MESSAGE_LANGS.map((l) => l.key));
 
-const LANG_KEY = "prospector:message-lang:v1";
+const LANG_KEY = "prospector:message-lang:v2";
 const CACHE_KEY = "prospector:translations:v1";
 const MAX_CACHE = 2000;
 
-let lang: MessageLang = "pt";
+let lang: LangMode = "auto";
 let cache: Record<string, string> = {};
 let loaded = false;
 let version = 0;
@@ -26,7 +42,7 @@ function load() {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
   const l = window.localStorage.getItem(LANG_KEY);
-  if (l === "es" || l === "en" || l === "pt") lang = l;
+  if (l && VALID.has(l)) lang = l as LangMode;
   try {
     cache = JSON.parse(window.localStorage.getItem(CACHE_KEY) || "{}") as Record<string, string>;
   } catch {
@@ -49,20 +65,20 @@ function persist() {
   }
 }
 
-const keyOf = (l: MessageLang, text: string) => `${l}\u0000${text}`;
+const keyOf = (l: MessageLang, text: string) => `v2\u0000${l}\u0000${text}`;
 
 async function flush() {
   timer = null;
   const byLang: Record<string, string[]> = {};
   for (const k of pending) {
-    const [l, text] = k.split("\u0000") as [MessageLang, string];
+    const [, l, text] = k.split("\u0000") as [string, MessageLang, string];
     (byLang[l] ??= []).push(text);
   }
   pending.clear();
   for (const [l, texts] of Object.entries(byLang)) {
     for (let i = 0; i < texts.length; i += 20) {
       const chunk = texts.slice(i, i + 20);
-      const res = await translateMessages({ data: { lang: l as "es" | "en", texts: chunk } });
+      const res = await translateMessages({ data: { lang: l as Exclude<MessageLang, "pt">, texts: chunk } });
       if (res.translations) {
         chunk.forEach((t, j) => (cache[keyOf(l as MessageLang, t)] = res.translations![j]!));
         persist();
@@ -94,7 +110,7 @@ export function isTranslating(text: string, l: MessageLang) {
   return cache[k] === undefined && !failed.has(k);
 }
 
-export function setMessageLang(l: MessageLang) {
+export function setMessageLang(l: LangMode) {
   load();
   lang = l;
   failed.clear();
@@ -105,14 +121,14 @@ export function setMessageLang(l: MessageLang) {
 function subscribe(fn: () => void) {
   load();
   listeners.add(fn);
-  if (lang !== "pt") emit();
+  emit();
   return () => listeners.delete(fn);
 }
 
 /** Idioma atual das abordagens + versão do cache (re-render quando traduções chegam). */
 export function useMessageLang() {
   useSyncExternalStore(subscribe, () => version, () => 0);
-  return loaded ? lang : "pt";
+  return loaded ? lang : "auto";
 }
 
 export function LanguagePicker() {
