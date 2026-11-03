@@ -490,7 +490,7 @@ function Prospeccao() {
           <SheetHeader className="shrink-0 border-b border-border p-4 pr-14 text-left">
             <SheetTitle>Filtros</SheetTitle>
           </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+          <div className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_.space-y-2]:min-w-0 [&>*]:min-w-0">
             <FilterFields {...filterProps} idPrefix="mobile" />
           </div>
           <div className="flex shrink-0 gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
