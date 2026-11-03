@@ -486,12 +486,14 @@ function Prospeccao() {
       </Card>
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl p-5 md:hidden">
-          <SheetHeader className="p-0 pb-4">
+        <SheetContent side="bottom" className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:hidden">
+          <SheetHeader className="shrink-0 border-b border-border p-4 pr-14 text-left">
             <SheetTitle>Filtros</SheetTitle>
           </SheetHeader>
-          <FilterFields {...filterProps} idPrefix="mobile" />
-          <div className="mt-6 flex gap-2 pb-[env(safe-area-inset-bottom)]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+            <FilterFields {...filterProps} idPrefix="mobile" />
+          </div>
+          <div className="flex shrink-0 gap-2 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <Button
               variant="outline"
               className="h-12 flex-1"

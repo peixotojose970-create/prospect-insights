@@ -39,14 +39,14 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile: bottom sheet com altura limitada e rolagem. Desktop: modal centralizado.
-        "fixed bottom-0 left-[50%] z-50 grid max-h-[92dvh] w-full max-w-lg translate-x-[-50%] gap-4 overflow-y-auto rounded-t-2xl border border-border/80 bg-card p-5 shadow-[0_-12px_36px_rgb(15_23_42/0.16)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-[50%] sm:max-h-[85dvh] sm:translate-y-[-50%] sm:rounded-xl sm:p-6 sm:shadow-[0_24px_64px_rgb(15_23_42/0.18)] sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+        "fixed bottom-0 left-[50%] z-50 grid max-h-[92dvh] w-full max-w-lg translate-x-[-50%] gap-4 overflow-y-auto rounded-t-2xl border border-border/80 bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_36px_rgb(15_23_42/0.16)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-[50%] sm:max-h-[85dvh] sm:translate-y-[-50%] sm:rounded-xl sm:p-6 sm:shadow-[0_24px_64px_rgb(15_23_42/0.18)] sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-        <X className="h-4 w-4" />
+      <DialogPrimitive.Close className="absolute right-2 top-2 z-10 grid size-11 place-items-center rounded-full bg-muted/80 sm:right-4 sm:top-4 sm:size-auto sm:rounded-sm sm:bg-transparent opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <X className="h-5 w-5 sm:h-4 sm:w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
