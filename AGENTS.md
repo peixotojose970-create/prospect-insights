@@ -11,3 +11,4 @@
 
 - Category browsing derives groups and selectable subcategories from existing country-specific search terms; expand the catalog only after checking the user's source list to avoid invented or omitted categories.
 - Opportunity quick mode uses the shared Prospector store's search and save actions, never a separate provider or CRM; filtering saved/contacted companies stays local to this mode to preserve Prospecção rápida.
+- Prospecção uses one existing CategoryPicker; multi-category searches call the shared search action sequentially and append results to preserve provider logic and deduplication.

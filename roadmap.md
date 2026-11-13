@@ -1,5 +1,6 @@
 # Atualização do Prospector
 
+- [x] Unificar categorias na Prospecção, preservar o catálogo e pesquisar todos os termos selecionados; 12 testes passaram, seletor e rolagem verificados em 320/390/1280px e busca real com duas categorias retornou 57 empresas em Campinas.
 - [x] Organizar e tornar pesquisáveis as categorias existentes, preservando os termos por país.
 - [x] Adicionar Modo rápido em Oportunidades usando a busca e o salvamento existentes.
 - [x] Melhorar seleção, localização e rolagem no celular; verificar larguras de 320, 360, 390, 430, tablet e desktop.

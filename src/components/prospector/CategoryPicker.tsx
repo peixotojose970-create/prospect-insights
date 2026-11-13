@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
-export function CategoryPicker({ country, selected, onChange, multiple = false, disabled = false }: {
-  country: string; selected: string[]; onChange: (terms: string[]) => void; multiple?: boolean; disabled?: boolean;
+export function CategoryPicker({ country, selected, onChange, multiple = false, disabled = false, includeLegacy = false }: {
+  country: string; selected: string[]; onChange: (terms: string[]) => void; multiple?: boolean; disabled?: boolean; includeLegacy?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<string[]>([]);
-  const groups = useMemo(() => categoryGroups(country), [country]);
+  const groups = useMemo(() => categoryGroups(country, includeLegacy), [country, includeLegacy]);
   const term = normalizeCategory(query.trim());
   const visible = groups.map((group) => ({ ...group, options: group.options.filter((option) => normalizeCategory(`${group.label} ${option.label} ${option.term}`).includes(term)) })).filter((group) => group.options.length);
   const labels = new Map(groups.flatMap((g) => g.options.map((o) => [o.term, o.label] as const)));

@@ -19,11 +19,12 @@ import { CATEGORY_LABELS } from "@/features/prospector/osmCategories";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { BRAZILIAN_STATES, STATES } from "@/data/brazil";
-import { segmentByTerm, segmentsForCountry } from "@/data/segments";
+import { segmentsForCountry } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { citiesOf, regionOfCity, regionsOf } from "@/data/geo";
 import { GeoCombobox } from "@/components/prospector/GeoCombobox";
 import { CategoryPicker } from "@/components/prospector/CategoryPicker";
+import { searchSelectedCategories } from "@/features/prospector/category-search";
 
 function regionLabel(country: string, region: string) {
   return country === "BR" && region in BRAZILIAN_STATES ? `${BRAZILIAN_STATES[region as keyof typeof BRAZILIAN_STATES].name} (${region})` : region;
@@ -77,10 +78,10 @@ const DEFAULT_STATE: Record<Country, string> = { BR: "SP", US: "FL", PT: "", ES:
 const DEFAULT_CATEGORY: Record<Country, string> = {
   BR: CATEGORY_LABELS[0] ?? "Restaurante",
   US: US_CATEGORY_LABELS[0] ?? "house cleaning",
-  PT: segmentsForCountry("PT")[0]!.us,
-  ES: segmentsForCountry("ES")[0]!.us,
-  FR: segmentsForCountry("FR")[0]!.us,
-  IT: segmentsForCountry("IT")[0]!.us,
+  PT: segmentsForCountry("PT")[0]?.us ?? "",
+  ES: segmentsForCountry("ES")[0]?.us ?? "",
+  FR: segmentsForCountry("FR")[0]?.us ?? "",
+  IT: segmentsForCountry("IT")[0]?.us ?? "",
 };
 
 function parseLocations(city: string, expanded: string) {
@@ -92,8 +93,6 @@ type FilterProps = {
   idPrefix: string;
   country: Country;
   setCountry: (v: Country) => void;
-  category: string;
-  setCategory: (v: string) => void;
   city: string;
   setCity: (v: string) => void;
   locationsText: string;
@@ -113,13 +112,9 @@ function FilterFields(p: FilterProps) {
   const isUS = p.country !== "BR";
   const isEU = isUS && p.country !== "US";
   const states: readonly string[] = p.country === "US" ? US_STATES : STATES;
-  const baseCategories: readonly string[] = isEU ? segmentsForCountry(p.country).map((s) => s.us) : isUS ? US_CATEGORY_LABELS : CATEGORY_LABELS;
-  // Termos vindos dos segmentos não estão na lista fixa: incluímos para o seletor
-  // sempre refletir a categoria que será realmente pesquisada.
-  const categories = baseCategories.includes(p.category) ? baseCategories : [p.category, ...baseCategories];
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-2">
           <Label>País</Label>
           <Select value={p.country} onValueChange={(v) => p.setCountry(v as Country)}>
@@ -132,20 +127,6 @@ function FilterFields(p: FilterProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
-          {/* Radix limpa o valor quando o item sai da lista: nunca aceitar vazio,
-              senão a categoria/segmento escolhido se perde antes da próxima busca. */}
-          <GeoCombobox value={p.category} options={categories.map((c) => ({ value: c, label: c }))} placeholder="Escolha a categoria" searchPlaceholder="Pesquisar categoria..." onSelect={(option) => option && p.setCategory(option.value)} />
-          <Input
-            className="h-10"
-            value={p.category}
-            onChange={(e) => p.setCategory(e.target.value)}
-            placeholder="Ou digite outro segmento"
-            aria-label="Categoria ou segmento personalizado"
-          />
-          <p className="text-[11px] leading-relaxed text-muted-foreground">Você pode substituir a sugestão por qualquer categoria, segmento amplo ou termo comercial.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${p.idPrefix}-cidade`}>{isUS ? "Cidade" : "Cidade, bairro ou região"}</Label>
@@ -263,7 +244,10 @@ function Prospeccao() {
 
   const [query, setQuery] = useState("");
   const [country, setCountryState] = useState<Country>("BR");
-  const [category, setCategory] = useState(DEFAULT_CATEGORY.BR);
+  const [categories, setCategories] = useState<string[]>([DEFAULT_CATEGORY.BR]);
+  const [searchingCategories, setSearchingCategories] = useState(false);
+  const [categoryProgress, setCategoryProgress] = useState("");
+  const busy = searchingCategories || search.status === "loading" || loadingMore;
   const [city, setCity] = useState("");
   const [locationsText, setLocationsText] = useState("");
   const [state, setState] = useState(DEFAULT_STATE.BR);
@@ -289,7 +273,7 @@ function Prospeccao() {
   const setCountry = (next: Country) => {
     if (next === country) return;
     setCountryState(next);
-    setCategory(DEFAULT_CATEGORY[next]);
+    setCategories([DEFAULT_CATEGORY[next]]);
     setState(DEFAULT_STATE[next]);
     setCity("");
     setLocationsText("");
@@ -315,8 +299,6 @@ function Prospeccao() {
     idPrefix: "desktop",
     country,
     setCountry,
-    category,
-    setCategory,
     city,
     setCity,
     locationsText,
@@ -333,9 +315,8 @@ function Prospeccao() {
 
   const activeFilters = [onlyNoSite, onlyPhone, minScore > 0].filter(Boolean).length;
 
-  const activeSegment = segmentByTerm(category, isUS, country);
   const selectedLocations = useMemo(() => parseLocations(city, locationsText), [city, locationsText]);
-  const buildCriteria = (nextCategory = category) => ({
+  const buildCriteria = (nextCategory = categories[0] ?? "") => ({
     category: nextCategory,
     city,
     state,
@@ -344,17 +325,30 @@ function Prospeccao() {
     ...(isUS ? { country } : {}),
   });
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const startSearch = async () => {
+    if (busy || !categories.length) return;
     if (isUS && !city.trim()) {
       setFiltersOpen(true);
       return;
     }
     setDiscoveryOffset(0);
     setFiltersOpen(false);
-    void runSearch(buildCriteria());
+    setSearchingCategories(true);
+    const { category: _category, ...location } = buildCriteria();
+    try {
+      await searchSelectedCategories(categories, location, runSearch, (current, total) => {
+        setCategoryProgress(`Categoria ${current} de ${total}`);
+      });
+    } finally {
+      setSearchingCategories(false);
+      setCategoryProgress("");
+    }
   };
 
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void startSearch();
+  };
 
   return (
     <div className={selection.length > 0 ? "space-y-5 pb-40 lg:pb-28" : "space-y-5"}>
@@ -383,7 +377,7 @@ function Prospeccao() {
                 className="h-12 bg-background text-base shadow-sm"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={isUS ? "Use os filtros: tipo, cidade e estado" : "Nome ou termo opcional: Ex.: São Jorge Barbearia"}
+                placeholder="Nome ou termo opcional: Ex.: São Jorge Barbearia"
               />
             </div>
             <div className="flex gap-2">
@@ -396,8 +390,8 @@ function Prospeccao() {
                 <SlidersHorizontal className="size-4" aria-hidden />
                 Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}
               </Button>
-              <Button type="submit" className="h-12 flex-1 px-5 lg:flex-none" disabled={search.status === "loading"}>
-                {search.status === "loading" ? (
+              <Button type="submit" className="h-12 flex-1 px-5 lg:flex-none" disabled={busy || !categories.length}>
+                {busy ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : (
                   <Search className="size-4" aria-hidden />
@@ -428,20 +422,10 @@ function Prospeccao() {
               Selecione um segmento para pesquisar empresas com potencial para uma presença digital. Os resultados sem site informado recebem prioridade.
             </p>
           </div>
-          {activeSegment ? (
-            <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
-              Ativo: {activeSegment.label}
-            </span>
-          ) : null}
         </div>
-        <CategoryPicker country={country} selected={category ? [category] : []} onChange={(terms) => { setCategory(terms[0] ?? ""); setQuery(""); }} />
-        <Button disabled={!category.trim() || search.status === "loading"} onClick={() => { if (isUS && !city.trim()) { setFiltersOpen(true); return; } setDiscoveryOffset(0); const { term: ignoredTerm, ...criteria } = buildCriteria(); void runSearch(criteria); }}><Search className="size-4" />Buscar categoria selecionada</Button>
-        {activeSegment ? (
-          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-            Busca configurada para <span className="font-medium text-foreground">{category}</span>
-            {isUS ? (city.trim() ? ` em ${[city, state].filter(Boolean).join(" - ")}` : "") : selectedLocations.length ? ` nas localidades selecionadas: ${selectedLocations.join(" · ")}` : ` nas cidades planejadas de ${BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name}`}.
-          </p>
-        ) : null}
+        <CategoryPicker key={country} country={country} selected={categories} onChange={setCategories} multiple includeLegacy disabled={busy} />
+        <Button disabled={!categories.length || busy} onClick={() => void startSearch()} className="h-auto min-h-11 whitespace-normal"><Search className="size-4 shrink-0" />Buscar empresas</Button>
+        {searchingCategories ? <p role="status" className="text-sm text-muted-foreground">{categoryProgress}</p> : null}
         {isUS && !city.trim() ? (
           <p className="rounded-md bg-muted/70 px-3 py-2 text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
@@ -469,10 +453,9 @@ function Prospeccao() {
             </Button>
             <Button
               className="h-12 flex-1"
+              disabled={busy || !categories.length}
               onClick={() => {
-                setFiltersOpen(false);
-                setDiscoveryOffset(0);
-                if (!isUS || city.trim()) void runSearch(buildCriteria());
+                void startSearch();
               }}
             >
               Aplicar
@@ -494,7 +477,7 @@ function Prospeccao() {
                 onClick={() => {
                   const savedCountry = s.country ?? "BR";
                   setCountry(savedCountry);
-                  setCategory(s.category);
+                  setCategories([s.category]);
                   setCity(s.city);
                   setLocationsText((s.locations ?? []).filter((location) => location !== s.city).join("; "));
                   setState(s.state);
@@ -506,7 +489,7 @@ function Prospeccao() {
                     state: s.state,
                     ...(s.locations?.length ? { locations: s.locations } : {}),
                     ...(s.term ? { term: s.term } : {}),
-                    ...(savedCountry === "US" ? { country: "US" as const } : {}),
+                    country: savedCountry,
                   });
                 }}
               >
@@ -520,7 +503,7 @@ function Prospeccao() {
         </div>
       ) : null}
 
-      {search.status === "loading" ? (
+      {busy ? (
         <div className="space-y-3">
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -542,7 +525,7 @@ function Prospeccao() {
           }`}
           action={
             search.criteria ? (
-              <Button variant="outline" onClick={() => void runSearch(search.criteria!)}>
+              <Button variant="outline" onClick={() => { if (search.criteria) void runSearch(search.criteria); }}>
                 Tentar novamente
               </Button>
             ) : null
@@ -571,11 +554,12 @@ function Prospeccao() {
                 <Button
                   variant="outline"
                   onClick={() => {
+                    if (!search.criteria) return;
                     const nextOffset = discoveryOffset + 3;
                     setDiscoveryOffset(nextOffset);
-                    void runSearch({ ...search.criteria!, discoveryOffset: nextOffset }, true);
+                    void runSearch({ ...search.criteria, discoveryOffset: nextOffset }, true);
                   }}
-                  disabled={loadingMore}
+                  disabled={busy}
                 >
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
                   Encontrar mais empresas
@@ -606,7 +590,7 @@ function Prospeccao() {
                     ) : null}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Categoria: <span className="font-medium text-foreground">{category}</span>
+                    {isUS ? "Local da busca" : "Área da busca"}
                     {isUS ? (city.trim() ? <> · Local: <span className="font-medium text-foreground">{[city, state].filter(Boolean).join(" - ")}</span></> : null) : selectedLocations.length ? <> · Locais selecionados: <span className="font-medium text-foreground">{selectedLocations.join(" · ")}</span></> : <> · Estado: <span className="font-medium text-foreground">{BRAZILIAN_STATES[state as keyof typeof BRAZILIAN_STATES].name} ({state})</span></>}
                   </p>
                 </div>
@@ -682,19 +666,20 @@ function Prospeccao() {
                 </Button>
               ) : null}
               {search.outcome?.nextPageToken ? (
-                <Button variant="outline" className="h-12 w-full sm:w-auto" onClick={() => void loadMore()} disabled={loadingMore}>
+                <Button variant="outline" className="h-12 w-full sm:w-auto" onClick={() => void loadMore()} disabled={busy}>
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
                   Carregar mais
                 </Button>
               ) : null}
               {search.criteria && !isUS && search.outcome?.coverage?.hasMoreAreas ? (
-                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={loadingMore}
+                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={busy}
                   onClick={() => {
+                    if (!search.criteria) return;
                     // O servidor consulta três áreas por lote; avançar pelo mesmo
                     // tamanho evita repetir cidades e mantém o progresso correto.
                     const nextOffset = discoveryOffset + 3;
                     setDiscoveryOffset(nextOffset);
-                    void runSearch({ ...search.criteria!, discoveryOffset: nextOffset }, true);
+                    void runSearch({ ...search.criteria, discoveryOffset: nextOffset }, true);
                   }}>
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
                   Encontrar mais empresas
