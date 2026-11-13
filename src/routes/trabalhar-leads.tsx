@@ -14,6 +14,7 @@ import { formatPhone, ratingLabel, whatsappLink } from "@/features/prospector/fo
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SiteBadge, SourceNotice, copyText } from "@/features/prospector/ui";
 import { MessageStatus } from "@/components/prospector/MessageStatus";
+import { useCountryPreference, setCountryPreference, useProspectingPreferences } from "@/features/prospector/preferences";
 
 type Style = string;
 
@@ -44,18 +45,21 @@ function WorkSavedLeads() {
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [running, setRunning] = useState(false);
   const [index, setIndex] = useState(0);
-  const [style, setStyle] = useState<Style>("natural");
+  const preferences = useProspectingPreferences();
+  const queue = useMemo(() => leads.filter((l) => picked[l.id]), [leads, picked]);
+  const selectedCount = queue.length;
+  const current = queue[index];
+  const country = current?.country ?? preferences.country;
+  const preference = useCountryPreference(country);
+  const style = preference.style;
+  const setStyle = (style: Style) => setCountryPreference(country, { style });
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [secondEdits, setSecondEdits] = useState<Record<string, string>>({});
   // Trocar o idioma mostra a versão traduzida, descartando edições no idioma anterior.
   useEffect(() => {
     setEdits({});
     setSecondEdits({});
-  }, [approaches.lang]);
-
-  const queue = useMemo(() => leads.filter((l) => picked[l.id]), [leads, picked]);
-  const selectedCount = queue.length;
-  const current = queue[index];
+  }, [preference.language, style]);
 
   const toggle = (id: string) => setPicked((p) => ({ ...p, [id]: !p[id] }));
   const setAll = (value: boolean) =>
@@ -185,7 +189,7 @@ function WorkSavedLeads() {
         </div>
 
         <div className="space-y-2">
-          <LanguagePicker />
+          <LanguagePicker country={country} />
           <MessageStatus {...approaches.status(style, current, profile)} />
           <Select value={style} onValueChange={(v) => setStyle(v as Style)}>
             <SelectTrigger className="h-11 sm:h-9">

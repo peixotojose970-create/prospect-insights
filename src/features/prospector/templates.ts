@@ -4,6 +4,9 @@ import type { Business } from "@/types";
 import { buildMessages, buildSecondMessages } from "./generators";
 import { useRouterState } from "@tanstack/react-router";
 import { localizedPair, useLocalizedPairs } from "./localized-pairs";
+import { useProspectingPreferences } from "./preferences";
+import { countryPreference } from "./preference-model";
+import { isProspectCountry } from "@/data/countries";
 
 type SenderProfile = { personalName: string; companyName: string };
 
@@ -110,7 +113,10 @@ export function useApproaches() {
   const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
   useLocalizedPairs();
   const state = useTemplatesState();
-  const lang = useMessageLang();
+  const legacyLang = useMessageLang();
+  const preferences = useProspectingPreferences();
+  const lang = legacy ? legacyLang : countryPreference(preferences, preferences.country).language;
+  const languageFor = (b: Business) => resolveLang(countryPreference(preferences, b.country && isProspectCountry(b.country) ? b.country : "BR").language, b.country);
   const list = [
     ...BUILTIN_STYLES.map((s) => ({ key: s.key as string, label: state.overrides[s.key]?.title?.trim() || s.label })),
     ...state.custom.map((c) => ({ key: `custom:${c.id}`, label: c.title || "Modelo sem nome" })),
@@ -128,9 +134,9 @@ export function useApproaches() {
   };
   return {
     list,
-    first: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 1), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key).first,
-    second: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 2), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key).second,
-    status: (key: string, b: Business, profile?: SenderProfile) => legacy ? { pending: false, error: null } : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key),
+    first: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 1), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), languageFor(b), b, key).first,
+    second: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 2), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), languageFor(b), b, key).second,
+    status: (key: string, b: Business, profile?: SenderProfile) => legacy ? { pending: false, error: null } : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), languageFor(b), b, key),
     lang,
   };
 }

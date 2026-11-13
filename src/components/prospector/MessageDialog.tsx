@@ -16,6 +16,7 @@ import { copyText } from "@/features/prospector/ui";
 import type { Business } from "@/types";
 import { MessageStatus } from "./MessageStatus";
 import { useRouterState } from "@tanstack/react-router";
+import { useCountryPreference, setCountryPreference } from "@/features/prospector/preferences";
 
 export function MessageDialog({
   business,
@@ -27,10 +28,13 @@ export function MessageDialog({
   const { logHistory, isSaved, saveLead, registerContact, profile } = useProspector();
   const approaches = useApproaches();
   const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
+  const country = business?.country ?? "BR";
+  const preference = useCountryPreference(country);
   if (!business) return null;
   const messages: Record<string, string> = {};
   const seconds: Record<string, string> = {};
-  for (const a of approaches.list) {
+  const selected = approaches.list.some((item) => item.key === preference.style) ? preference.style : "curta";
+  for (const a of approaches.list.filter((item) => legacy || item.key === selected)) {
     messages[a.key] = approaches.first(a.key, business, profile);
     seconds[a.key] = approaches.second(a.key, business, profile);
   }
@@ -50,8 +54,8 @@ export function MessageDialog({
           <DialogTitle>Abordar empresa</DialogTitle>
           <DialogDescription>{business.name} — escolha o tom da abordagem.</DialogDescription>
         </DialogHeader>
-        <LanguagePicker />
-        <Tabs defaultValue="curta">
+        <LanguagePicker country={country} />
+        <Tabs {...(legacy ? { defaultValue: "curta" } : { value: selected, onValueChange: (style: string) => setCountryPreference(country, { style }) })}>
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:flex">
             {tabs.map(([key, label]) => (
               <TabsTrigger key={key} value={key} className="min-h-9 sm:flex-1">

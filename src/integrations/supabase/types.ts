@@ -50,6 +50,27 @@ export type Database = {
         }
         Relationships: []
       }
+      prospecting_preferences: {
+        Row: {
+          countries: Json
+          selected_country: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          countries?: Json
+          selected_country?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          countries?: Json
+          selected_country?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prospector_access_keys: {
         Row: {
           account_number: number

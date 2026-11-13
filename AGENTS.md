@@ -14,4 +14,5 @@
 - Prospecção uses one existing CategoryPicker; multi-category searches call the shared search action sequentially and append results to preserve provider logic and deduplication.
 - Country metadata lives in a shared browser-safe configuration; international Places calls validate a geocoded rectangle and returned country, with bounded sequential pages and a query-bound continuation cursor to avoid cross-country leakage.
 - International search requires a verified app session before billable calls; legacy Brazilian search is unchanged to preserve the existing quick flow.
-- Non-quick outreach adapts both message stages together with explicit loading/error states and independent language validation; /rapido retains its legacy message path and phone-helper defaults.
+- Non-quick outreach translates both existing Brazilian message stages faithfully, with bounded requests and explicit loading/error states; /rapido retains its legacy message path and phone-helper defaults.
+- Prospecting preferences use one owner-scoped cloud row with a per-country map and user-scoped local fallback; serialize writes to prevent older selections overwriting newer choices.

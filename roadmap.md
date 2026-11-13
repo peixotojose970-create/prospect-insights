@@ -1,7 +1,12 @@
 # Atualização do Prospector
 
+- [x] Tratar ausência e expiração de acesso internacional antes de consultar Google Maps; Brasil e /rapido preservados.
+- [x] Encerrar carregamento de traduções com timeout, recuperação manual e fidelidade aos modelos brasileiros; traduções reais PT/ES/FR/IT passaram.
+- [x] Persistir país, abordagem e idioma por país na nuvem e localmente; restauração local e isolamento PT/ES verificados.
+- [ ] Comprovar gravação e restauração autenticada na nuvem — bloqueado: nenhuma conta existente para obter sessão de teste.
+
 - [x] Centralizar configuração de países e corrigir consultas internacionais, paginação e localidades sem editar /rapido.
-- [x] Adaptar duas etapas ao contexto local, validar idioma e impedir envio de geração incompleta; adaptações reais PT/ES/FR/IT verificadas.
+- [x] Traduzir duas etapas preservando modelos brasileiros, validar idioma e impedir envio de geração incompleta; traduções reais PT/ES/FR/IT verificadas.
 - [x] Executar 37 testes e verificar troca de países, persistência, campos e filtros em desktop e celular sem erros.
 - [ ] Validar buscas reais BR/PT/ES/FR/IT no domínio publicado — bloqueado: Google Maps não pode ser validado no sandbox; a busca internacional requer conta confirmada, atualmente não há contas.
 - [ ] Completar sugestões de todas as divisões administrativas e comprovar cobertura internacional de cada categoria — bloqueado: falta a lista-fonte completa e validação real do Google Maps.

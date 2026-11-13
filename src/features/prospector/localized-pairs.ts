@@ -1,22 +1,26 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { translateMessages } from "@/lib/translate.functions";
 import type { MessageLang } from "@/data/countries";
 import type { Business } from "@/types";
+import { withRequestTimeout } from "./request-timeout";
 
 type Pair = { first: string; second: string; pending: boolean; error: string | null };
 const pairs = new Map<string, Pair>();
 const listeners = new Set<() => void>();
 const jobs: (() => Promise<void>)[] = [];
-let running = false;
+let active = 0;
+function drain() {
+  while (active < 2 && jobs.length) {
+    const job = jobs.shift();
+    if (!job) return;
+    active++;
+    void job().finally(() => { active--; drain(); });
+  }
+}
 let version = 0;
 const emit = () => { version++; listeners.forEach((listener) => listener()); };
 export function useLocalizedPairs() {
   useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version, () => 0);
-  useEffect(() => {
-    if (running || !jobs.length) return;
-    running = true;
-    void (async () => { try { while (jobs.length) { const job = jobs.shift(); if (job) await job(); } } finally { running = false; } })();
-  });
 }
 export function localizedPair(first: string, second: string, lang: MessageLang, business: Business, style: string): Pair {
   if (lang === "pt") return { first, second, pending: false, error: null };
@@ -24,16 +28,20 @@ export function localizedPair(first: string, second: string, lang: MessageLang, 
   const hit = pairs.get(key);
   if (hit) return hit;
   const initial: Pair = { first: "", second: "", pending: true, error: null };
+  // Schedule independently of React effects: a closed dialog cannot strand the queue.
+  if (typeof window === "undefined") return initial;
   pairs.set(key, initial);
   jobs.push(async () => {
+    let completed: Pair = { first: "", second: "", pending: false, error: "Não foi possível traduzir a abordagem." };
     try {
-      const result = await translateMessages({ data: { lang, texts: [first, second], country: business.country ?? "BR", context: { company: business.name, category: business.category, city: business.city, style } } });
+      const result = await withRequestTimeout(translateMessages({ data: { lang, texts: [first, second], country: business.country ?? "BR", context: { company: business.name, category: business.category, city: business.city, style } } }), 65_000);
       const opening = result.translations?.[0];
       const proposal = result.translations?.[1];
-      pairs.set(key, opening && proposal ? { first: opening, second: proposal, pending: false, error: null } : { first: "", second: "", pending: false, error: result.error ?? "Não foi possível adaptar a abordagem." });
-    } catch { pairs.set(key, { first: "", second: "", pending: false, error: "Não foi possível gerar a abordagem. Verifique a conexão e tente novamente." }); }
-    emit();
+      completed = opening && proposal ? { first: opening, second: proposal, pending: false, error: null } : { ...completed, error: result.error ?? completed.error };
+    } catch (error) { completed.error = error instanceof Error ? error.message : "Não foi possível gerar a abordagem. Verifique a conexão e tente novamente."; }
+    finally { if (pairs.get(key) === initial) { pairs.set(key, completed); emit(); } }
   });
+  setTimeout(drain, 0);
   return initial;
 }
 export function retryLocalizedPairs() {

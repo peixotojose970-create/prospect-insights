@@ -1,0 +1,20 @@
+import { afterEach, expect, it, vi } from "vitest";
+const translator = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/translate.functions", () => ({ translateMessages: translator }));
+import { localizedPair } from "./localized-pairs";
+import type { Business } from "@/types";
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); translator.mockReset(); });
+it("uma seleção antiga não substitui o idioma novo", async () => {
+  vi.stubGlobal("window", {});
+  vi.useFakeTimers();
+  let completeFrench: ((value: { translations: string[]; error: null }) => void) | undefined;
+  translator.mockImplementationOnce(() => new Promise((resolve) => { completeFrench = resolve; })).mockResolvedValueOnce({ translations: ["Apertura", "Proposta"], error: null });
+  const business = { name: "Empresa", city: null, country: "FR", category: "Serviço" } as Business;
+  localizedPair("Abertura", "Proposta", "fr", business, "curta");
+  localizedPair("Abertura", "Proposta", "it", business, "curta");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(localizedPair("Abertura", "Proposta", "it", business, "curta").first).toBe("Apertura");
+  completeFrench?.({ translations: ["Bonjour", "Proposition"], error: null });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(localizedPair("Abertura", "Proposta", "it", business, "curta").first).toBe("Apertura");
+});

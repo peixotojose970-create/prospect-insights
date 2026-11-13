@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
@@ -15,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/prospector/AppShell";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { usePreferenceSync } from "@/features/prospector/preferences";
 
 function NotFoundComponent() {
   return (
@@ -135,6 +137,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
+  usePreferenceSync(!legacy);
 
   return (
     <QueryClientProvider client={queryClient}>

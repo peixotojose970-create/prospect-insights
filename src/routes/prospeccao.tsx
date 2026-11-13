@@ -27,6 +27,9 @@ import { CategoryPicker } from "@/components/prospector/CategoryPicker";
 import { COUNTRY_CONFIG, isProspectCountry } from "@/data/countries";
 import { InternationalAccess } from "@/components/prospector/InternationalAccess";
 import { searchSelectedCategories } from "@/features/prospector/category-search";
+import { selectProspectingCountry, useProspectingPreferences, useCountryPreference, setCountryPreference } from "@/features/prospector/preferences";
+import { LanguagePicker } from "@/features/prospector/language";
+import { useApproaches } from "@/features/prospector/templates";
 
 function regionLabel(country: string, region: string) {
   return country === "BR" && region in BRAZILIAN_STATES ? `${BRAZILIAN_STATES[region as keyof typeof BRAZILIAN_STATES].name} (${region})` : region;
@@ -249,7 +252,9 @@ function Prospeccao() {
   } = useProspector();
 
   const [query, setQuery] = useState("");
-  const [country, setCountryState] = useState<Country>("BR");
+  const { country } = useProspectingPreferences();
+  const preference = useCountryPreference(country);
+  const approaches = useApproaches();
   const [categories, setCategories] = useState<string[]>([DEFAULT_CATEGORY.BR]);
   const [searchingCategories, setSearchingCategories] = useState(false);
   const [categoryProgress, setCategoryProgress] = useState("");
@@ -257,7 +262,7 @@ function Prospeccao() {
   const [city, setCity] = useState("");
   const [locationsText, setLocationsText] = useState("");
   const [subdivisions, setSubdivisions] = useState<string[]>([]);
-  useEffect(() => { const saved = localStorage.getItem("prospector:country:v1"); if (saved && isProspectCountry(saved)) { setCountryState(saved); setCategories([DEFAULT_CATEGORY[saved]]); setState(DEFAULT_STATE[saved]); } }, []);
+  useEffect(() => { setCategories([DEFAULT_CATEGORY[country]]); setState(DEFAULT_STATE[country]); setCity(""); setLocationsText(""); setSubdivisions([]); setQuery(""); }, [country]);
   const [state, setState] = useState(DEFAULT_STATE.BR);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
@@ -280,8 +285,7 @@ function Prospeccao() {
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
   const setCountry = (next: Country) => {
     if (!isProspectCountry(next) || next === country) return;
-    setCountryState(next);
-    localStorage.setItem("prospector:country:v1", next);
+    selectProspectingCountry(next);
     setSubdivisions([]);
     setCategories([DEFAULT_CATEGORY[next]]);
     setState(DEFAULT_STATE[next]);
@@ -437,6 +441,13 @@ function Prospeccao() {
           </div>
         </div>
         <CategoryPicker key={country} country={country} selected={categories} onChange={setCategories} multiple includeLegacy disabled={busy} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={preference.style} onValueChange={(style) => setCountryPreference(country, { style })}>
+            <SelectTrigger aria-label="Tipo de abordagem" className="w-full sm:w-56"><SelectValue placeholder="Tipo de abordagem" /></SelectTrigger>
+            <SelectContent>{approaches.list.map((item) => <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <LanguagePicker country={country} />
+        </div>
         <Button disabled={!categories.length || busy} onClick={() => void startSearch()} className="h-auto min-h-11 whitespace-normal"><Search className="size-4 shrink-0" />Buscar empresas</Button>
         {searchingCategories ? <p role="status" className="text-sm text-muted-foreground">{categoryProgress}</p> : null}
         {isUS && !city.trim() && !state.trim() ? (

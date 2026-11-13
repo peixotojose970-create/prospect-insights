@@ -22,6 +22,7 @@ import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
 import type { Business } from "@/types";
 import { MessageStatus } from "./MessageStatus";
+import { useCountryPreference, setCountryPreference, useProspectingPreferences } from "@/features/prospector/preferences";
 
 type Style = string;
 type Status = "pendente" | "enviado" | "pulado";
@@ -37,7 +38,11 @@ export function BulkMessagesDialog({
 }) {
   const { selection, profile } = useProspector();
   const approaches = useApproaches();
-  const [style, setStyle] = useState<Style>("natural");
+  const preferences = useProspectingPreferences();
+  const country = selection[0]?.country ?? preferences.country;
+  const preference = useCountryPreference(country);
+  const style = preference.style;
+  const setStyle = (style: Style) => setCountryPreference(country, { style });
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [chosen, setChosen] = useState<string[]>([]);
   const [status, setStatus] = useState<Record<string, Status>>({});
@@ -114,7 +119,7 @@ export function BulkMessagesDialog({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <Label>Tipo de abordagem</Label>
-            <LanguagePicker />
+            <LanguagePicker country={country} />
             <Select value={style} onValueChange={(v) => setStyle(v as Style)}>
               <SelectTrigger className="h-11 w-full sm:w-52">
                 <SelectValue />

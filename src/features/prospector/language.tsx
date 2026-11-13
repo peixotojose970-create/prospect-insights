@@ -3,6 +3,9 @@ import { toast } from "sonner";
 import { translateMessages } from "@/lib/translate.functions";
 import { COUNTRY_CONFIG, isProspectCountry } from "@/data/countries";
 import { Button } from "@/components/ui/button";
+import type { ProspectCountry } from "@/types";
+import { useRouterState } from "@tanstack/react-router";
+import { useProspectingPreferences, useCountryPreference, setCountryPreference } from "./preferences";
 
 export type MessageLang = "pt" | "pt-PT" | "es" | "fr" | "it" | "en";
 /** "auto" = idioma segue o país de cada empresa (padrão). */
@@ -134,8 +137,13 @@ export function useMessageLang() {
   return loaded ? lang : "auto";
 }
 
-export function LanguagePicker() {
-  const current = useMessageLang();
+export function LanguagePicker({ country }: { country?: ProspectCountry } = {}) {
+  const legacyLang = useMessageLang();
+  const preferences = useProspectingPreferences();
+  const selectedCountry = country ?? preferences.country;
+  const preference = useCountryPreference(selectedCountry);
+  const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
+  const current = legacy ? legacyLang : preference.language;
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Idioma da abordagem">
       <span className="text-xs font-semibold text-muted-foreground">Idioma:</span>
@@ -145,7 +153,7 @@ export function LanguagePicker() {
           type="button"
           role="radio"
           aria-checked={current === l.key}
-          onClick={() => setMessageLang(l.key)}
+          onClick={() => legacy ? setMessageLang(l.key) : setCountryPreference(selectedCountry, { language: l.key })}
           className={
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
             (current === l.key

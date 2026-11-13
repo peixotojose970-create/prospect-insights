@@ -8,6 +8,13 @@
       "when": 1793547065406,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794603386710,
+      "tag": "0001_prospecting_preferences",
+      "breakpoints": true
     }
   ]
 }
