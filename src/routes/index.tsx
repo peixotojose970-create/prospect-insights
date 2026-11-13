@@ -12,7 +12,17 @@ import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SourceNotice, StatusBadge } from "@/features/prospector/ui";
 import type { Sale, SaleStatus } from "@/types";
 
-export const Route = createFileRoute("/")({ component: Dashboard });
+export const Route = createFileRoute("/")({
+  head: () => ({ meta: [
+    { title: "Painel de prospecção e vendas | Prospector" },
+    { name: "description", content: "Acompanhe leads, oportunidades, vendas e recebimentos no painel do Prospector." },
+    { property: "og:title", content: "Painel de prospecção e vendas | Prospector" },
+    { property: "og:description", content: "Acompanhe leads, oportunidades, vendas e recebimentos no painel do Prospector." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: Dashboard,
+});
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const monthKey = (date: string) => date.slice(0, 7);
 const periods = [{ id: "1d", label: "Hoje", days: 1 }, { id: "7d", label: "7 dias", days: 7 }, { id: "1m", label: "1 mês", days: 30 }, { id: "3m", label: "3 meses", days: 90 }, { id: "6m", label: "6 meses", days: 180 }, { id: "1y", label: "1 ano", days: 365 }] as const;

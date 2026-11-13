@@ -9,6 +9,10 @@ import { EmptyState, PageHeader, SourceNotice } from "@/features/prospector/ui";
 import { normalizePhone } from "@/features/prospector/format";
 import { cn } from "@/lib/utils";
 import type { Business } from "@/types";
+import { QuickOpportunitySearch } from "@/components/prospector/QuickOpportunitySearch";
+import { newOpportunities, opportunityMatches, type OpportunityFilters } from "@/features/prospector/opportunity-search";
+import { readContacted } from "@/features/prospector/contacted";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/oportunidades")({
   head: () => ({
@@ -42,7 +46,10 @@ const filters = [
 type FilterKey = (typeof filters)[number]["key"];
 
 function Oportunidades() {
-  const { leads, search } = useProspector();
+  const { leads, search, loadMore, loadingMore } = useProspector();
+  const [mode, setMode] = useState("atual");
+  const [quickFilters, setQuickFilters] = useState<OpportunityFilters>({ onlyNoSite: true, onlyPhone: false, highPotential: false, minScore: 0 });
+  const [limit, setLimit] = useState(50);
   const [active, setActive] = useState<FilterKey[]>(["sem-site"]);
   const [siteFor, setSiteFor] = useState<Business | null>(null);
 
@@ -69,6 +76,8 @@ function Oportunidades() {
 
   const toggle = (key: FilterKey) =>
     setActive((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const quickItems = useMemo(() => newOpportunities(search.results, leads, readContacted()).filter((b) => opportunityMatches(b, quickFilters)).sort((a, b) => b.score - a.score), [search.results, leads, quickFilters]);
+  const displayed = mode === "rapido" ? quickItems : items;
 
   return (
     <div className="space-y-6">
@@ -76,10 +85,12 @@ function Oportunidades() {
         title="Oportunidades"
         subtitle="Empresas com maior chance de fechar: pontuadas pelos dados disponíveis na fonte."
       />
+      <Tabs value={mode} onValueChange={(value) => { setMode(value); setLimit(50); }}><TabsList className="grid h-12 w-full grid-cols-2 sm:w-80"><TabsTrigger value="atual" className="h-10">Modo atual</TabsTrigger><TabsTrigger value="rapido" className="h-10">Modo rápido</TabsTrigger></TabsList></Tabs>
+      {mode === "rapido" ? <QuickOpportunitySearch filters={quickFilters} onFiltersChange={setQuickFilters} /> : null}
 
-      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      {mode === "atual" ? <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {filters.map((f) => (
-          <button
+          <Button variant="outline"
             key={f.key}
             type="button"
             onClick={() => toggle(f.key)}
@@ -92,15 +103,15 @@ function Oportunidades() {
           >
             <f.icon className="size-3.5" aria-hidden />
             {f.label}
-          </button>
+          </Button>
         ))}
-      </div>
+      </div> : null}
 
 
 
 
 
-      {items.length === 0 ? (
+      {displayed.length === 0 ? (
         <EmptyState
           title="Nada por aqui ainda"
           description="Faça uma busca na prospecção ou ajuste os filtros para ver oportunidades."
@@ -112,13 +123,15 @@ function Oportunidades() {
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((b) => (
+          {displayed.slice(0, limit).map((b) => (
             <LeadCard key={b.id} business={b} onCreateSite={setSiteFor} />
           ))}
         </div>
       )}
+      {displayed.length > limit ? <Button variant="outline" onClick={() => setLimit((value) => value + 50)}>Mostrar mais ({displayed.length - limit})</Button> : null}
+      {mode === "rapido" && search.outcome?.nextPageToken ? <Button variant="outline" disabled={loadingMore || search.status === "loading"} onClick={() => void loadMore()}>{loadingMore ? "Carregando…" : "Continuar última categoria"}</Button> : null}
 
-      <SourceNotice />
+      <SourceNotice country={mode === "rapido" ? search.criteria?.country ?? "BR" : "BR"} />
       <CreateSiteDialog business={siteFor} onOpenChange={(open) => !open && setSiteFor(null)} />
     </div>
   );

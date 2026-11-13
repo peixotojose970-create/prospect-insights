@@ -3,6 +3,7 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export type GeoOption = { value: string; label: string; hint?: string };
 
@@ -34,7 +35,8 @@ export function GeoCombobox(props: {
     <Popover open={open} onOpenChange={setOpen}>
       <div className="relative">
         <PopoverTrigger asChild>
-          <button
+          <Button
+            variant="outline"
             id={props.id}
             type="button"
             role="combobox"
@@ -43,29 +45,29 @@ export function GeoCombobox(props: {
           >
             <span className={cn("truncate", !label && "text-muted-foreground")}>{label || props.placeholder}</span>
             <ChevronsUpDown className={cn("h-4 w-4 shrink-0 opacity-50", props.clearable && label && "invisible")} />
-          </button>
+          </Button>
         </PopoverTrigger>
         {props.clearable && label ? (
-          <button type="button" aria-label="Limpar" onClick={() => pick(null)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon" type="button" aria-label="Limpar" onClick={() => pick(null)} className="absolute right-0 top-1/2 size-11 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         ) : null}
       </div>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[240px] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0" align="start" collisionPadding={16}>
         <Command>
           <CommandInput placeholder={props.searchPlaceholder} value={term} onValueChange={setTerm} />
-          <CommandList className="max-h-64">
+          <CommandList className="max-h-[min(18rem,var(--radix-popover-content-available-height))] touch-pan-y overflow-y-auto overscroll-contain">
             <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
             {showCustom ? (
               <CommandGroup>
-                <CommandItem value={`__custom ${custom}`} onSelect={() => pick({ value: custom, label: custom })}>
+                <CommandItem className="min-h-11" value={`__custom ${custom}`} onSelect={() => pick({ value: custom, label: custom })}>
                   Usar “{custom}”
                 </CommandItem>
               </CommandGroup>
             ) : null}
             <CommandGroup>
               {props.options.map((o) => (
-                <CommandItem key={`${o.value}|${o.hint ?? ""}`} value={`${o.label} ${o.hint ?? ""}`} onSelect={() => pick(o)}>
+                <CommandItem className="min-h-11" key={`${o.value}|${o.hint ?? ""}`} value={`${o.label} ${o.hint ?? ""}`} onSelect={() => pick(o)}>
                   <Check className={cn("mr-2 h-4 w-4", o.value === props.value ? "opacity-100" : "opacity-0")} />
                   <span className="truncate">{o.label}</span>
                   {o.hint ? <span className="ml-auto pl-2 text-xs text-muted-foreground">{o.hint}</span> : null}

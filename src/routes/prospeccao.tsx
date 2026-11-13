@@ -23,6 +23,7 @@ import { segmentByTerm, segmentsForCountry } from "@/data/segments";
 import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { citiesOf, regionOfCity, regionsOf } from "@/data/geo";
 import { GeoCombobox } from "@/components/prospector/GeoCombobox";
+import { CategoryPicker } from "@/components/prospector/CategoryPicker";
 
 function regionLabel(country: string, region: string) {
   return country === "BR" && region in BRAZILIAN_STATES ? `${BRAZILIAN_STATES[region as keyof typeof BRAZILIAN_STATES].name} (${region})` : region;
@@ -136,18 +137,7 @@ function FilterFields(p: FilterProps) {
           <Label>{isUS ? "Tipo de negócio" : "Categoria"}</Label>
           {/* Radix limpa o valor quando o item sai da lista: nunca aceitar vazio,
               senão a categoria/segmento escolhido se perde antes da próxima busca. */}
-          <Select value={p.category} onValueChange={(v) => v && p.setCategory(v)}>
-            <SelectTrigger className="h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <GeoCombobox value={p.category} options={categories.map((c) => ({ value: c, label: c }))} placeholder="Escolha a categoria" searchPlaceholder="Pesquisar categoria..." onSelect={(option) => option && p.setCategory(option.value)} />
           <Input
             className="h-10"
             value={p.category}
@@ -444,36 +434,8 @@ function Prospeccao() {
             </span>
           ) : null}
         </div>
-        <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
-          {segmentsForCountry(country).map((s) => {
-            const term = isUS ? s.us : s.br;
-            const active = category === term;
-            return (
-              <Button
-                key={s.label}
-                type="button"
-                size="sm"
-                variant={active ? "default" : "outline"}
-                className="h-9 rounded-md px-3"
-                onClick={() => {
-                  setCategory(term);
-                  // A busca livre não pode sobrescrever o segmento escolhido.
-                  setQuery("");
-                  if (isUS && !city.trim()) {
-                    setFiltersOpen(true);
-                    return;
-                  }
-                  setDiscoveryOffset(0);
-                  // Trocar o segmento sempre remove o nome digitado da busca anterior.
-                  const { term: ignoredTerm, ...segmentCriteria } = buildCriteria(term);
-                  void runSearch(segmentCriteria);
-                }}
-              >
-                {s.label}
-              </Button>
-            );
-          })}
-        </div>
+        <CategoryPicker country={country} selected={category ? [category] : []} onChange={(terms) => { setCategory(terms[0] ?? ""); setQuery(""); }} />
+        <Button disabled={!category.trim() || search.status === "loading"} onClick={() => { if (isUS && !city.trim()) { setFiltersOpen(true); return; } setDiscoveryOffset(0); const { term: ignoredTerm, ...criteria } = buildCriteria(); void runSearch(criteria); }}><Search className="size-4" />Buscar categoria selecionada</Button>
         {activeSegment ? (
           <p className="border-t border-border pt-3 text-xs text-muted-foreground">
             Busca configurada para <span className="font-medium text-foreground">{category}</span>
@@ -486,7 +448,7 @@ function Prospeccao() {
       </Card>
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="bottom" className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:hidden">
+        <SheetContent side="bottom" className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:hidden">
           <SheetHeader className="shrink-0 border-b border-border p-4 pr-14 text-left">
             <SheetTitle>Filtros</SheetTitle>
           </SheetHeader>
