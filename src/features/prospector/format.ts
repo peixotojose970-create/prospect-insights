@@ -1,4 +1,5 @@
 import type { Business } from "@/types";
+import { COUNTRY_CONFIG, isProspectCountry } from "@/data/countries";
 
 export const NAO_INFORMADO = "Não informado";
 export const NAO_DISPONIVEL_FONTE = "Não disponível nesta fonte";
@@ -8,8 +9,16 @@ export function orNotInformed(value: string | null | undefined) {
 }
 
 /** Retorna somente os dígitos de um telefone brasileiro plausível, ou null. */
-export function normalizePhone(phone: string | null | undefined): string | null {
+export function normalizePhone(phone: string | null | undefined, country?: string | null): string | null {
   if (!phone) return null;
+  if (country && country !== "BR" && isProspectCountry(country)) {
+    const raw = phone.trim();
+    const digits = raw.replace(/\D/g, "");
+    if (raw.startsWith("+")) return digits.length >= 8 && digits.length <= 15 ? digits : null;
+    const local = country === "IT" ? digits : digits.replace(/^0/, "");
+    const full = `${COUNTRY_CONFIG[country].callingCode}${local}`;
+    return full.length >= 8 && full.length <= 15 ? full : null;
+  }
   const raw = String(phone);
   const first = raw.split(/[;,/]/)[0] ?? raw;
   let digits = first.replace(/\D/g, "");
@@ -18,8 +27,9 @@ export function normalizePhone(phone: string | null | undefined): string | null 
   return null;
 }
 
-export function formatPhone(phone: string | null | undefined) {
+export function formatPhone(phone: string | null | undefined, country?: string | null) {
   if (!phone) return NAO_INFORMADO;
+  if (country && country !== "BR") return phone;
   const digits = normalizePhone(phone);
   if (!digits) return orNotInformed(String(phone));
   const ddd = digits.slice(0, 2);
@@ -28,9 +38,9 @@ export function formatPhone(phone: string | null | undefined) {
   return `(${ddd}) ${rest.slice(0, half)}-${rest.slice(half)}`;
 }
 
-export function whatsappLink(phone: string | null | undefined) {
-  const digits = normalizePhone(phone);
-  return digits ? `https://wa.me/55${digits}` : null;
+export function whatsappLink(phone: string | null | undefined, country?: string | null) {
+  const digits = normalizePhone(phone, country);
+  return digits ? `https://wa.me/${country && country !== "BR" ? "" : "55"}${digits}` : null;
 }
 
 export function whatsappLabel(phone: string | null | undefined) {

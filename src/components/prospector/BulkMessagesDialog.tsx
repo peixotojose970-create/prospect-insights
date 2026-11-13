@@ -21,6 +21,7 @@ import { useApproaches } from "@/features/prospector/templates";
 import { copyText } from "@/features/prospector/ui";
 import { useProspector } from "@/features/prospector/store";
 import type { Business } from "@/types";
+import { MessageStatus } from "./MessageStatus";
 
 type Style = string;
 type Status = "pendente" | "enviado" | "pulado";
@@ -58,13 +59,14 @@ export function BulkMessagesDialog({
   const secondFor = (b: Business) => secondEdits[b.id] ?? seconds[b.id] ?? "";
   const SecondBlock = ({ b }: { b: Business }) => (
     <div className="space-y-2 border-t border-border pt-2">
+      <MessageStatus {...approaches.status(style, b, profile)} />
       <p className="text-xs font-semibold text-muted-foreground">2ª mensagem — depois que a pessoa responder</p>
       <Textarea
         value={secondFor(b)}
         onChange={(e) => setSecondEdits((prev) => ({ ...prev, [b.id]: e.target.value }))}
         className="min-h-28 text-sm"
       />
-      <Button size="sm" variant="outline" className="h-10" onClick={() => void copyText(secondFor(b), "2ª mensagem copiada.")}>
+      <Button disabled={!secondFor(b)} size="sm" variant="outline" className="h-10" onClick={() => void copyText(secondFor(b), "2ª mensagem copiada.")}>
         Copiar 2ª mensagem
       </Button>
     </div>
@@ -74,7 +76,7 @@ export function BulkMessagesDialog({
     if (!open) return;
     setTexts({});
     setSecondEdits({});
-    setChosen(selection.filter((b) => whatsappLink(b.phone)).map((b) => b.id));
+    setChosen(selection.filter((b) => whatsappLink(b.phone, b.country)).map((b) => b.id));
     setStatus({});
     setQueueOn(false);
     setIndex(0);
@@ -88,7 +90,8 @@ export function BulkMessagesDialog({
   const allChosen = selection.length > 0 && chosen.length === selection.length;
 
   const openWhatsApp = (b: Business) => {
-    const base = whatsappLink(b.phone);
+    if (!textFor(b)) return;
+    const base = whatsappLink(b.phone, b.country);
     if (!base) {
       toast.error(`${b.name} não tem telefone para WhatsApp.`);
       return;
@@ -152,7 +155,7 @@ export function BulkMessagesDialog({
               className="min-h-32"
             />
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button className="h-11" onClick={() => openWhatsApp(current)}>
+              <Button disabled={!textFor(current)} className="h-11" onClick={() => openWhatsApp(current)}>
                 <MessageCircle className="size-4" aria-hidden />
                 Enviar no WhatsApp
               </Button>
@@ -189,7 +192,7 @@ export function BulkMessagesDialog({
         <ul className="space-y-3">
           {selection.map((b) => {
             const st = status[b.id] ?? "pendente";
-            const hasWhats = !!whatsappLink(b.phone);
+            const hasWhats = !!whatsappLink(b.phone, b.country);
             return (
               <li key={b.id} className="space-y-2 rounded-lg border border-border p-3">
                 <div className="flex items-start gap-3">
@@ -226,12 +229,13 @@ export function BulkMessagesDialog({
                   className="min-h-28 text-sm"
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" className="h-10" onClick={() => openWhatsApp(b)} disabled={!hasWhats}>
+                  <Button size="sm" variant="outline" className="h-10" onClick={() => openWhatsApp(b)} disabled={!hasWhats || !textFor(b)}>
                     <MessageCircle className="size-4" aria-hidden />
                     Abrir WhatsApp
                   </Button>
                   <Button
                     size="sm"
+                    disabled={!textFor(b)}
                     variant="ghost"
                     className="h-10"
                     onClick={() => {

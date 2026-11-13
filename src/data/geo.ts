@@ -57,11 +57,15 @@ const US: Record<string, string[]> = {
 };
 
 const PT: Record<string, string[]> = {
-  "Norte": ["Porto", "Braga", "Guimarães", "Vila Nova de Gaia", "Matosinhos", "Maia", "Viana do Castelo", "Vila Real", "Bragança", "Póvoa de Varzim", "Barcelos", "Gondomar", "Valongo", "Famalicão"],
-  "Centro": ["Coimbra", "Aveiro", "Leiria", "Viseu", "Figueira da Foz", "Castelo Branco", "Guarda", "Covilhã", "Caldas da Rainha", "Torres Vedras", "Pombal"],
-  "Área Metropolitana de Lisboa": ["Lisboa", "Sintra", "Cascais", "Oeiras", "Amadora", "Loures", "Odivelas", "Almada", "Seixal", "Setúbal", "Barreiro", "Vila Franca de Xira", "Mafra"],
-  "Alentejo": ["Évora", "Beja", "Portalegre", "Santarém", "Sines", "Elvas"],
-  "Algarve": ["Faro", "Portimão", "Albufeira", "Loulé", "Lagos", "Tavira", "Olhão", "Quarteira"],
+  "Porto": ["Porto", "Vila Nova de Gaia", "Matosinhos", "Maia", "Póvoa de Varzim", "Gondomar", "Valongo"],
+  "Braga": ["Braga", "Guimarães", "Barcelos", "Vila Nova de Famalicão"],
+  "Viana do Castelo": ["Viana do Castelo"], "Vila Real": ["Vila Real"], "Bragança": ["Bragança"],
+  "Coimbra": ["Coimbra", "Figueira da Foz"], "Aveiro": ["Aveiro"], "Leiria": ["Leiria", "Caldas da Rainha", "Pombal"],
+  "Viseu": ["Viseu"], "Castelo Branco": ["Castelo Branco", "Covilhã"], "Guarda": ["Guarda"],
+  "Lisboa": ["Lisboa", "Sintra", "Cascais", "Oeiras", "Amadora", "Loures", "Odivelas", "Vila Franca de Xira", "Mafra", "Torres Vedras"],
+  "Setúbal": ["Setúbal", "Almada", "Seixal", "Barreiro", "Sines"], "Santarém": ["Santarém"],
+  "Évora": ["Évora"], "Beja": ["Beja"], "Portalegre": ["Portalegre", "Elvas"],
+  "Faro": ["Faro", "Portimão", "Albufeira", "Loulé", "Lagos", "Tavira", "Olhão", "Quarteira"],
   "Região Autónoma da Madeira": ["Funchal", "Câmara de Lobos", "Machico"],
   "Região Autónoma dos Açores": ["Ponta Delgada", "Angra do Heroísmo", "Horta"],
 };
@@ -154,5 +158,5 @@ export function citiesOf(country: GeoCountry, region?: string): CityOption[] {
 /** Região de uma cidade, quando ela pertence a uma única região conhecida. */
 export function regionOfCity(country: GeoCountry, city: string): string | null {
   const matches = Object.entries(GEO[country]).filter(([, cities]) => cities.includes(city)).map(([r]) => r);
-  return matches.length === 1 ? matches[0]! : null;
+  return matches.length === 1 ? matches[0] ?? null : null;
 }

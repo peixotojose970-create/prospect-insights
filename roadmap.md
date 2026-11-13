@@ -1,5 +1,11 @@
 # Atualização do Prospector
 
+- [x] Centralizar configuração de países e corrigir consultas internacionais, paginação e localidades sem editar /rapido.
+- [x] Adaptar duas etapas ao contexto local, validar idioma e impedir envio de geração incompleta; adaptações reais PT/ES/FR/IT verificadas.
+- [x] Executar 37 testes e verificar troca de países, persistência, campos e filtros em desktop e celular sem erros.
+- [ ] Validar buscas reais BR/PT/ES/FR/IT no domínio publicado — bloqueado: Google Maps não pode ser validado no sandbox; a busca internacional requer conta confirmada, atualmente não há contas.
+- [ ] Completar sugestões de todas as divisões administrativas e comprovar cobertura internacional de cada categoria — bloqueado: falta a lista-fonte completa e validação real do Google Maps.
+
 - [x] Unificar categorias na Prospecção, preservar o catálogo e pesquisar todos os termos selecionados; 12 testes passaram, seletor e rolagem verificados em 320/390/1280px e busca real com duas categorias retornou 57 empresas em Campinas.
 - [x] Organizar e tornar pesquisáveis as categorias existentes, preservando os termos por país.
 - [x] Adicionar Modo rápido em Oportunidades usando a busca e o salvamento existentes.

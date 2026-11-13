@@ -10,11 +10,11 @@ export interface MapProvider { readonly sourceName: string; readonly configured:
 export const GooglePlacesBusinessSearchRepository: BusinessSearchRepository = {
   sourceName: "Google Maps",
   search: (criteria) => criteria.country && criteria.country !== "BR"
-    ? searchUSBusinesses({ data: { country: criteria.country, category: criteria.category, city: criteria.city, state: criteria.state, ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}) } })
+    ? searchUSBusinesses({ data: { country: criteria.country, category: criteria.category, city: criteria.city, state: criteria.state, locations: criteria.locations, term: criteria.term, discoveryOffset: criteria.discoveryOffset, ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}) } })
     : searchBusinesses({ data: { category: criteria.category, city: criteria.city, state: criteria.state, ...(criteria.locations?.length ? { locations: criteria.locations } : {}), ...(criteria.term ? { term: criteria.term } : {}), ...(criteria.limit !== undefined ? { limit: criteria.limit } : {}), ...(criteria.pageToken ? { pageToken: criteria.pageToken } : {}), ...(criteria.discoveryOffset !== undefined ? { discoveryOffset: criteria.discoveryOffset } : {}) } }),
 };
 
-export const GooglePlacesDetailsRepository: PlaceDetailsRepository = { sourceName: "Google Maps", detailsFor: (business) => fetchPlaceDetails({ data: { placeId: business.placeId } }) };
+export const GooglePlacesDetailsRepository: PlaceDetailsRepository = { sourceName: "Google Maps", detailsFor: (business) => fetchPlaceDetails({ data: { placeId: business.placeId, country: business.country ?? "BR" } }) };
 
 export const GooglePlacesPhotoProvider: PhotoProvider = {
   sourceName: "Google Maps",

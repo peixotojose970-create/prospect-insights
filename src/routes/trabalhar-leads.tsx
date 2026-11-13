@@ -13,6 +13,7 @@ import { useApproaches } from "@/features/prospector/templates";
 import { formatPhone, ratingLabel, whatsappLink } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SiteBadge, SourceNotice, copyText } from "@/features/prospector/ui";
+import { MessageStatus } from "@/components/prospector/MessageStatus";
 
 type Style = string;
 
@@ -140,7 +141,7 @@ function WorkSavedLeads() {
   const generated = approaches.first(style, current, profile);
   const text = edits[current.id] ?? generated;
   const second = secondEdits[current.id] ?? approaches.second(style, current, profile);
-  const wa = whatsappLink(current.phone);
+  const wa = whatsappLink(current.phone, current.country);
 
   return (
     <div className="space-y-5">
@@ -185,6 +186,7 @@ function WorkSavedLeads() {
 
         <div className="space-y-2">
           <LanguagePicker />
+          <MessageStatus {...approaches.status(style, current, profile)} />
           <Select value={style} onValueChange={(v) => setStyle(v as Style)}>
             <SelectTrigger className="h-11 sm:h-9">
               <SelectValue />
@@ -205,12 +207,13 @@ function WorkSavedLeads() {
             aria-label="Mensagem personalizada deste lead"
           />
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button variant="outline" className="h-11" onClick={() => void copyText(text, "Mensagem copiada.")}>
+            <Button disabled={!text} variant="outline" className="h-11" onClick={() => void copyText(text, "Mensagem copiada.")}>
               <Copy className="size-4" aria-hidden />
               Copiar 1ª mensagem
             </Button>
             {wa ? (
               <Button
+                disabled={!text}
                 className="h-11"
                 onClick={() =>
                   window.open(`${wa}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer")
@@ -238,7 +241,7 @@ function WorkSavedLeads() {
             onChange={(e) => setSecondEdits((prev) => ({ ...prev, [current.id]: e.target.value }))}
             aria-label="Segunda mensagem deste lead"
           />
-          <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => void copyText(second, "2ª mensagem copiada.")}>
+          <Button disabled={!second} variant="outline" className="h-11 w-full sm:w-auto" onClick={() => void copyText(second, "2ª mensagem copiada.")}>
             <Copy className="size-4" aria-hidden />
             Copiar 2ª mensagem
           </Button>

@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { translateMessages } from "@/lib/translate.functions";
+import { COUNTRY_CONFIG, isProspectCountry } from "@/data/countries";
+import { Button } from "@/components/ui/button";
 
 export type MessageLang = "pt" | "pt-PT" | "es" | "fr" | "it" | "en";
 /** "auto" = idioma segue o país de cada empresa (padrão). */
@@ -14,10 +16,10 @@ export const MESSAGE_LANGS: { key: LangMode; label: string }[] = [
   { key: "it", label: "Italiano" },
   { key: "en", label: "English" },
 ];
-const COUNTRY_LANG: Record<string, MessageLang> = { BR: "pt", PT: "pt-PT", ES: "es", FR: "fr", IT: "it", US: "en" };
 /** Idioma da abordagem para o país do estabelecimento (sem país = Brasil). */
 export function langForCountry(country: string | null | undefined): MessageLang {
-  return COUNTRY_LANG[(country ?? "BR").toUpperCase()] ?? "pt";
+  const code = (country ?? "BR").toUpperCase();
+  return isProspectCountry(code) ? COUNTRY_CONFIG[code].messageLang : "pt";
 }
 /** Idioma final de uma mensagem: escolha manual ou, no automático, o país da empresa. */
 export function resolveLang(mode: LangMode, country: string | null | undefined): MessageLang {
@@ -78,9 +80,10 @@ async function flush() {
   for (const [l, texts] of Object.entries(byLang)) {
     for (let i = 0; i < texts.length; i += 20) {
       const chunk = texts.slice(i, i + 20);
-      const res = await translateMessages({ data: { lang: l as Exclude<MessageLang, "pt">, texts: chunk } });
+      const res = await translateMessages({ data: { lang: l as Exclude<MessageLang, "pt">, texts: chunk, legacy: true } });
       if (res.translations) {
-        chunk.forEach((t, j) => (cache[keyOf(l as MessageLang, t)] = res.translations![j]!));
+        const translations = res.translations;
+        chunk.forEach((t, j) => { const text = translations[j]; if (text !== undefined) cache[keyOf(l as MessageLang, t)] = text; });
         persist();
       } else {
         chunk.forEach((t) => failed.add(keyOf(l as MessageLang, t)));
@@ -137,7 +140,7 @@ export function LanguagePicker() {
     <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Idioma da abordagem">
       <span className="text-xs font-semibold text-muted-foreground">Idioma:</span>
       {MESSAGE_LANGS.map((l) => (
-        <button
+        <Button
           key={l.key}
           type="button"
           role="radio"
@@ -151,7 +154,7 @@ export function LanguagePicker() {
           }
         >
           {l.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

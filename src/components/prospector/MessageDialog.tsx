@@ -14,6 +14,8 @@ import { normalizePhone, whatsappLabel, whatsappLink } from "@/features/prospect
 import { useProspector } from "@/features/prospector/store";
 import { copyText } from "@/features/prospector/ui";
 import type { Business } from "@/types";
+import { MessageStatus } from "./MessageStatus";
+import { useRouterState } from "@tanstack/react-router";
 
 export function MessageDialog({
   business,
@@ -24,6 +26,7 @@ export function MessageDialog({
 }) {
   const { logHistory, isSaved, saveLead, registerContact, profile } = useProspector();
   const approaches = useApproaches();
+  const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
   if (!business) return null;
   const messages: Record<string, string> = {};
   const seconds: Record<string, string> = {};
@@ -31,8 +34,9 @@ export function MessageDialog({
     messages[a.key] = approaches.first(a.key, business, profile);
     seconds[a.key] = approaches.second(a.key, business, profile);
   }
-  const wa = whatsappLink(business.phone);
-  const digits = normalizePhone(business.phone);
+  const contactCountry = legacy ? undefined : business.country;
+  const wa = whatsappLink(business.phone, contactCountry);
+  const digits = normalizePhone(business.phone, contactCountry);
   const tabs: [string, string][] = approaches.list.map((a) => [a.key, a.label]);
 
   const ensureSaved = () => {
@@ -57,6 +61,7 @@ export function MessageDialog({
           </TabsList>
           {tabs.map(([key]) => (
             <TabsContent key={key} value={key} className="space-y-3">
+              <MessageStatus {...approaches.status(key, business, profile)} />
               <p className="text-xs font-semibold text-muted-foreground">1ª mensagem — abertura</p>
               <p className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                 {(messages[key] ?? "")}
@@ -64,6 +69,7 @@ export function MessageDialog({
               <div className="grid gap-2 sm:flex sm:flex-wrap [&_button]:h-11 sm:[&_button]:h-9">
 
                 <Button
+                  disabled={!messages[key]}
                   onClick={() => {
                     copyText((messages[key] ?? ""), "Mensagem copiada.");
                     if (isSaved(business.id)) logHistory(business.id, "Mensagem copiada");
@@ -72,7 +78,7 @@ export function MessageDialog({
                   <Copy className="size-4" aria-hidden />
                   Copiar mensagem
                 </Button>
-                {wa ? (
+                {wa && messages[key] ? (
                   <Button variant="outline" asChild title={whatsappLabel(business.phone)}>
                     <a
                       href={`${wa}?text=${encodeURIComponent((messages[key] ?? ""))}`}
@@ -91,7 +97,7 @@ export function MessageDialog({
                 {digits ? (
                   <Button variant="outline" asChild>
                     <a
-                      href={`tel:+55${digits}`}
+                      href={`tel:+${contactCountry && contactCountry !== "BR" ? "" : "55"}${digits}`}
                       onClick={() => {
                         ensureSaved();
                         registerContact(business.id, "ligacao", "Ligação iniciada pelo app");
@@ -121,6 +127,7 @@ export function MessageDialog({
                 </p>
                 <Button
                   variant="outline"
+                  disabled={!seconds[key]}
                   className="h-11 w-full sm:h-9 sm:w-auto"
                   onClick={() => {
                     copyText((seconds[key] ?? ""), "2ª mensagem copiada.");

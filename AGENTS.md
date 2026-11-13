@@ -12,3 +12,6 @@
 - Category browsing derives groups and selectable subcategories from existing country-specific search terms; expand the catalog only after checking the user's source list to avoid invented or omitted categories.
 - Opportunity quick mode uses the shared Prospector store's search and save actions, never a separate provider or CRM; filtering saved/contacted companies stays local to this mode to preserve Prospecção rápida.
 - Prospecção uses one existing CategoryPicker; multi-category searches call the shared search action sequentially and append results to preserve provider logic and deduplication.
+- Country metadata lives in a shared browser-safe configuration; international Places calls validate a geocoded rectangle and returned country, with bounded sequential pages and a query-bound continuation cursor to avoid cross-country leakage.
+- International search requires a verified app session before billable calls; legacy Brazilian search is unchanged to preserve the existing quick flow.
+- Non-quick outreach adapts both message stages together with explicit loading/error states and independent language validation; /rapido retains its legacy message path and phone-helper defaults.

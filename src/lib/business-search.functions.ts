@@ -5,6 +5,7 @@ import { classifyWebsite } from "@/features/prospector/website";
 import { relatedTerms } from "@/data/segments";
 import { BRAZILIAN_STATES, type StateCode } from "@/data/brazil";
 import { findCategory } from "@/features/prospector/osmCategories";
+import { COUNTRY_CONFIG } from "@/data/countries";
 
 import type { Business, SearchOutcome } from "@/types";
 
@@ -62,6 +63,7 @@ const DETAILS_FIELD_MASK = [
   "addressComponents",
   "regularOpeningHours.weekdayDescriptions",
   "nationalPhoneNumber",
+  "internationalPhoneNumber",
   "websiteUri",
   "googleMapsUri",
   "rating",
@@ -202,6 +204,7 @@ type PlaceResult = {
   rating?: number;
   userRatingCount?: number;
   nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
   websiteUri?: string;
   googleMapsUri?: string;
   photos?: PlacePhoto[];
@@ -454,13 +457,14 @@ export type PlaceDetailsResult =
 const detailsCache = new Map<string, { at: number; value: PlaceDetailsResult }>();
 
 export const fetchPlaceDetails = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ placeId: z.string().trim().min(3).max(400) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ placeId: z.string().trim().min(3).max(400), country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).default("BR") }).parse(data))
   .handler(async ({ data }): Promise<PlaceDetailsResult> => {
-    const hit = detailsCache.get(data.placeId);
+    const cacheKey = `${data.country}:${data.placeId}`;
+    const hit = detailsCache.get(cacheKey);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
 
     try {
-      const place = (await callPlaces(`places/v1/places/${encodeURIComponent(data.placeId)}?languageCode=pt-BR&regionCode=BR`, {
+      const place = (await callPlaces(`places/v1/places/${encodeURIComponent(data.placeId)}?languageCode=${COUNTRY_CONFIG[data.country].locale}&regionCode=${data.country}`, {
         method: "GET",
         fieldMask: DETAILS_FIELD_MASK,
       })) as PlaceResult;
@@ -469,7 +473,7 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
         ok: true,
         details: {
           openingHours: place.regularOpeningHours?.weekdayDescriptions?.join(" · ") ?? null,
-          phone: place.nationalPhoneNumber ?? null,
+          phone: (data.country === "BR" ? place.nationalPhoneNumber : place.internationalPhoneNumber) ?? null,
           website: classifyWebsite(place.websiteUri).website,
           category: place.primaryTypeDisplayName?.text ?? null,
           address: place.formattedAddress ?? null,
@@ -496,7 +500,7 @@ export const fetchPlaceDetails = createServerFn({ method: "POST" })
           ).slice(0, 6),
         },
       };
-      detailsCache.set(data.placeId, { at: Date.now(), value });
+      detailsCache.set(cacheKey, { at: Date.now(), value });
       return value;
     } catch (error) {
       if (error instanceof SearchError) {

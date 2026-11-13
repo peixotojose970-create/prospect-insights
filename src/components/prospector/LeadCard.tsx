@@ -54,7 +54,7 @@ export function LeadCard({
   const lead = business as Lead;
   const status = lead.status;
   const priority = priorityFor(business.score);
-  const wa = whatsappLink(business.phone);
+  const wa = whatsappLink(business.phone, business.country);
   const usMailto = business.country === "US" ? usEmailMailto(business as Business, profile) : null;
 
   return (
@@ -110,7 +110,7 @@ export function LeadCard({
         </li>
         <li className="flex items-center gap-2">
           <Phone className="size-3.5 shrink-0" aria-hidden />
-          <span className="min-w-0 break-words">{formatPhone(business.phone)}</span>
+          <span className="min-w-0 break-words">{formatPhone(business.phone, business.country)}</span>
         </li>
         <li className="flex items-center gap-2">
           <Globe className="size-3.5 shrink-0" aria-hidden />

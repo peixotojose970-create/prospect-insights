@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Loader2, Search } from "lucide-react";
+import { InternationalAccess } from "./InternationalAccess";
+import { COUNTRY_CONFIG } from "@/data/countries";
 import { CategoryPicker } from "./CategoryPicker";
 import { GeoCombobox } from "./GeoCombobox";
 import { Button } from "@/components/ui/button";
@@ -56,8 +58,8 @@ export function QuickOpportunitySearch({ filters, onFiltersChange }: { filters: 
     }}><SelectTrigger className="h-11"><SelectValue /></SelectTrigger><SelectContent>{countries.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>
     <div className="space-y-2"><Label>Categorias</Label><CategoryPicker country={country} selected={categories} onChange={setCategories} multiple disabled={busy} /></div>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="min-w-0 space-y-2"><Label htmlFor="quick-state">{country === "BR" || country === "US" ? "Estado" : "Região (opcional)"}</Label>
-        <GeoCombobox id="quick-state" value={state} placeholder="Escolha" searchPlaceholder="Pesquisar estado ou região..." clearable={country !== "BR" && country !== "US"}
+      <div className="min-w-0 space-y-2"><Label htmlFor="quick-state">{COUNTRY_CONFIG[country].divisions[0]}</Label>
+        <GeoCombobox id="quick-state" value={state} placeholder="Escolha" searchPlaceholder="Pesquisar estado ou região..." allowCustom={country !== "BR" && country !== "US"} clearable={country !== "BR" && country !== "US"}
           options={regionsOf(country).map((region) => ({ value: region, label: country === "BR" ? `${BRAZILIAN_STATES[region as keyof typeof BRAZILIAN_STATES]?.name ?? region} (${region})` : region }))}
           onSelect={(option) => { setState(option?.value ?? ""); setCity(""); setNeighborhood(""); }} />
       </div>
@@ -75,6 +77,7 @@ export function QuickOpportunitySearch({ filters, onFiltersChange }: { filters: 
   const actions = <><Button variant="outline" className="h-12 flex-1" onClick={reset} disabled={busy}>Limpar</Button><Button className="h-12 flex-1" onClick={() => void start()} disabled={!valid || busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}Aplicar e buscar</Button></>;
 
   return <section className="space-y-4 border-y border-border py-5">
+    {country !== "BR" ? <InternationalAccess /> : null}
     <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold">Modo rápido</h2><span className="text-xs text-muted-foreground">{categories.length} selecionada(s)</span></div>
     <Button variant="outline" onClick={() => setOpen(true)} className="h-12 w-full md:hidden">Categorias e filtros</Button>
     <div className="hidden md:block">{!open ? fields : null}<div className="mt-5 flex max-w-md gap-2">{actions}</div></div>

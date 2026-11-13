@@ -2,6 +2,8 @@ import { resolveLang, translate, useMessageLang } from "./language";
 import { useSyncExternalStore } from "react";
 import type { Business } from "@/types";
 import { buildMessages, buildSecondMessages } from "./generators";
+import { useRouterState } from "@tanstack/react-router";
+import { localizedPair, useLocalizedPairs } from "./localized-pairs";
 
 type SenderProfile = { personalName: string; companyName: string };
 
@@ -100,11 +102,13 @@ export function fillTemplate(text: string, b: Business, profile?: SenderProfile)
     meu_nome: profile?.personalName.trim() || "Alysson",
     minha_empresa: profile?.companyName.trim() || "Apex SLS",
   };
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? values[k]! : m));
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m);
 }
 
 /** Lista de abordagens (padrão + personalizadas) e textos finais por lead, usados em toda a plataforma. */
 export function useApproaches() {
+  const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
+  useLocalizedPairs();
   const state = useTemplatesState();
   const lang = useMessageLang();
   const list = [
@@ -124,8 +128,9 @@ export function useApproaches() {
   };
   return {
     list,
-    first: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 1), resolveLang(lang, b.country)),
-    second: (key: string, b: Business, profile?: SenderProfile) => translate(resolve(key, b, profile, 2), resolveLang(lang, b.country)),
+    first: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 1), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key).first,
+    second: (key: string, b: Business, profile?: SenderProfile) => legacy ? translate(resolve(key, b, profile, 2), resolveLang(lang, b.country)) : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key).second,
+    status: (key: string, b: Business, profile?: SenderProfile) => legacy ? { pending: false, error: null } : localizedPair(resolve(key, b, profile, 1), resolve(key, b, profile, 2), resolveLang(lang, b.country), b, key),
     lang,
   };
 }

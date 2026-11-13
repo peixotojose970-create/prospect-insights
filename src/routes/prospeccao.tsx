@@ -24,6 +24,8 @@ import { US_CATEGORY_LABELS, US_CITY_SUGGESTIONS, US_STATES } from "@/data/usa";
 import { citiesOf, regionOfCity, regionsOf } from "@/data/geo";
 import { GeoCombobox } from "@/components/prospector/GeoCombobox";
 import { CategoryPicker } from "@/components/prospector/CategoryPicker";
+import { COUNTRY_CONFIG, isProspectCountry } from "@/data/countries";
+import { InternationalAccess } from "@/components/prospector/InternationalAccess";
 import { searchSelectedCategories } from "@/features/prospector/category-search";
 
 function regionLabel(country: string, region: string) {
@@ -97,6 +99,8 @@ type FilterProps = {
   setCity: (v: string) => void;
   locationsText: string;
   setLocationsText: (v: string) => void;
+  subdivisions: string[];
+  setSubdivisions: (v: string[]) => void;
   state: string;
   setState: (v: string) => void;
   onlyNoSite: boolean;
@@ -129,7 +133,7 @@ function FilterFields(p: FilterProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`${p.idPrefix}-cidade`}>{isUS ? "Cidade" : "Cidade, bairro ou região"}</Label>
+          <Label htmlFor={`${p.idPrefix}-cidade`}>{COUNTRY_CONFIG[p.country].divisions.at(-1)}</Label>
           <GeoCombobox
             id={`${p.idPrefix}-cidade`}
             value={p.city}
@@ -157,12 +161,13 @@ function FilterFields(p: FilterProps) {
           {!isUS ? <p className="text-[11px] leading-relaxed text-muted-foreground">Preencha para buscar só nesta localidade; deixe vazio para usar as cidades planejadas do estado.</p> : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`${p.idPrefix}-regiao`}>{isEU ? "Região (opcional)" : isUS ? "Estado" : "Estado brasileiro"}</Label>
+          <Label htmlFor={`${p.idPrefix}-regiao`}>{COUNTRY_CONFIG[p.country].divisions[0]}{isEU ? " (opcional)" : ""}</Label>
           <GeoCombobox
             id={`${p.idPrefix}-regiao`}
             value={p.state}
             placeholder={({ PT: "Ex.: Norte", ES: "Ex.: Cataluña", FR: "Ex.: Occitanie", IT: "Ex.: Lombardia" } as Record<string, string>)[p.country] ?? "Escolha"}
             searchPlaceholder={isEU ? "Pesquisar região..." : "Pesquisar estado..."}
+            allowCustom={isEU}
             clearable={isEU}
             options={(isEU ? regionsOf(p.country) : states).map((s) => ({ value: s, label: regionLabel(p.country, s) }))}
             onSelect={(o) => {
@@ -185,7 +190,8 @@ function FilterFields(p: FilterProps) {
         </div>
       </div>
 
-      {!isUS ? (
+      {isEU ? <div className="grid gap-3 sm:grid-cols-2">{COUNTRY_CONFIG[p.country].divisions.slice(1, -1).map((label, index) => <div className="space-y-2" key={label}><Label htmlFor={`${p.idPrefix}-division-${index}`}>{label} (opcional)</Label><Input id={`${p.idPrefix}-division-${index}`} className="h-11" value={p.subdivisions[index] ?? ""} onChange={(event) => { const next = [...p.subdivisions]; next[index] = event.target.value; p.setSubdivisions(next); }} /></div>)}</div> : null}
+      {(
         <div className="space-y-2 border-t border-border pt-4">
           <Label htmlFor={`${p.idPrefix}-locais`}>Expandir para localidades específicas</Label>
           <Input
@@ -193,11 +199,11 @@ function FilterFields(p: FilterProps) {
             className="h-11"
             value={p.locationsText}
             onChange={(e) => p.setLocationsText(e.target.value)}
-            placeholder="Ex.: Vila Madalena, São Paulo; Osasco; Taboão da Serra"
+            placeholder={p.country === "BR" ? "Ex.: Vila Madalena, São Paulo; Osasco; Taboão da Serra" : "Localidades separadas por ponto e vírgula"}
           />
           <p className="text-[11px] leading-relaxed text-muted-foreground">Separe por ponto e vírgula ou quebra de linha. Somente os locais exibidos aqui serão incluídos; a busca avança em lotes de até 3 localidades.</p>
         </div>
-      ) : null}
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
         <label className="flex min-h-11 items-center gap-3 text-sm text-foreground">
@@ -250,6 +256,8 @@ function Prospeccao() {
   const busy = searchingCategories || search.status === "loading" || loadingMore;
   const [city, setCity] = useState("");
   const [locationsText, setLocationsText] = useState("");
+  const [subdivisions, setSubdivisions] = useState<string[]>([]);
+  useEffect(() => { const saved = localStorage.getItem("prospector:country:v1"); if (saved && isProspectCountry(saved)) { setCountryState(saved); setCategories([DEFAULT_CATEGORY[saved]]); setState(DEFAULT_STATE[saved]); } }, []);
   const [state, setState] = useState(DEFAULT_STATE.BR);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [onlyPhone, setOnlyPhone] = useState(false);
@@ -271,8 +279,10 @@ function Prospeccao() {
 
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
   const setCountry = (next: Country) => {
-    if (next === country) return;
+    if (!isProspectCountry(next) || next === country) return;
     setCountryState(next);
+    localStorage.setItem("prospector:country:v1", next);
+    setSubdivisions([]);
     setCategories([DEFAULT_CATEGORY[next]]);
     setState(DEFAULT_STATE[next]);
     setCity("");
@@ -305,6 +315,8 @@ function Prospeccao() {
     setLocationsText,
     state,
     setState,
+    subdivisions,
+    setSubdivisions,
     onlyNoSite,
     setOnlyNoSite,
     onlyPhone,
@@ -318,16 +330,16 @@ function Prospeccao() {
   const selectedLocations = useMemo(() => parseLocations(city, locationsText), [city, locationsText]);
   const buildCriteria = (nextCategory = categories[0] ?? "") => ({
     category: nextCategory,
-    city,
+    city: isUS ? [...subdivisions, city].filter(Boolean).join(", ") : city,
     state,
-    ...(!isUS && selectedLocations.length ? { locations: selectedLocations } : {}),
-    ...(!isUS && query.trim() ? { term: query.trim() } : {}),
+    ...(selectedLocations.length ? { locations: isUS ? selectedLocations.map((location) => [...subdivisions, location].filter(Boolean).join(", ")) : selectedLocations } : {}),
+    ...(query.trim() ? { term: query.trim() } : {}),
     ...(isUS ? { country } : {}),
   });
 
   const startSearch = async () => {
     if (busy || !categories.length) return;
-    if (isUS && !city.trim()) {
+    if (isUS && !city.trim() && !state.trim() && !subdivisions.some((value) => value.trim()) && !selectedLocations.length) {
       setFiltersOpen(true);
       return;
     }
@@ -356,7 +368,8 @@ function Prospeccao() {
         title="Prospecção"
         subtitle="Encontre empresas reais e identifique oportunidades comerciais."
       />
-      <UsageMeter estimate={isUS ? "Cada busca gasta 1 chamada por página (até 20 empresas)." : "Esta busca em lote pode gastar até 9 chamadas (3 páginas × até 3 consultas)."} />
+      {isUS ? <InternationalAccess /> : null}
+      <UsageMeter estimate={isUS ? "Até 9 chamadas por lote, incluindo validação de localização e páginas seguintes." : "Esta busca em lote pode gastar até 9 chamadas (3 páginas × até 3 consultas)."} />
 
       <datalist id="cidades-eua">
         {US_CITY_SUGGESTIONS.map((c) => (
@@ -426,7 +439,7 @@ function Prospeccao() {
         <CategoryPicker key={country} country={country} selected={categories} onChange={setCategories} multiple includeLegacy disabled={busy} />
         <Button disabled={!categories.length || busy} onClick={() => void startSearch()} className="h-auto min-h-11 whitespace-normal"><Search className="size-4 shrink-0" />Buscar empresas</Button>
         {searchingCategories ? <p role="status" className="text-sm text-muted-foreground">{categoryProgress}</p> : null}
-        {isUS && !city.trim() ? (
+        {isUS && !city.trim() && !state.trim() ? (
           <p className="rounded-md bg-muted/70 px-3 py-2 text-xs text-muted-foreground">Informe a cidade nos filtros para pesquisar o segmento.</p>
         ) : null}
       </Card>
@@ -520,7 +533,7 @@ function Prospeccao() {
       {search.status === "error" && search.error ? (
         <EmptyState
           title="Não foi possível realizar a busca"
-          description={`${errorHints[search.error.code] ?? "Tente novamente."}${
+          description={`${search.error.message || errorHints[search.error.code] || "Tente novamente."}${
             import.meta.env.DEV && search.error.detail ? ` (detalhe técnico: ${search.error.detail})` : ""
           }`}
           action={
@@ -536,7 +549,7 @@ function Prospeccao() {
       {search.status === "idle" ? (
         <EmptyState
           title="Comece uma busca"
-          description="Escolha uma categoria e um estado para listar empresas reais em áreas diferentes e ver quais não têm site informado."
+          description="Escolha uma categoria e uma localidade para pesquisar empresas reais e identificar sites não informados na fonte."
         />
       ) : null}
 
@@ -550,7 +563,7 @@ function Prospeccao() {
                 : "A busca retornou empresas, mas os filtros atuais removeram todas. Reduza o score mínimo ou desmarque os filtros."
             }
             action={
-              search.criteria && !isUS && search.outcome?.coverage?.hasMoreAreas ? (
+              search.criteria && search.outcome?.coverage?.hasMoreAreas ? (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -671,7 +684,7 @@ function Prospeccao() {
                   Carregar mais
                 </Button>
               ) : null}
-              {search.criteria && !isUS && search.outcome?.coverage?.hasMoreAreas ? (
+              {search.criteria && search.outcome?.coverage?.hasMoreAreas && !search.outcome.nextPageToken ? (
                 <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={busy}
                   onClick={() => {
                     if (!search.criteria) return;
