@@ -1,5 +1,9 @@
 # Atualização do Prospector
 
+- [x] Preparar escopo da Etapa 1, registrar referência de restauração e executar testes existentes sem consultas pagas: 43 testes passaram.
+- [ ] Executar Etapa 1 — bloqueado: aguarda aprovação do escopo; proteção contra abuso e validação DNS precisam de mecanismo compatível confirmado.
+- [ ] Preparar e validar Etapas 2–5 separadamente — bloqueado: dependem dos resultados aprovados da Etapa 1; CRM permanece local.
+
 - [x] Tratar ausência e expiração de acesso internacional antes de consultar Google Maps; Brasil e /rapido preservados.
 - [x] Encerrar carregamento de traduções com timeout, recuperação manual e fidelidade aos modelos brasileiros; traduções reais PT/ES/FR/IT passaram.
 - [x] Persistir país, abordagem e idioma por país na nuvem e localmente; restauração local e isolamento PT/ES verificados.
