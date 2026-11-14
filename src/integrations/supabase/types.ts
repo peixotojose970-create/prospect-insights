@@ -157,6 +157,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -167,6 +185,19 @@ export type Database = {
         Returns: number
       }
       prospector_is_active_admin: { Args: never; Returns: boolean }
+      reserve_places_call: {
+        Args: never
+        Returns: {
+          allowed: boolean
+          calls: number
+          month: string
+          monthly_limit: number
+        }[]
+      }
+      set_places_limit_authorized: {
+        Args: { p_limit: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

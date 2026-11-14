@@ -15,6 +15,20 @@
       "when": 1794603386710,
       "tag": "0001_prospecting_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794688008734,
+      "tag": "0002_secure_places_budget_and_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794688070479,
+      "tag": "0003_restrict_role_table_grants",
+      "breakpoints": true
     }
   ]
 }

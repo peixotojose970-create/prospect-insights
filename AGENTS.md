@@ -16,3 +16,6 @@
 - International search requires a verified app session before billable calls; legacy Brazilian search is unchanged to preserve the existing quick flow.
 - Non-quick outreach translates both existing Brazilian message stages faithfully, with bounded requests and explicit loading/error states; /rapido retains its legacy message path and phone-helper defaults.
 - Prospecting preferences use one owner-scoped cloud row with a per-country map and user-scoped local fallback; serialize writes to prevent older selections overwriting newer choices.
+- Places calls reserve budget through a service-only atomic SQL function that locks settings before usage; accounting failures must prevent external requests to enforce the shared ceiling across workers.
+- Global limit writes require authenticated roles in a separate protected user_roles table and a caller-scoped SQL authorization check; no automatic admin assignment is allowed.
+- Website analysis validates public DNS on every manual redirect and bounds streamed bodies; DNS preflight must never be described as connection-time DNS-rebinding protection without verified egress guarantees.

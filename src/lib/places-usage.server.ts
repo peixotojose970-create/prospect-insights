@@ -17,30 +17,28 @@ async function admin() {
 export async function readUsage() {
   const db = await admin();
   const month = currentMonth();
-  const [{ data: usage }, { data: settings }] = await Promise.all([
+  const [usageResult, settingsResult] = await Promise.all([
     db.from("places_api_usage").select("calls").eq("month", month).maybeSingle(),
     db.from("places_api_settings").select("monthly_limit").eq("id", 1).maybeSingle(),
   ]);
-  const limit = settings?.monthly_limit ?? 1000;
+  if (usageResult.error || settingsResult.error || !settingsResult.data) throw new Error("Não foi possível consultar o consumo. Novas chamadas dependem da confirmação do orçamento.");
+  const usage = usageResult.data;
+  const limit = settingsResult.data.monthly_limit;
   const calls = usage?.calls ?? 0;
   return { month, calls, limit, warnAt: Math.floor(limit * WARN_RATIO), blockAt: Math.floor(limit * BLOCK_RATIO) };
 }
 
 export class UsageBlockedError extends Error {
   constructor(public calls: number, public blockAt: number) {
-    super(`Limite mensal de buscas atingido (${calls} chamadas). Aumente o limite em Configurações.`);
+    super(`Limite mensal de buscas atingido (${calls} chamadas). Um administrador pode revisar o limite em Configurações.`);
   }
 }
 
 /** Bloqueia antes de gastar e registra a chamada ao Google. */
 export async function chargePlacesCall() {
-  const usage = await readUsage();
-  if (usage.calls >= usage.blockAt) throw new UsageBlockedError(usage.calls, usage.blockAt);
   const db = await admin();
-  await db.rpc("increment_places_usage", { p_month: usage.month, p_calls: 1 });
-}
-
-export async function writeLimit(limit: number) {
-  const db = await admin();
-  await db.from("places_api_settings").upsert({ id: 1, monthly_limit: limit, updated_at: new Date().toISOString() });
+  const { data, error } = await db.rpc("reserve_places_call");
+  const reservation = data?.[0];
+  if (error || !reservation) throw new Error("Não foi possível reservar o consumo. Nenhuma nova chamada ao Google foi realizada.");
+  if (!reservation.allowed) throw new UsageBlockedError(reservation.calls, Math.floor(reservation.monthly_limit * BLOCK_RATIO));
 }

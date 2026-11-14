@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { placeIdSchema, photoRefSchema } from "./places-input";
 import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import { classifyWebsite } from "@/features/prospector/website";
@@ -124,6 +125,7 @@ async function callPlaces(
   } catch (error) {
     if (error instanceof UsageBlockedError) throw new SearchError("limite", error.message);
     console.error("[USAGE] falha ao registrar chamada", error);
+    throw new SearchError("rede", "Não foi possível confirmar o orçamento. A chamada ao Google foi interrompida.");
   }
   const startedAt = Date.now();
 
@@ -401,7 +403,7 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
       if (!(error instanceof SearchError)) throw error;
       firstError ??= error;
       notes.push(`Área ${query.area} não pôde ser consultada (${error.message}).`);
-      if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config") break;
+    if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config" || error.code === "limite" || error.code === "rede") break;
     }
   }
 
@@ -457,7 +459,7 @@ export type PlaceDetailsResult =
 const detailsCache = new Map<string, { at: number; value: PlaceDetailsResult }>();
 
 export const fetchPlaceDetails = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ placeId: z.string().trim().min(3).max(400), country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).default("BR") }).parse(data))
+  .inputValidator((data: unknown) => z.object({ placeId: placeIdSchema, country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).default("BR") }).parse(data))
   .handler(async ({ data }): Promise<PlaceDetailsResult> => {
     const cacheKey = `${data.country}:${data.placeId}`;
     const hit = detailsCache.get(cacheKey);
@@ -524,7 +526,7 @@ const photoCache = new Map<string, { at: number; url: string }>();
 
 export const fetchPlacePhotos = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
-    z.object({ photoRefs: z.array(z.string().trim().max(600)).max(4) }).parse(data),
+    z.object({ photoRefs: z.array(photoRefSchema).max(4) }).parse(data),
   )
   .handler(async ({ data }): Promise<PlacePhotosResult> => {
     const urls: string[] = [];
@@ -545,6 +547,7 @@ export const fetchPlacePhotos = createServerFn({ method: "POST" })
         }
       } catch (error) {
         console.error("[SEARCH] foto indisponível", (error as Error)?.message);
+        break;
       }
     }
     return { urls };

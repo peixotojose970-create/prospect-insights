@@ -9,18 +9,19 @@ import { cn } from "@/lib/utils";
 export const usageQueryKey = ["places-usage"] as const;
 
 export function usePlacesUsage() {
-  return useQuery({ queryKey: usageQueryKey, queryFn: () => getPlacesUsage(), staleTime: 15_000 });
+  return useQuery({ queryKey: usageQueryKey, queryFn: () => getPlacesUsage(), staleTime: 15_000, retry: false });
 }
 
 /** Mostra "X de N buscas no mês", aviso em 90% e bloqueio em 95%. */
 export function UsageMeter({ estimate, className }: { estimate?: string | undefined; className?: string }) {
-  const { data } = usePlacesUsage();
+  const { data, isError } = usePlacesUsage();
   const qc = useQueryClient();
   const { search } = useProspector();
   useEffect(() => {
     if (search.status === "success" || search.status === "error") void qc.invalidateQueries({ queryKey: usageQueryKey });
   }, [search.status, qc]);
 
+  if (isError) return <p role="alert" className={cn("text-sm text-danger", className)}>Não foi possível confirmar o consumo mensal. As chamadas dependem da confirmação do orçamento.</p>;
   if (!data) return null;
   const pct = Math.min(100, (data.calls / data.limit) * 100);
   const blocked = data.calls >= data.blockAt;

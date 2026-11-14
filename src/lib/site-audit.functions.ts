@@ -51,13 +51,14 @@ function textOf(re: RegExp, html: string) {
 export const auditWebsite = createServerFn({ method: "POST" })
   .inputValidator((data: { url: string }) => {
     const raw = String(data?.url ?? "").trim();
-    if (!raw) throw new Error("URL vazia");
+    if (!raw || raw.length > 2048) throw new Error("Endereço vazio ou muito longo.");
     return { url: raw };
   })
   .handler(async ({ data }): Promise<SiteAuditResult> => {
+    const { validateSiteUrl, fetchPublicSite, readLimitedHtml } = await import("./site-audit-security.server");
     let target: URL;
     try {
-      target = new URL(data.url.startsWith("http") ? data.url : `https://${data.url}`);
+      target = validateSiteUrl(data.url);
     } catch {
       return { ok: false, message: "O endereço do site não é válido." };
     }
@@ -66,19 +67,9 @@ export const auditWebsite = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
-      const response = await fetch(target.toString(), {
-        redirect: "follow",
-        headers: {
-          "user-agent": "ProspectorBot/1.0 (+analise-publica-de-pagina-inicial)",
-          accept: "text/html,application/xhtml+xml",
-          "accept-language": "pt-BR,pt;q=0.9",
-        },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      const { response, finalUrl } = await fetchPublicSite(target.href, AbortSignal.timeout(TIMEOUT_MS));
       const responseMs = Date.now() - startedAt;
-      const buffer = await response.arrayBuffer();
-      const html = new TextDecoder("utf-8").decode(buffer.slice(0, MAX_BYTES));
-      const finalUrl = response.url || target.toString();
+      const html = await readLimitedHtml(response, MAX_BYTES);
 
       const whatsapp = /wa\.me|api\.whatsapp\.com|whatsapp/i.test(html);
       const phone = /tel:\+?\d|\(\d{2}\)\s?\d{4,5}-?\d{4}/i.test(html);
@@ -138,6 +129,7 @@ export const auditWebsite = createServerFn({ method: "POST" })
       const message = (error as Error)?.name === "TimeoutError"
         ? "A análise do site demorou mais que o esperado."
         : "Não foi possível acessar o site informado.";
-      return { ok: false, message, detail: (error as Error)?.message };
+      console.error("[SITE AUDIT] acesso recusado ou indisponível", error instanceof Error ? error.name : "UnknownError");
+      return { ok: false, message };
     }
   });

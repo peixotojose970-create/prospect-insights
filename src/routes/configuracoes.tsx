@@ -1,5 +1,8 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getPlacesAdminAccess } from "@/lib/admin-access.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { usePlacesUsage, usageQueryKey } from "@/components/prospector/UsageMeter";
 import { setPlacesLimit } from "@/lib/places-usage.functions";
 import { ACCENTS, applyAccent, readAccent, type AccentId } from "@/features/prospector/accent";
@@ -211,17 +214,27 @@ function Configuracoes() {
 }
 
 function ApiLimitSection() {
-  const { data } = usePlacesUsage();
+  const { data, isError } = usePlacesUsage();
+  const checkAccess = useServerFn(getPlacesAdminAccess);
+  const updateLimit = useServerFn(setPlacesLimit);
+  const access = useQuery({ queryKey: ["places-admin-access"], queryFn: async () => {
+    const { data: sessionData, error } = await supabase.auth.getSession();
+    if (error) throw new Error("Não foi possível verificar seu acesso.");
+    if (!sessionData.session) return { canEdit: false };
+    return checkAccess();
+  }, retry: false, staleTime: 0 });
+  const canEdit = access.data?.canEdit === true;
   const qc = useQueryClient();
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(() => { if (data) setValue(String(data.limit)); }, [data?.limit]);
   const save = async () => {
+    if (!canEdit) return void toast.error("Somente um administrador pode alterar o limite mensal.");
     const limit = Math.round(Number(value));
     if (!Number.isFinite(limit) || limit < 10) return void toast.error("Informe um limite de pelo menos 10 buscas.");
     setSaving(true);
     try {
-      const next = await setPlacesLimit({ data: { limit } });
+      const next = await updateLimit({ data: { limit } });
       qc.setQueryData(usageQueryKey, next);
       toast.success("Limite mensal atualizado.");
     } catch {
@@ -235,11 +248,13 @@ function ApiLimitSection() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
           <Label htmlFor="api-limit">Limite mensal de buscas</Label>
-          <Input id="api-limit" type="number" min={10} className="w-44" value={value} onChange={(e) => setValue(e.target.value)} />
+          <Input id="api-limit" type="number" min={10} max={1000000} disabled={!canEdit || saving} className="w-44" value={value} onChange={(e) => setValue(e.target.value)} />
         </div>
-        <Button onClick={() => void save()} disabled={saving}>Salvar limite</Button>
+        <Button onClick={() => void save()} disabled={!canEdit || saving}>Salvar limite</Button>
       </div>
       {data ? <p className="text-xs text-muted-foreground">{data.calls} de {data.limit} buscas usadas neste mês · aviso em {data.warnAt} · bloqueio em {data.blockAt}.</p> : null}
+      {isError ? <p role="alert" className="text-xs text-danger">Não foi possível consultar o consumo mensal.</p> : null}
+      {!canEdit ? <p className="text-xs text-muted-foreground">{access.isError ? "Não foi possível verificar a autorização administrativa." : "A alteração do limite exige uma conta com autorização administrativa."}</p> : null}
     </Section>
   );
 }
