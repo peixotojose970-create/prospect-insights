@@ -25,3 +25,15 @@ it("não segue redirecionamento para rede privada", async () => {
   expect(request).toHaveBeenCalledOnce();
   expect(request.mock.calls[0]?.[1]?.redirect).toBe("manual");
 });
+it("encerra ciclos de redirecionamento", async () => {
+  const request = vi.fn().mockImplementation(async () => new Response(null, { status: 302, headers: { location: "https://8.8.8.8" } }));
+  vi.stubGlobal("fetch", request);
+  await expect(fetchPublicSite("https://8.8.8.8", AbortSignal.timeout(1000))).rejects.toThrow("repetidos");
+  expect(request).toHaveBeenCalledOnce();
+});
+it("propaga o cancelamento total sem nova tentativa", async () => {
+  const request = vi.fn().mockImplementation(async (_url, init) => { init.signal.throwIfAborted(); });
+  vi.stubGlobal("fetch", request);
+  await expect(fetchPublicSite("https://8.8.8.8", AbortSignal.abort())).rejects.toThrow();
+  expect(request).toHaveBeenCalledOnce();
+});

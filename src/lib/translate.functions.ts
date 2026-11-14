@@ -16,7 +16,7 @@ export const translateMessages = createServerFn({ method: "POST" })
         texts: z.array(z.string().max(4000)).min(1).max(40),
         country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).optional(),
         legacy: z.boolean().optional(),
-        context: z.object({ company: z.string().max(300), category: z.string().max(300), city: z.string().nullable(), style: z.string().max(100) }).optional(),
+        context: z.object({ company: z.string().max(300), category: z.string().max(300), city: z.string().max(300).nullable(), style: z.string().max(100) }).optional(),
       })
       .parse(data),
   )

@@ -1,7 +1,8 @@
 # Atualização do Prospector
 
 - [x] Preparar escopo da Etapa 1, registrar referência de restauração e executar testes existentes sem consultas pagas: 43 testes passaram.
-- [ ] Executar Etapa 1 — bloqueado: aguarda aprovação do escopo; proteção contra abuso e validação DNS precisam de mecanismo compatível confirmado.
+- [x] Implementar autorização do limite, reserva atômica, interrupção após falha de consumo, validação de fotos, DNS e redirecionamentos; conta comum não salva nem concede papel administrativo a si própria.
+- [ ] Concluir validação da Etapa 1 — bloqueado: não há administrador autorizado existente; testes concorrentes precisam de ambiente isolado gravável; garantia de destino na conexão e proteção adicional contra abuso exigem mecanismo confirmado.
 - [ ] Preparar e validar Etapas 2–5 separadamente — bloqueado: dependem dos resultados aprovados da Etapa 1; CRM permanece local.
 
 - [x] Tratar ausência e expiração de acesso internacional antes de consultar Google Maps; Brasil e /rapido preservados.
