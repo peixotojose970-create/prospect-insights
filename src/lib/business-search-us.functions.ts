@@ -49,6 +49,8 @@ const schema = z.object({ country: z.enum(["US", "PT", "ES", "FR", "IT"]).defaul
 const cursorSchema = z.object({ query: z.number().int().min(0).max(8), page: z.number().int().min(0).max(2), token: z.string().max(2000).optional(), fingerprint: z.string().max(1500) });
 export const searchUSBusinesses = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data: unknown) => schema.parse(data)).handler(async ({ data }): Promise<USSearchResult> => {
   try {
+    const { enforceOperationLimit } = await import("./operation-limit.server");
+    await enforceOperationLimit("search");
     const cfg = COUNTRIES[data.country];
     const planned = [...new Set((data.locations?.length ? data.locations : [data.city || data.state]).map((v) => v.trim()).filter(Boolean))];
     if (!planned.length) throw Object.assign(new Error("Informe uma cidade, distrito, província ou região para pesquisar."), { code: "local" });

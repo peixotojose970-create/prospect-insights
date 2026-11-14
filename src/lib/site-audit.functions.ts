@@ -67,6 +67,8 @@ export const auditWebsite = createServerFn({ method: "POST" })
 
     const startedAt = Date.now();
     try {
+      const { enforceOperationLimit } = await import("./operation-limit.server");
+      await enforceOperationLimit("audit");
       const { response, finalUrl } = await fetchPublicSite(target.href, AbortSignal.timeout(TIMEOUT_MS));
       const responseMs = Date.now() - startedAt;
       const html = await readLimitedHtml(response, MAX_BYTES);

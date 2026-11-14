@@ -303,6 +303,8 @@ export const searchBusinesses = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => searchSchema.parse(data))
   .handler(async ({ data }): Promise<SearchResult> => {
     try {
+      const { enforceOperationLimit } = await import("./operation-limit.server");
+      await enforceOperationLimit("search");
       return { ok: true, outcome: await runSearch(data) };
     } catch (error) {
       if (error instanceof SearchError) {
@@ -470,6 +472,8 @@ const detailsCache = new Map<string, { at: number; value: PlaceDetailsResult }>(
 export const fetchPlaceDetails = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ placeId: placeIdSchema, country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).default("BR") }).parse(data))
   .handler(async ({ data }): Promise<PlaceDetailsResult> => {
+    const { enforceOperationLimit } = await import("./operation-limit.server");
+    await enforceOperationLimit("details");
     const cacheKey = `${data.country}:${data.placeId}`;
     const hit = detailsCache.get(cacheKey);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
@@ -538,6 +542,8 @@ export const fetchPlacePhotos = createServerFn({ method: "POST" })
     z.object({ photoRefs: z.array(photoRefSchema).max(4) }).parse(data),
   )
   .handler(async ({ data }): Promise<PlacePhotosResult> => {
+    const { enforceOperationLimit } = await import("./operation-limit.server");
+    await enforceOperationLimit("photos");
     const urls: string[] = [];
     for (const ref of data.photoRefs) {
       const hit = photoCache.get(ref);

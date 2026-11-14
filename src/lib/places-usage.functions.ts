@@ -5,6 +5,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type PlacesUsage = { month: string; calls: number; limit: number; warnAt: number; blockAt: number };
 
 export const getPlacesUsage = createServerFn({ method: "GET" }).handler(async (): Promise<PlacesUsage> => {
+  const { enforceOperationLimit } = await import("./operation-limit.server");
+  await enforceOperationLimit("usage");
   const { readUsage } = await import("./places-usage.server");
   return readUsage();
 });

@@ -36,6 +36,20 @@
       "when": 1794688949913,
       "tag": "0004_merge_country_preferences_atomically",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794689854279,
+      "tag": "0005_atomic_public_operation_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794689978643,
+      "tag": "0006_restrict_operation_window_grants",
+      "breakpoints": true
     }
   ]
 }

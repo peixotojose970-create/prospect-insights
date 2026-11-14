@@ -25,6 +25,8 @@ export const translateMessages = createServerFn({ method: "POST" })
     const { generateChatCompletion, GatewayError } = await import("@lovable.dev/ai-gateway");
     const signal = data.legacy ? undefined : AbortSignal.timeout(TRANSLATION_TIMEOUT_MS);
     try {
+      const { enforceOperationLimit } = await import("./operation-limit.server");
+      await enforceOperationLimit("translate");
       for (let attempt = 0; attempt < translationAttemptLimit(data.legacy); attempt++) {
       const res = await generateChatCompletion({
         model: "openai/gpt-6-astra",

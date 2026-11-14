@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      operation_rate_windows: {
+        Row: {
+          calls: number
+          operation: string
+          window_start: string
+        }
+        Insert: {
+          calls?: number
+          operation: string
+          window_start: string
+        }
+        Update: {
+          calls?: number
+          operation?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       places_api_settings: {
         Row: {
           id: number
@@ -201,6 +219,10 @@ export type Database = {
           month: string
           monthly_limit: number
         }[]
+      }
+      reserve_public_operation: {
+        Args: { p_operation: string }
+        Returns: boolean
       }
       set_places_limit_authorized: {
         Args: { p_limit: number }

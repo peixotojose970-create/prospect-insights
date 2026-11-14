@@ -37,3 +37,16 @@ it("propaga o cancelamento total sem nova tentativa", async () => {
   await expect(fetchPublicSite("https://8.8.8.8", AbortSignal.abort())).rejects.toThrow();
   expect(request).toHaveBeenCalledOnce();
 });
+it("revalida DNS de cada destino antes de seguir redirecionamentos", async () => {
+  const siteRequests: string[] = [];
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string) => {
+    if (url.startsWith("https://cloudflare-dns.com/")) {
+      const address = new URL(url).searchParams.get("name") === "public.org" ? "8.8.8.8" : "169.254.169.254";
+      return new Response(JSON.stringify({ Status: 0, Answer: [{ type: 1, data: address }] }));
+    }
+    siteRequests.push(url);
+    return new Response(null, { status: 302, headers: { location: "https://other.org" } });
+  }));
+  await expect(fetchPublicSite("https://public.org", AbortSignal.timeout(1000))).rejects.toThrow("públicos");
+  expect(siteRequests).toEqual(["https://public.org/"]);
+});

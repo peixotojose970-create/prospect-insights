@@ -1,5 +1,12 @@
 # Atualização do Prospector
 
+## Conclusão solicitada em 14/11
+- [x] Implementar controle próprio antiabuso autorizado, persistente e atômico; limites globais, sem alegar proteção DDoS.
+- [x] Validar orçamento e autorização com concorrência real em PostgreSQL isolado, sem consumo Google: 3 testes passaram.
+- [x] Ampliar regressões SSRF e verificar configurações de entrada publicada separadamente do Places.
+- [x] Atualizar o relatório com evidências e dependências externas verdadeiras.
+- [ ] Conclusão externa: IP na conexão não garantido; Google exige interação do titular; Places requer orçamento e domínio autorizado; proprietário deve identificar administrador legítimo; publicação pendente.
+
 ## Execução contínua autorizada
 - [x] Segurança: conferir controles existentes; garantias de saída e proteção adicional contra abuso documentadas como indisponíveis.
 - [x] Estabilidade: prazo único de tradução normal sem replay automático; gravação atômica das preferências e restauração autenticada PT/ES verificadas.
@@ -11,7 +18,7 @@
 
 - [x] Preparar escopo da Etapa 1, registrar referência de restauração e executar testes existentes sem consultas pagas: 43 testes passaram.
 - [x] Implementar autorização do limite, reserva atômica, interrupção após falha de consumo, validação de fotos, DNS e redirecionamentos; conta comum não salva nem concede papel administrativo a si própria.
-- [ ] Concluir validação da Etapa 1 — bloqueado: não há administrador autorizado existente; testes concorrentes precisam de ambiente isolado gravável; garantia de destino na conexão e proteção adicional contra abuso exigem mecanismo confirmado.
+- [ ] Concluir validação da Etapa 1 em produção — bloqueado: administrador legítimo não identificado e garantia de IP na conexão indisponível; concorrência real e controle global antiabuso já testados em banco isolado.
 - [x] Avançar nas demais tarefas possíveis conforme autorização contínua; CRM permaneceu local e limitações externas foram registradas.
 
 - [x] Tratar ausência e expiração de acesso internacional antes de consultar Google Maps; Brasil e /rapido preservados.
