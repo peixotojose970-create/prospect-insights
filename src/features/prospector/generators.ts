@@ -1,4 +1,5 @@
 import type { Business, Lead } from "@/types";
+import { exportLeadsCsv } from "./csv";
 import { NAO_DISPONIVEL_FONTE, formatPhone, fullAddress, orNotInformed, whatsappLabel } from "./format";
 
 type SenderProfile = { personalName: string; companyName: string };
@@ -283,51 +284,5 @@ Potencial baseado nos dados disponíveis na fonte.`,
 
 /** CSV dos leads realmente salvos pelo usuário. */
 export function toCsv(leads: Lead[]) {
-  const header = [
-    "empresa",
-    "categoria",
-    "endereco",
-    "bairro",
-    "cidade",
-    "estado",
-    "cep",
-    "telefone",
-    "site",
-    "instagram",
-    "horario",
-    "latitude",
-    "longitude",
-    "score",
-    "status",
-    "fonte",
-    "external_id",
-    "source_url",
-    "salvo_em",
-  ];
-  const rows = leads.map((l) =>
-    [
-      l.name,
-      l.category,
-      l.address ?? "",
-      l.neighborhood ?? "",
-      l.city ?? "",
-      l.state ?? "",
-      l.postalCode ?? "",
-      l.phone ?? "",
-      l.website ?? "",
-      l.instagram ?? "",
-      l.openingHours ?? "",
-      l.latitude,
-      l.longitude,
-      l.score,
-      l.status,
-      l.source,
-      l.externalId,
-      l.sourceUrl ?? "",
-      l.savedAt,
-    ]
-      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(","),
-  );
-  return [header.join(","), ...rows].join("\n");
+  return exportLeadsCsv(leads);
 }

@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { placeIdSchema, photoRefSchema } from "./places-input";
+import { parseBrazilCursor } from "./brazil-cursor";
+import { googlePermissionMessage } from "./google-errors";
 import { z } from "zod";
 import { scoreBusiness } from "@/features/prospector/scoring";
 import { classifyWebsite } from "@/features/prospector/website";
@@ -163,7 +165,7 @@ async function callPlaces(
     if (response.status === 401 || response.status === 403) {
       throw new SearchError(
         "permissao",
-        "É necessário configurar o Google Cloud para utilizar esta integração.",
+        googlePermissionMessage(response.status, text),
         detail,
       );
     }
@@ -293,7 +295,7 @@ const searchSchema = z.object({
   state: z.string().trim().length(2),
   term: z.string().trim().max(120).optional().default(""),
   limit: z.number().int().min(5).max(MAX_PAGE_SIZE).optional(),
-  pageToken: z.string().trim().max(2000).optional(),
+  pageToken: z.string().trim().max(8000).optional(),
   discoveryOffset: z.number().int().min(0).max(100).optional(),
 });
 
@@ -377,7 +379,9 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   const queryTerms = alternateTerm ? [primaryTerm, alternateTerm] : [primaryTerm];
   const queries = areas.flatMap((area) => queryTerms.map((term) => ({ area, text: `${term} em ${area}, ${stateData.name}, Brasil` })));
   const areaLabel = selectedAreas.length ? selectedAreas.join(" · ") : `${stateData.name} (${state})`;
-  const cacheKey = `${state}|${data.category}|${requestedName}|${selectedAreas.join("|")}|${offset}|${pageSize}|v5`.toLowerCase();
+  const fingerprint = JSON.stringify([state,data.category,requestedName,selectedAreas,offset,pageSize]);
+  const cursor = parseBrazilCursor(data.pageToken,fingerprint);
+  const cacheKey = `${fingerprint}|${data.pageToken ?? ""}|v6`;
   const hit = searchCache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ...hit.value, cached: true };
 
@@ -387,25 +391,30 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   let successfulRequests = 0;
   let rawCount = 0;
   let firstError: SearchError | null = null;
-  for (const query of queries) {
-    if (requests >= MAX_REQUESTS_PER_SEARCH) break;
-    requests += 1;
+  let queryIndex=cursor.query, page=cursor.page, token=cursor.token;
+  const searched=new Set<string>();
+  while(queryIndex < queries.length && requests < MAX_REQUESTS_PER_SEARCH) {
+    const query=queries[queryIndex];
+    if(!query) break;
+    requests++;
     try {
-      const payload = await fetchPage(query.text, pageSize);
-      successfulRequests += 1;
-      const places = payload.places ?? [];
-      rawCount += places.length;
-      for (const place of places) {
-        const business = toBusiness(place);
-        if (business && matchesName(business, requestedName, data.category) && !byId.has(business.id)) byId.set(business.id, business);
+      const payload=await fetchPage(query.text,pageSize,token);
+      successfulRequests++; searched.add(query.area);
+      const places=payload.places??[];
+      if(!Array.isArray(places)) throw new SearchError("rede","Resposta inválida do Google Maps.");
+      rawCount+=places.length;
+      for(const place of places) {
+        const business=toBusiness(place);
+        if(business && matchesName(business,requestedName,data.category) && !byId.has(business.id)) byId.set(business.id,business);
       }
-    } catch (error) {
-      if (!(error instanceof SearchError)) throw error;
-      firstError ??= error;
-      notes.push(`Área ${query.area} não pôde ser consultada (${error.message}).`);
-    if (error.code === "rate-limit" || error.code === "permissao" || error.code === "config" || error.code === "limite" || error.code === "rede") break;
+      if(payload.nextPageToken && page<2) { token=payload.nextPageToken; page++; }
+      else { queryIndex++; page=0; token=undefined; }
+    } catch(error) {
+      if(!(error instanceof SearchError)) throw error;
+      firstError=error; notes.push(`Área ${query.area} não pôde ser consultada (${error.message}).`); break;
     }
   }
+  const nextPageToken=queryIndex<queries.length?JSON.stringify({fingerprint,query:queryIndex,page,token}):null;
 
   const businesses = [...byId.values()];
   const pendingAreas = Math.max(0, plannedAreas.length - offset - areas.length);
@@ -413,7 +422,7 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
   // Só uma falha total interrompe a pesquisa. Um lote sem resultados válidos
   // continua navegável enquanto ainda houver outras áreas da UF para consultar.
   if (!businesses.length && firstError && successfulRequests === 0) throw firstError;
-  if (!businesses.length && !hasPendingAreas) {
+  if (!businesses.length && !hasPendingAreas && !nextPageToken) {
     throw new SearchError(
       "vazio",
       requestedName
@@ -423,15 +432,15 @@ async function runSearch(data: z.infer<typeof searchSchema>): Promise<SearchOutc
     );
   }
   if (hasPendingAreas) notes.push(`${pendingAreas} ${selectedAreas.length ? "localidade selecionada" : "área planejada"}${pendingAreas === 1 ? " permanece" : "s permanecem"} pendente${pendingAreas === 1 ? "" : "s"}; use “Encontrar mais empresas” para continuar.`);
-  notes.push("Cada consulta usa uma página de até 20 resultados do Google Maps; resultados além desse limite podem não aparecer neste lote.");
+  notes.push("Até 3 páginas de 20 resultados por expressão e 9 chamadas por lote; continuação preserva a consulta pendente.");
   if (!selectedAreas.length) notes.push("Cobertura estadual usa apenas as cidades planejadas exibidas por lote; ela não representa todos os municípios da UF.");
   if (firstError) notes.push("Busca parcial: os resultados das áreas consultadas foram preservados.");
 
   const outcome: SearchOutcome = {
-    businesses, total: businesses.length, truncated: hasPendingAreas || !!firstError, cached: false, areaLabel, nextPageToken: null,
-    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, areasSearched: areas, pendingAreas, ...(hasPendingAreas ? { hasMoreAreas: true } : {}), notes },
+    businesses, total: businesses.length, truncated: hasPendingAreas || !!firstError || !!nextPageToken, cached: false, areaLabel, nextPageToken,
+    coverage: { queries: queries.length, requests, rawResults: rawCount, duplicatesRemoved: rawCount - businesses.length, areasSearched: [...searched], pendingAreas, ...(hasPendingAreas ? { hasMoreAreas: true } : {}), notes },
   };
-  searchCache.set(cacheKey, { at: Date.now(), value: outcome });
+  if (!firstError) searchCache.set(cacheKey, { at: Date.now(), value: outcome });
   return outcome;
 }
 
@@ -539,7 +548,7 @@ export const fetchPlacePhotos = createServerFn({ method: "POST" })
       try {
         const payload = (await callPlaces(
           `places/v1/${ref}/media?maxWidthPx=800&skipHttpRedirect=true`,
-          { method: "GET", fieldMask: "*" },
+          { method: "GET", fieldMask: "photoUri" },
         )) as { photoUri?: string };
         if (payload.photoUri) {
           photoCache.set(ref, { at: Date.now(), url: payload.photoUri });

@@ -69,6 +69,9 @@
 }
 
 :root {
+  --google-button-background: #131314;
+  --google-button-border: #8e918f;
+  --google-button-foreground: #e3e3e3;
   --radius: 1rem;
   /* Cor de destaque: troque apenas --brand-hue (e as luminosidades, se quiser) */
   --brand-hue: 25;
@@ -326,3 +329,6 @@ html[data-hud="antiga"] .rounded-\[24px\] { border-radius: 0.75rem; }
   table { font-size: 0.8125rem; }
   img, video, canvas, iframe { max-width: 100%; }
 }
+
+.google-sign-in { background: var(--google-button-background); border: 1px solid var(--google-button-border); color: var(--google-button-foreground); gap: 10px; padding-inline: 12px; font-size: 14px; line-height: 20px; font-weight: 500; }
+.google-sign-in svg { width: 18px; height: 18px; }

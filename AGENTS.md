@@ -19,3 +19,8 @@
 - Places calls reserve budget through a service-only atomic SQL function that locks settings before usage; accounting failures must prevent external requests to enforce the shared ceiling across workers.
 - Global limit writes require authenticated roles in a separate protected user_roles table and a caller-scoped SQL authorization check; no automatic admin assignment is allowed.
 - Website analysis validates public DNS on every manual redirect and bounds streamed bodies; DNS preflight must never be described as connection-time DNS-rebinding protection without verified egress guarantees.
+- Complete local backups use an explicit non-auth storage allowlist, validate before writes, retain pre-restore recovery, and roll back failed writes; CRM remains local until a separate migration plan is approved.
+- CSV interchange uses record-aware parsing and stable identities with direct CRM imports; never rebuild imported leads through the new-lead action because it resets commercial state.
+- Shared search continuation keeps a queue per category and query-bound provider cursors; reject obsolete search generations and retain failed continuations for retry.
+- Non-quick establishment matching uses source identity or name plus address; shared domains and truncated phone suffixes must not hide distinct branches, while the quick legacy path remains unchanged.
+- Preference mutations patch only changed country fields atomically under owner RLS; restored current-user preferences intentionally sync once after hydration.

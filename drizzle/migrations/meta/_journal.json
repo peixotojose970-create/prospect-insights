@@ -29,6 +29,13 @@
       "when": 1794688070479,
       "tag": "0003_restrict_role_table_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794688949913,
+      "tag": "0004_merge_country_preferences_atomically",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { validMessageLanguage } from "@/features/prospector/message-validation";
+import { TRANSLATION_TIMEOUT_MS, translationAttemptLimit } from "./translation-budget";
 
 const LANG_NAMES = { "pt-PT": "European Portuguese (português de Portugal, natural for Portugal, e.g. 'telemóvel', 'está a', formal 'você'/3rd person)", es: "Spanish from Spain (español de España)", fr: "French from France", it: "Italian from Italy", en: "American English" } as const;
 
@@ -22,8 +23,9 @@ export const translateMessages = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { generateChatCompletion, GatewayError } = await import("@lovable.dev/ai-gateway");
+    const signal = data.legacy ? undefined : AbortSignal.timeout(TRANSLATION_TIMEOUT_MS);
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < translationAttemptLimit(data.legacy); attempt++) {
       const res = await generateChatCompletion({
         model: "openai/gpt-6-astra",
         messages: [
@@ -40,13 +42,13 @@ export const translateMessages = createServerFn({ method: "POST" })
           { role: "user", content: JSON.stringify({ texts: data.texts, context: data.context }) },
         ],
         response_format: { type: "json_object" },
-      }, data.legacy ? undefined : { signal: AbortSignal.timeout(55_000) });
+      }, signal ? { signal } : undefined);
       const content = res.choices[0]?.message?.content;
       const raw = typeof content === "string" ? content : "";
       const parsed = z.object({ translations: z.array(z.string()) }).parse(JSON.parse(raw));
       if (parsed.translations.length !== data.texts.length) throw new Error("count mismatch");
       const prose = parsed.translations.map((text) => data.context ? [data.context.company, data.context.category, data.context.city].filter((value): value is string => !!value).reduce((result, value) => result.replaceAll(value, ""), text) : text);
-      if (!data.legacy && !validMessageLanguage(prose, data.lang)) { if (attempt === 0) continue; throw new Error("Idioma incorreto na resposta gerada."); }
+      if (!data.legacy && !validMessageLanguage(prose, data.lang)) throw new Error("Idioma incorreto na resposta gerada.");
       return { translations: parsed.translations, error: null as string | null };
       }
       throw new Error("Não foi possível validar o idioma.");

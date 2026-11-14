@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toCsv } from "@/features/prospector/generators";
+import { importLeadsCsv } from "@/features/prospector/csv";
 import { formatPhone } from "@/features/prospector/format";
 import { useProspector } from "@/features/prospector/store";
 import { EmptyState, PageHeader, ScorePill, SiteBadge, SourceNotice, StatusBadge } from "@/features/prospector/ui";
@@ -44,7 +45,7 @@ function download(name: string, content: string) {
 const PAGE = 50;
 
 function Leads() {
-  const { leads, openLead, saveLead, emailOf } = useProspector();
+  const { leads, openLead, importLeads, emailOf } = useProspector();
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const togglePick = (id: string) => setPicked((p) => ({ ...p, [id]: !p[id] }));
   const pickedLeads = leads.filter((l) => picked[l.id]);
@@ -79,49 +80,9 @@ function Leads() {
 
   const importCsv = async (file: File) => {
     try {
-      const text = await file.text();
-      const [header, ...lines] = text.trim().split(/\r?\n/);
-      if (!header) throw new Error("vazio");
-      const cols = header.split(",").map((c) => c.replace(/"/g, "").trim());
-      const idx = (name: string) => cols.indexOf(name);
-      let count = 0;
-      for (const line of lines) {
-        const cells = line.match(/("([^"]|"")*"|[^,]*)/g)?.filter((_, i) => i % 2 === 0) ?? [];
-        const get = (name: string) => (cells[idx(name)] ?? "").replace(/^"|"$/g, "").replace(/""/g, '"');
-        const name = get("empresa");
-        if (!name) continue;
-        saveLead({
-          id: get("external_id") || `import-${name}-${count}`,
-          externalId: get("external_id") || "importado",
-          placeId: get("place_id") || "",
-          source: get("fonte") || "Importado (CSV)",
-          sourceUrl: get("source_url") || null,
-          name,
-          category: get("categoria") || "Não informado",
-          street: null,
-          houseNumber: null,
-          neighborhood: get("bairro") || null,
-          city: get("cidade") || null,
-          state: get("estado") || null,
-          postalCode: get("cep") || null,
-          address: get("endereco") || null,
-          phone: get("telefone") || null,
-          website: get("site") || null,
-          instagram: get("instagram") || null,
-          openingHours: get("horario") || null,
-          mapsUrl: get("maps_url") || null,
-          rating: Number(get("nota")) || null,
-          reviews: Number(get("avaliacoes")) || null,
-          photoRefs: [],
-          photoAttributions: [],
-          latitude: Number(get("latitude")) || 0,
-          longitude: Number(get("longitude")) || 0,
-          score: Number(get("score")) || 0,
-          scoreFactors: [],
-        });
-        count += 1;
-      }
-      toast.success(`${count} leads importados.`);
+      const imported = importLeadsCsv(await file.text());
+      const result = importLeads(imported);
+      toast.success(`${result.created} leads importados; ${result.duplicates} duplicados preservados sem alteração.`);
     } catch {
       toast.error("Não foi possível ler este arquivo CSV.");
     }

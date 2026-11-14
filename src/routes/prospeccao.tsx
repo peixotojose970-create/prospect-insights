@@ -280,7 +280,6 @@ function Prospeccao() {
       window.localStorage.setItem(MAP_PREF_KEY, v ? "0" : "1");
       return !v;
     });
-  const [discoveryOffset, setDiscoveryOffset] = useState(0);
 
   // Trocar o país troca também as listas de cidades/estados e a categoria padrão.
   const setCountry = (next: Country) => {
@@ -347,7 +346,6 @@ function Prospeccao() {
       setFiltersOpen(true);
       return;
     }
-    setDiscoveryOffset(0);
     setFiltersOpen(false);
     setSearchingCategories(true);
     const { category: _category, ...location } = buildCriteria();
@@ -506,8 +504,7 @@ function Prospeccao() {
                   setLocationsText((s.locations ?? []).filter((location) => location !== s.city).join("; "));
                   setState(s.state);
                   setQuery(s.term ?? "");
-                  setDiscoveryOffset(0);
-                  void runSearch({
+                                void runSearch({
                     category: s.category,
                     city: s.city,
                     state: s.state,
@@ -574,15 +571,10 @@ function Prospeccao() {
                 : "A busca retornou empresas, mas os filtros atuais removeram todas. Reduza o score mínimo ou desmarque os filtros."
             }
             action={
-              search.criteria && search.outcome?.coverage?.hasMoreAreas ? (
+              search.outcome?.nextPageToken ? (
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    if (!search.criteria) return;
-                    const nextOffset = discoveryOffset + 3;
-                    setDiscoveryOffset(nextOffset);
-                    void runSearch({ ...search.criteria, discoveryOffset: nextOffset }, true);
-                  }}
+                  onClick={() => void loadMore()}
                   disabled={busy}
                 >
                   {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
@@ -695,20 +687,7 @@ function Prospeccao() {
                   Carregar mais
                 </Button>
               ) : null}
-              {search.criteria && search.outcome?.coverage?.hasMoreAreas && !search.outcome.nextPageToken ? (
-                <Button variant="outline" className="h-12 w-full sm:w-auto" disabled={busy}
-                  onClick={() => {
-                    if (!search.criteria) return;
-                    // O servidor consulta três áreas por lote; avançar pelo mesmo
-                    // tamanho evita repetir cidades e mantém o progresso correto.
-                    const nextOffset = discoveryOffset + 3;
-                    setDiscoveryOffset(nextOffset);
-                    void runSearch({ ...search.criteria, discoveryOffset: nextOffset }, true);
-                  }}>
-                  {loadingMore ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
-                  Encontrar mais empresas
-                </Button>
-              ) : null}
+
             </div>
           </>
         )

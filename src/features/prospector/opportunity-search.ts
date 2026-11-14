@@ -1,5 +1,5 @@
 import type { Business, SearchCriteria, ProspectCountry } from "@/types";
-import { fingerprints, isContacted } from "./contacted";
+import { establishmentKeys, isEstablishmentContacted } from "./establishment-identity";
 import { isOwnWebsite } from "./website";
 
 export type OpportunityFilters = { onlyNoSite: boolean; onlyPhone: boolean; highPotential: boolean; minScore: number };
@@ -11,11 +11,11 @@ export function opportunityMatches(b: Business, filters: OpportunityFilters) {
 }
 
 export function newOpportunities(businesses: Business[], saved: Business[], contacted: Set<string>) {
-  const known = new Set(saved.flatMap(fingerprints));
+  const known = new Set(saved.flatMap(establishmentKeys));
   const seen = new Set<string>();
   return businesses.filter((b) => {
-    const keys = fingerprints(b);
-    if (isContacted(b, contacted) || keys.some((key) => known.has(key) || seen.has(key))) return false;
+    const keys = establishmentKeys(b);
+    if (isEstablishmentContacted(b, contacted) || keys.some((key) => known.has(key) || seen.has(key))) return false;
     keys.forEach((key) => seen.add(key));
     return true;
   });

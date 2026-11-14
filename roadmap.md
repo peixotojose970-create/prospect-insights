@@ -1,14 +1,23 @@
 # Atualização do Prospector
 
+## Execução contínua autorizada
+- [x] Segurança: conferir controles existentes; garantias de saída e proteção adicional contra abuso documentadas como indisponíveis.
+- [x] Estabilidade: prazo único de tradução normal sem replay automático; gravação atômica das preferências e restauração autenticada PT/ES verificadas.
+- [x] Dados locais: backup completo, recuperação prévia, CSV fiel e importação sem substituir leads existentes; fluxo real verificado.
+- [x] Pesquisa: cursors BR por consulta, fila multicategoria e identificação de estabelecimento; testes reproduzem perdas de continuação e supressão de filiais.
+- [x] Google: conexão existente reutilizada; API New auditada, erros e POIs corrigidos; entrada Google/Lovable habilitada separadamente do Places.
+- [x] Verificar fluxos autenticados e recuperação; 28 checks públicos em 320–1280px passaram sem erro ou overflow; relatório salvo.
+- [ ] Validação externa final — bloqueado: Maps/Google OAuth real exigem interação em domínio autorizado, consultas/generação paga sem orçamento autorizado; teste concorrente de orçamento exige banco isolado gravável; proteção de saída e antiabuso padrão indisponíveis; não há administrador legítimo definido.
+
 - [x] Preparar escopo da Etapa 1, registrar referência de restauração e executar testes existentes sem consultas pagas: 43 testes passaram.
 - [x] Implementar autorização do limite, reserva atômica, interrupção após falha de consumo, validação de fotos, DNS e redirecionamentos; conta comum não salva nem concede papel administrativo a si própria.
 - [ ] Concluir validação da Etapa 1 — bloqueado: não há administrador autorizado existente; testes concorrentes precisam de ambiente isolado gravável; garantia de destino na conexão e proteção adicional contra abuso exigem mecanismo confirmado.
-- [ ] Preparar e validar Etapas 2–5 separadamente — bloqueado: dependem dos resultados aprovados da Etapa 1; CRM permanece local.
+- [x] Avançar nas demais tarefas possíveis conforme autorização contínua; CRM permaneceu local e limitações externas foram registradas.
 
 - [x] Tratar ausência e expiração de acesso internacional antes de consultar Google Maps; Brasil e /rapido preservados.
 - [x] Encerrar carregamento de traduções com timeout, recuperação manual e fidelidade aos modelos brasileiros; traduções reais PT/ES/FR/IT passaram.
 - [x] Persistir país, abordagem e idioma por país na nuvem e localmente; restauração local e isolamento PT/ES verificados.
-- [ ] Comprovar gravação e restauração autenticada na nuvem — bloqueado: nenhuma conta existente para obter sessão de teste.
+- [x] Comprovar gravação e restauração autenticada de preferências: conta temporária, patches PT/ES simultâneos e leitura após reload verificados.
 
 - [x] Centralizar configuração de países e corrigir consultas internacionais, paginação e localidades sem editar /rapido.
 - [x] Traduzir duas etapas preservando modelos brasileiros, validar idioma e impedir envio de geração incompleta; traduções reais PT/ES/FR/IT verificadas.

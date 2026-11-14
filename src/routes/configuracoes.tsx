@@ -5,6 +5,8 @@ import { getPlacesAdminAccess } from "@/lib/admin-access.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlacesUsage, usageQueryKey } from "@/components/prospector/UsageMeter";
 import { setPlacesLimit } from "@/lib/places-usage.functions";
+import { createCompleteBackup, parseBackup, restoreCompleteBackup, RECOVERY_KEY } from "@/features/prospector/backup";
+import { SocialSignIn } from "@/components/prospector/SocialSignIn";
 import { ACCENTS, applyAccent, readAccent, type AccentId } from "@/features/prospector/accent";
 import { HUDS, applyHud, readHud, type HudId } from "@/features/prospector/hud";
 import { createFileRoute } from "@tanstack/react-router";
@@ -83,31 +85,21 @@ function Configuracoes() {
   const activeMode = pendingMode ?? mode;
 
   const downloadBackup = () => {
-    const raw = window.localStorage.getItem("prospector:v1");
-    if (!raw) {
-      toast.error("Não há dados locais para criar o backup.");
-      return;
-    }
-    const blob = new Blob([JSON.stringify({ format: "prospector-backup-v1", createdAt: new Date().toISOString(), data: JSON.parse(raw) }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `prospector-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Backup recuperável baixado. Os dados locais foram mantidos.");
+    try {
+      const backup = createCompleteBackup(window.localStorage);
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url;
+      a.download = `prospector-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url);
+      toast.success("Backup completo baixado. Nenhuma sessão de acesso foi incluída.");
+    } catch { toast.error("Não foi possível criar o backup; os dados locais foram preservados."); }
   };
 
   const restoreBackup = async (file?: File) => {
     if (!file) return;
     try {
-      const parsed = JSON.parse(await file.text());
-      if (parsed?.format !== "prospector-backup-v1" || !parsed.data || !Array.isArray(parsed.data.leads)) {
-        throw new Error("Formato de backup inválido.");
-      }
-      const before = window.localStorage.getItem("prospector:v1");
-      if (before) window.localStorage.setItem("prospector:v1:recovery-before-restore", before);
-      window.localStorage.setItem("prospector:v1", JSON.stringify(parsed.data));
+      if (file.size > 20_000_000) throw new Error("Backup excede 20 MB.");
+      restoreCompleteBackup(window.localStorage, parseBackup(await file.text()));
       toast.success("Backup restaurado. Recarregando o Prospector…");
       window.location.reload();
     } catch (error) {
@@ -182,6 +174,7 @@ function Configuracoes() {
         <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente neste navegador.</p>
       </Section>
 
+      <Section title="Acesso à conta" description="Entre para sincronizar suas preferências e pesquisar no exterior."><SocialSignIn /></Section>
       <TemplatesSection />
       <ApiLimitSection />
       <AppearanceSection />
@@ -197,6 +190,14 @@ function Configuracoes() {
             <Upload className="size-4" aria-hidden />
             Restaurar backup
           </Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            try {
+              const raw = window.localStorage.getItem(RECOVERY_KEY);
+              if (!raw) return void toast.error("Nenhuma restauração anterior disponível.");
+              restoreCompleteBackup(window.localStorage, parseBackup(raw));
+              window.location.reload();
+            } catch { toast.error("Não foi possível recuperar os dados anteriores."); }
+          }}>Recuperar antes da restauração</Button>
           <input id="prospector-backup-file" type="file" accept="application/json,.json" className="hidden" onChange={(event) => { void restoreBackup(event.target.files?.[0]); event.currentTarget.value = ""; }} />
           <Button variant="outline" size="sm" onClick={exportAll}>
             <Download className="size-4" aria-hidden />

@@ -184,6 +184,14 @@ export type Database = {
         Args: { p_calls: number; p_month: string }
         Returns: number
       }
+      patch_prospecting_preferences: {
+        Args: {
+          p_country?: string
+          p_patch?: Json
+          p_preference_country?: string
+        }
+        Returns: undefined
+      }
       prospector_is_active_admin: { Args: never; Returns: boolean }
       reserve_places_call: {
         Args: never

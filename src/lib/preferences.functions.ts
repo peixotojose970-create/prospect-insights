@@ -12,3 +12,10 @@ export const saveProspectingPreferences = createServerFn({ method: "POST" }).mid
   if (error) throw new Error("Não foi possível salvar suas preferências na conta. Tente novamente.");
   return { ok: true };
 });
+export const patchProspectingPreferences = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ country: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).optional(), preferenceCountry: z.enum(["BR", "US", "PT", "ES", "FR", "IT"]).optional(), patch: z.object({ style: z.string().min(1).max(200).optional(), language: z.enum(["auto", "pt", "pt-PT", "es", "fr", "it", "en"]).optional() }).default({}) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("patch_prospecting_preferences", { ...(data.country ? { p_country: data.country } : {}), ...(data.preferenceCountry ? { p_preference_country: data.preferenceCountry } : {}), p_patch: data.patch });
+    if (error) throw new Error("Preferências mantidas neste navegador; não foi possível sincronizar a conta.");
+    return { ok: true };
+  });

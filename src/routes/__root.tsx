@@ -17,6 +17,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/prospector/AppShell";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { usePreferenceSync } from "@/features/prospector/preferences";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -139,6 +140,14 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const legacy = useRouterState({ select: (state) => state.location.pathname === "/rapido" });
   usePreferenceSync(!legacy);
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
+      queryClient.removeQueries({ queryKey: ["places-admin-access"] });
+      if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
+    });
+    return () => data.subscription.unsubscribe();
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

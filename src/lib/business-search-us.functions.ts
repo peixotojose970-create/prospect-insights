@@ -7,6 +7,7 @@ import type { Business, SearchOutcome } from "@/types";
 import { COUNTRY_CONFIG } from "@/data/countries";
 import { belongsToCountry, internationalQuery, internationalTerms } from "@/features/prospector/international-search";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { googlePermissionMessage } from "./google-errors";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -30,9 +31,7 @@ async function callGoogle(path: string, body?: unknown) {
     const code: ErrorCode = response.status === 429 ? "rate-limit" : response.status === 401 || response.status === 403 ? "permissao" : response.status === 400 ? "amplo" : "rede";
     let message = "Não foi possível consultar o Google Maps.";
     if (response.status === 403) {
-      const details = JSON.parse(text)?.error?.details as { reason?: string }[] | undefined;
-      const reason = details?.find((item) => item.reason)?.reason;
-      message = reason === "API_KEY_HTTP_REFERRER_BLOCKED" ? 'A chave de servidor do Google Maps exige restrição por IP ou "Nenhuma", não por site.' : reason === "API_KEY_SERVICE_BLOCKED" ? "Habilite Geocoding API e Places API (New) nas permissões da chave de servidor do Google Maps." : "O Google Maps recusou o acesso. Confira as permissões e a cobrança no Google Cloud.";
+      message = googlePermissionMessage(response.status, text);
     } else if (code === "rate-limit") message = "Limite de consultas do Google Maps atingido. Aguarde antes de tentar novamente.";
     throw Object.assign(new Error(message), { code, detail: `HTTP ${response.status}: ${text.slice(0, 500)}` });
   }

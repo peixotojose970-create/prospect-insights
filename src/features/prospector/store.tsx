@@ -1,3 +1,7 @@
+import { toast } from "sonner";
+import { withRequestTimeout } from "./request-timeout";
+import { updateContinuations } from "./continuation";
+import { isEstablishmentContacted } from "./establishment-identity";
 import { isContacted, readContacted, registerContacted } from "./contacted";
 import {
   createContext,
@@ -89,6 +93,7 @@ type Store = {
   isSaved: (id: string) => boolean;
   sourceName: string;
   saveLead: (business: Business) => void;
+  importLeads: (incoming: Lead[]) => { created: number; duplicates: number };
   removeLead: (id: string) => void;
   setStatus: (id: string, status: LeadStatus) => void;
   setNotes: (id: string, notes: string) => void;
@@ -194,7 +199,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { toast.error("Não foi possível salvar neste navegador. Exporte um backup antes de fechar a página."); }
   }, [state, hydrated]);
 
   // Toda empresa abordada entra no registro permanente (nunca é removida dele).
@@ -203,6 +208,8 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
     registerContacted(state.leads.filter((l) => l.status !== "novo" || !!l.lastContact));
   }, [state.leads, hydrated]);
   const runSearchRef = useRef<(c: SearchCriteria, append?: boolean, fill?: number) => Promise<void>>(async () => {});
+  const continuationQueue = useRef<SearchCriteria[]>([]);
+  const searchGeneration = useRef(0);
 
   const pushActivity = useCallback((label: string, lead: string) => {
     setState((prev) => ({
@@ -218,20 +225,18 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   const historyEntry = (label: string) => ({ id: `${Date.now()}-${Math.random()}`, date: stamp(), label });
 
   const runSearch = useCallback(async (criteria: SearchCriteria, append = false, fill = 0) => {
+    if (!append) { searchGeneration.current++; continuationQueue.current = []; }
+    const generation = searchGeneration.current;
     if (append) setLoadingMore(true);
     else setSearch({ status: "loading", results: [], outcome: null, error: null, criteria });
 
     let result: Awaited<ReturnType<typeof businessSearchRepository.search>>;
     try {
       // Rede de segurança: nenhuma busca pode ficar carregando para sempre.
-      result = await Promise.race([
-        businessSearchRepository.search(criteria),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout-cliente")), CLIENT_TIMEOUT_MS),
-        ),
-      ]);
+      result = await withRequestTimeout(businessSearchRepository.search(criteria), CLIENT_TIMEOUT_MS);
     } catch (error) {
-      const timeout = (error as Error)?.message === "timeout-cliente";
+      if (generation !== searchGeneration.current) return;
+      const timeout = /demorou|timeout/i.test((error as Error)?.message ?? "");
       setLoadingMore(false);
       setSearch((prev) => ({
         // Uma falha ao continuar não descarta nem esconde os resultados já exibidos.
@@ -253,9 +258,10 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       }));
       return;
     } finally {
-      setLoadingMore(false);
+      if (generation === searchGeneration.current) setLoadingMore(false);
     }
 
+    if (generation !== searchGeneration.current) return;
     if (!result.ok) {
       setSearch((prev) => ({
         status: append && prev.results.length ? "success" : "error",
@@ -277,7 +283,8 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
     // Empresas já abordadas nunca reaparecem em novas pesquisas (todos os países).
     const contactedSet = readContacted();
-    const fresh = result.outcome.businesses.filter((b) => !isContacted(b, contactedSet));
+    const legacyQuick = typeof window !== "undefined" && window.location.pathname === "/rapido";
+    const fresh = result.outcome.businesses.filter((b) => !(legacyQuick ? isContacted(b, contactedSet) : isEstablishmentContacted(b, contactedSet)));
     const hidden = result.outcome.businesses.length - fresh.length;
     const outcome = {
       ...result.outcome,
@@ -286,6 +293,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
         ? { coverage: { ...result.outcome.coverage, notes: [...result.outcome.coverage.notes, `${hidden} empresa(s) já abordada(s) ocultada(s).`] } }
         : {}),
     };
+    continuationQueue.current = updateContinuations(continuationQueue.current, criteria, outcome);
     setSearch((prev) => {
       const results = append ? [...prev.results, ...outcome.businesses] : outcome.businesses;
       const seen = new Set<string>();
@@ -305,7 +313,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       return {
         status: "success",
         results: unique,
-        outcome: { ...outcome, total: unique.length, ...(coverage ? { coverage } : {}) },
+        outcome: { ...outcome, total: unique.length, nextPageToken: continuationQueue.current.length ? "pending" : null, ...(coverage ? { coverage } : {}) },
         error: null,
         criteria,
       };
@@ -313,7 +321,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
 
     // Busca substitutas na próxima página da fonte para repor as ocultadas (até 3 páginas extras).
     if (hidden > 0 && outcome.nextPageToken && fill < 3) {
-      void runSearchRef.current({ ...criteria, pageToken: outcome.nextPageToken }, true, fill + 1);
+      await runSearchRef.current({ ...criteria, pageToken: outcome.nextPageToken }, true, fill + 1);
     }
     if (append) return;
     setState((prev) => ({
@@ -341,9 +349,9 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
   runSearchRef.current = runSearch;
 
   const loadMore = useCallback(async () => {
-    const token = search.outcome?.nextPageToken;
-    if (!token || !search.criteria || loadingMore) return;
-    await runSearch({ ...search.criteria, pageToken: token }, true);
+    const next = continuationQueue.current[0];
+    if (!next || loadingMore) return;
+    await runSearch(next, true);
   }, [search.outcome, search.criteria, loadingMore, runSearch]);
 
 
@@ -483,7 +491,7 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       loadingMore,
 
       clearSearch: () =>
-        setSearch({ status: "idle", results: [], outcome: null, error: null, criteria: null }),
+        { searchGeneration.current++; continuationQueue.current=[]; setSearch({ status: "idle", results: [], outcome: null, error: null, criteria: null }); },
       openId,
       openedBusiness,
       openLead: (leadOrId: string | Business | Lead | null) => {
@@ -514,6 +522,16 @@ export function ProspectorProvider({ children }: { children: ReactNode }) {
       },
       isSaved: (id) => leads.some((l) => l.id === id),
       sourceName: businessSearchRepository.sourceName,
+      importLeads: (incoming) => {
+        const known = new Set(leads.map(dedupeKey));
+        const fresh = incoming.filter(lead => {
+          const key = dedupeKey(lead);
+          if (known.has(key)) return false;
+          known.add(key); return true;
+        });
+        setState(prev => ({ ...prev, leads: [...fresh, ...prev.leads] }));
+        return { created: fresh.length, duplicates: incoming.length - fresh.length };
+      },
       saveLead: (business) => {
         setState((prev) => {
           if (prev.leads.some((l) => l.id === business.id)) return prev;

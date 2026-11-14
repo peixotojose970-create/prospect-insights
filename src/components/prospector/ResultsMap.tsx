@@ -78,6 +78,8 @@ export default function ResultsMap({
         scrollwheel: false,
         streetViewControl: false,
         mapTypeControl: false,
+        clickableIcons: false,
+        styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }],
       });
     }
     const map = mapRef.current;
