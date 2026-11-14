@@ -34,7 +34,7 @@ export const translateMessages = createServerFn({ method: "POST" })
         const translations = await requestGeminiTranslation(data, key);
         return { translations, error: null as string | null, errorCode: null as string | null };
       } catch (error) {
-        const code = error instanceof GeminiTranslationError ? error.code : error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : "invalid_translation";
+        const code = error instanceof GeminiTranslationError ? error.code : error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : error instanceof TypeError ? "network_error" : "invalid_translation";
         console.error("Gemini translation failed", { code, httpStatus: error instanceof GeminiTranslationError ? error.httpStatus : undefined });
         return { translations: null, errorCode: code, error: geminiFailureMessage(code) };
       }

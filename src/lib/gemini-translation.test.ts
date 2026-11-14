@@ -5,9 +5,9 @@ const input = { lang: "en" as const, texts: ["OlÃ¡, estou falando com o responsÃ
 const translated = ["Hello, am I speaking with the person in charge of {empresa}?", "I am from Nextor Studio and would like to present a proposal to create the website for {empresa}."];
 const payload = (texts: string[]) => ({ status: "completed", steps: [{ type: "model_output", content: [{ type: "text", text: JSON.stringify({ translations: texts }) }] }] });
 
-it("pins the requested gemini-3.8-flash model and Standard tier without tools or billing setup", () => {
+it("pins the requested gemini-3.1-flash-lite model and Standard tier without tools or billing setup", () => {
   const body = geminiRequestBody(input);
-  expect(body.model).toBe("gemini-3.8-flash");
+  expect(body.model).toBe("gemini-3.1-flash-lite");
   expect(body.service_tier).toBe("standard");
   expect(body.store).toBe(false);
   expect(body).not.toHaveProperty("tools");
@@ -37,9 +37,20 @@ it("stops at free quota refusal without retries or provider fallback", async () 
   expect(fetcher.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
 });
 it("maps provider access, model and billing errors without fallback", async () => {
-  for (const [status, code] of [[403, "gemini_access_denied"], [404, "gemini_model_unavailable"], [402, "gemini_billing_required"]] as const) {
+  for (const [status, code] of [[401, "gemini_access_denied"], [403, "gemini_access_denied"], [404, "gemini_model_unavailable"], [402, "gemini_billing_required"]] as const) {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status }));
     await expect(requestGeminiTranslation(input, "test-only", fetcher)).rejects.toThrow(code);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  }
+});
+it("rejects empty responses", () => {
+  expect(() => parseGeminiTranslation(payload(["", ""]), input)).toThrow();
+  expect(() => parseGeminiTranslation({ status: "completed", steps: [] }, input)).toThrow();
+});
+it("does not retry connection errors or timeouts", async () => {
+  for (const error of [new TypeError("Connection failed"), new DOMException("Timed out", "TimeoutError")]) {
+    const fetcher = vi.fn<typeof fetch>().mockRejectedValue(error);
+    await expect(requestGeminiTranslation(input, "test-only", fetcher)).rejects.toBe(error);
     expect(fetcher).toHaveBeenCalledTimes(1);
   }
 });

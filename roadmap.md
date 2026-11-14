@@ -1,9 +1,14 @@
 # Atualização do Prospector
 
+## Gemini — conclusão das 21:44
+- [x] Atualizar para gemini-3.1-flash-lite e usar a chave atual; proprietário confirmou projeto sem faturamento, confirmação segura salva.
+- [ ] Concluir chamadas reais EN/ES/FR/IT — bloqueado: EN e consulta de modelo retornaram HTTP 401 / UNAUTHENTICATED com a chave atual; ES/FR/IT suspensos. PT original e idioma após reload verificados.
+- [x] Ampliar testes de erro: 92 testes passaram, build OK, evidências registradas; publicação será solicitada nesta entrega.
+
 ## Gemini — pedido das 21:39
 - [x] Substituir tradução não rápida por Gemini Interactions, gemini-3.8-flash Standard, sem fallback; /rapido preservado.
 - [x] Validar proteção de chave, timeout, fila e respostas sem português substituto: 90 testes passaram; bloqueio seguro confirmado pelo app e build OK.
-- [ ] Traduções reais EN/ES/FR/IT — dependem de confirmação de projeto sem faturamento; chave já cadastrada.
+- [ ] Traduções reais EN/ES/FR/IT — confirmação gratuita recebida; bloqueado pela recusa HTTP 401 da chave atual, conforme pedido das 21:44.
 
 ## Traduções — pedido das 21:21
 - [x] Diagnosticar payment_required: SDK confirmou HTTP 402/top_up; LibreTranslate gratuito exige servidor externo, não ativado.

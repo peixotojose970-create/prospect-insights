@@ -2,7 +2,7 @@ import { z } from "zod";
 import { validMessageLanguage } from "@/features/prospector/message-validation";
 import { TRANSLATION_TIMEOUT_MS } from "./translation-budget";
 
-export const GEMINI_TRANSLATION_MODEL = "gemini-3.8-flash";
+export const GEMINI_TRANSLATION_MODEL = "gemini-3.1-flash-lite";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 const languages = { "pt-PT": "European Portuguese, not Brazilian Portuguese", en: "American English", es: "Spanish from Spain", fr: "French", it: "Italian" } as const;
 export type GeminiTranslationInput = {
@@ -71,9 +71,10 @@ export function geminiFailureMessage(code: string) {
     free_tier_unconfirmed: "Tradução suspensa para evitar custos: o proprietário precisa confirmar que o projeto Gemini está no Free Tier e sem faturamento vinculado.",
     gemini_quota_exceeded: "O Gemini atingiu a cota de solicitações disponível para esta chave. Aguarde a renovação da cota; nenhum modelo pago será usado.",
     gemini_access_denied: "O Gemini recusou a chave ou o acesso. O proprietário precisa revisar a chave e as restrições no Google AI Studio.",
-    gemini_model_unavailable: "O modelo gemini-3.8-flash não está disponível para esta chave. Nenhum outro modelo será usado.",
+    gemini_model_unavailable: `O modelo ${GEMINI_TRANSLATION_MODEL} não está disponível para esta chave. Nenhum outro modelo será usado.`,
     gemini_billing_required: "O Gemini exigiu faturamento. A tradução foi interrompida, sem alternativa paga.",
     timeout: "A tradução excedeu o tempo de espera. Tente novamente manualmente.",
+    network_error: "Não foi possível conectar ao Gemini. Verifique a conexão e tente novamente manualmente.",
   };
   return `${messages[code] ?? "A tradução do Gemini não pôde ser concluída ou validada."} Nenhuma mensagem em português foi usada como tradução concluída.`;
 }
