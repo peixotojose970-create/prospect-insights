@@ -32,4 +32,4 @@
 - [x] Testar regras de filtros, localização, deduplicação e preservação de leads: 9 testes passaram; busca real em Campinas e leitura do lead salvo verificadas.
 - [ ] Importar e conferir todas as novas categorias e subcategorias — bloqueado: “Texto colado(4).txt” não foi recebido.
 
-Limitação de verificação: teclado virtual não testado em aparelho físico. A continuação da busca segue a paginação da última categoria pesquisada.
+Limitação de verificação: teclado virtual não testado em aparelho físico. Continuação multicategoria corrigida com fila compartilhada e testes; funcionamento real do Google continua pendente de validação autorizada.
