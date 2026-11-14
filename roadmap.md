@@ -14,7 +14,7 @@
 - [x] Pesquisa: cursors BR por consulta, fila multicategoria e identificação de estabelecimento; testes reproduzem perdas de continuação e supressão de filiais.
 - [x] Google: conexão existente reutilizada; API New auditada, erros e POIs corrigidos; entrada Google/Lovable habilitada separadamente do Places.
 - [x] Verificar fluxos autenticados e recuperação; 28 checks públicos em 320–1280px passaram sem erro ou overflow; relatório salvo.
-- [ ] Validação externa final — bloqueado: Maps/Google OAuth real exigem interação em domínio autorizado, consultas/generação paga sem orçamento autorizado; teste concorrente de orçamento exige banco isolado gravável; proteção de saída e antiabuso padrão indisponíveis; não há administrador legítimo definido.
+- [ ] Validação externa final — bloqueado: Maps/Google OAuth real exigem interação em domínio autorizado, consultas/generação paga sem orçamento autorizado; garantia de IP na saída indisponível; não há administrador legítimo definido. Concorrência real e controle próprio antiabuso já validados.
 
 - [x] Preparar escopo da Etapa 1, registrar referência de restauração e executar testes existentes sem consultas pagas: 43 testes passaram.
 - [x] Implementar autorização do limite, reserva atômica, interrupção após falha de consumo, validação de fotos, DNS e redirecionamentos; conta comum não salva nem concede papel administrativo a si própria.
