@@ -25,3 +25,4 @@
 - Non-quick establishment matching uses source identity or name plus address; shared domains and truncated phone suffixes must not hide distinct branches, while the quick legacy path remains unchanged.
 - Preference mutations patch only changed country fields atomically under owner RLS; restored current-user preferences intentionally sync once after hydration.
 - Public resource operations reserve atomic global, verified-user and hashed Origin minute budgets before external work; anonymous callers share a bucket, expired scoped rows are pruned, and Origin is not a trusted client IP or DDoS identity.
+- Non-quick translation queues pause on payment_required until explicit recovery; log only safe SDK diagnostic fields so billing failures do not trigger cascading inference requests.

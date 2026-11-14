@@ -9,6 +9,7 @@ const pairs = new Map<string, Pair>();
 const listeners = new Set<() => void>();
 const jobs: (() => Promise<void>)[] = [];
 let active = 0;
+let paymentBlock: string | null = null;
 function drain() {
   while (active < 2 && jobs.length) {
     const job = jobs.shift();
@@ -27,6 +28,7 @@ export function localizedPair(first: string, second: string, lang: MessageLang, 
   const key = JSON.stringify([lang, business.country, business.name, business.category, business.city, style, first, second]);
   const hit = pairs.get(key);
   if (hit) return hit;
+  if (paymentBlock) return { first: "", second: "", pending: false, error: paymentBlock };
   const initial: Pair = { first: "", second: "", pending: true, error: null };
   // Schedule independently of React effects: a closed dialog cannot strand the queue.
   if (typeof window === "undefined") return initial;
@@ -34,7 +36,9 @@ export function localizedPair(first: string, second: string, lang: MessageLang, 
   jobs.push(async () => {
     let completed: Pair = { first: "", second: "", pending: false, error: "Não foi possível traduzir a abordagem." };
     try {
+      if (paymentBlock) { completed.error = paymentBlock; return; }
       const result = await withRequestTimeout(translateMessages({ data: { lang, texts: [first, second], country: business.country ?? "BR", context: { company: business.name, category: business.category, city: business.city, style } } }), 65_000);
+      if (result.errorCode === "payment_required") paymentBlock = result.error ?? "Tradução bloqueada: o proprietário precisa adicionar créditos de IA no Lovable.";
       const opening = result.translations?.[0];
       const proposal = result.translations?.[1];
       completed = opening && proposal ? { first: opening, second: proposal, pending: false, error: null } : { ...completed, error: result.error ?? completed.error };
@@ -45,6 +49,7 @@ export function localizedPair(first: string, second: string, lang: MessageLang, 
   return initial;
 }
 export function retryLocalizedPairs() {
+  paymentBlock = null;
   for (const [key, pair] of pairs) if (pair.error) pairs.delete(key);
   emit();
 }

@@ -1,5 +1,11 @@
 # Atualização do Prospector
 
+## Traduções — pedido das 21:21
+- [x] Diagnosticar payment_required: SDK confirmou HTTP 402/top_up; LibreTranslate gratuito exige servidor externo, não ativado.
+- [x] Apresentar motivo específico, registrar códigos/identificadores seguros e interromper fila após recusa de pagamento.
+- [x] Testar recuperação sem substituição silenciosa: 82 testes passaram, build OK; chamada real pelo app encerrou pendência com HTTP 402 e textos vazios.
+- [ ] Confirmar traduções reais PT-PT/EN/ES/FR/IT — bloqueado: proprietário precisa adicionar créditos de IA; novos testes suspensos após HTTP 402.
+
 ## Finalização solicitada às 21:06
 - [x] Adicionar limites persistentes por usuário verificado e origem, preservando proteção global e o fluxo rápido.
 - [x] Revalidar abertura, segurança, concorrência e fluxos de dados: 79 testes + 4 concorrentes, 28 verificações de tela.
