@@ -175,6 +175,27 @@ export type Database = {
         }
         Relationships: []
       }
+      scoped_operation_windows: {
+        Row: {
+          calls: number
+          operation: string
+          subject: string
+          window_start: string
+        }
+        Insert: {
+          calls?: number
+          operation: string
+          subject: string
+          window_start: string
+        }
+        Update: {
+          calls?: number
+          operation?: string
+          subject?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -222,6 +243,10 @@ export type Database = {
       }
       reserve_public_operation: {
         Args: { p_operation: string }
+        Returns: boolean
+      }
+      reserve_scoped_operation: {
+        Args: { p_operation: string; p_origin: string; p_user: string }
         Returns: boolean
       }
       set_places_limit_authorized: {

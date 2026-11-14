@@ -1,5 +1,11 @@
 # Atualização do Prospector
 
+## Finalização solicitada às 21:06
+- [x] Adicionar limites persistentes por usuário verificado e origem, preservando proteção global e o fluxo rápido.
+- [x] Revalidar abertura, segurança, concorrência e fluxos de dados: 79 testes + 4 concorrentes, 28 verificações de tela.
+- [ ] Solicitar publicação da versão final autorizada.
+- [x] Registrar resultado definitivo e dependências externas sem declarar testes pagos ou Google como verificados.
+
 ## Conclusão solicitada em 14/11
 - [x] Implementar controle próprio antiabuso autorizado, persistente e atômico; limites globais, sem alegar proteção DDoS.
 - [x] Validar orçamento e autorização com concorrência real em PostgreSQL isolado, sem consumo Google: 3 testes passaram.

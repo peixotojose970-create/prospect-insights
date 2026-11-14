@@ -50,6 +50,13 @@
       "when": 1794689978643,
       "tag": "0006_restrict_operation_window_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794690449493,
+      "tag": "0007_scoped_operation_limits",
+      "breakpoints": true
     }
   ]
 }

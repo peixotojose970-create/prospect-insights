@@ -24,4 +24,4 @@
 - Shared search continuation keeps a queue per category and query-bound provider cursors; reject obsolete search generations and retain failed continuations for retry.
 - Non-quick establishment matching uses source identity or name plus address; shared domains and truncated phone suffixes must not hide distinct branches, while the quick legacy path remains unchanged.
 - Preference mutations patch only changed country fields atomically under owner RLS; restored current-user preferences intentionally sync once after hydration.
-- Public resource operations reserve service-only atomic global minute budgets before external work; global keys avoid spoofable client IP trust and unbounded storage, but do not provide per-user fairness or DDoS protection.
+- Public resource operations reserve atomic global, verified-user and hashed Origin minute budgets before external work; anonymous callers share a bucket, expired scoped rows are pruned, and Origin is not a trusted client IP or DDoS identity.

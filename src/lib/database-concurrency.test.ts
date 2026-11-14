@@ -14,7 +14,7 @@ describe.skipIf(process.env["PROSPECTOR_TEST_PG"] !== "1")("real isolated Postgr
       CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       GRANT USAGE ON SCHEMA auth TO authenticated;
       GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;`);
-    for (const file of ["0000_migration", "0002_secure_places_budget_and_admin", "0003_restrict_role_table_grants", "0005_atomic_public_operation_limits", "0006_restrict_operation_window_grants"]) {
+    for (const file of ["0000_migration", "0002_secure_places_budget_and_admin", "0003_restrict_role_table_grants", "0005_atomic_public_operation_limits", "0006_restrict_operation_window_grants", "0007_scoped_operation_limits"]) {
       await sql.unsafe(await readFile(`drizzle/migrations/${file}.sql`, "utf8"));
     }
   });
@@ -52,5 +52,13 @@ describe.skipIf(process.env["PROSPECTOR_TEST_PG"] !== "1")("real isolated Postgr
     await act(admin, "SELECT public.set_places_limit_authorized(200)");
     const stored = await sql`SELECT monthly_limit FROM public.places_api_settings WHERE id=1`;
     expect(stored[0]?.["monthly_limit"]).toBe(200);
+  });
+  it("20 concurrent audit requests for one user admit only 7, without affecting a different user", async () => {
+    const origin = `origin:${"a".repeat(64)}`;
+    const user = "user:00000000-0000-0000-0000-000000000001";
+    const rows = await Promise.all(Array.from({ length: 20 }, () => sql`SELECT public.reserve_scoped_operation('audit',${user},${origin}) AS allowed`));
+    expect(rows.filter((r) => r[0]?.["allowed"] === true)).toHaveLength(7);
+    const other = await sql`SELECT public.reserve_scoped_operation('audit','user:00000000-0000-0000-0000-000000000002',${origin}) AS allowed`;
+    expect(other[0]?.["allowed"]).toBe(true);
   });
 });
