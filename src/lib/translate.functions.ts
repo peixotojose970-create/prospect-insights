@@ -23,6 +23,23 @@ export const translateMessages = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
+    if (!data.legacy) {
+      const { assertGeminiConfiguration, requestGeminiTranslation, GeminiTranslationError, geminiFailureMessage } = await import("./gemini-translation.server");
+      try {
+        const key = process.env["GEMINI_API_KEY"];
+        assertGeminiConfiguration(key, process.env["GEMINI_FREE_TIER_CONFIRMED"]);
+        if (!key) throw new GeminiTranslationError("gemini_key_missing");
+        const { enforceOperationLimit } = await import("./operation-limit.server");
+        await enforceOperationLimit("translate");
+        const translations = await requestGeminiTranslation(data, key);
+        return { translations, error: null as string | null, errorCode: null as string | null };
+      } catch (error) {
+        const code = error instanceof GeminiTranslationError ? error.code : error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : "invalid_translation";
+        console.error("Gemini translation failed", { code, httpStatus: error instanceof GeminiTranslationError ? error.httpStatus : undefined });
+        return { translations: null, errorCode: code, error: geminiFailureMessage(code) };
+      }
+    }
+    // Prospecção rápida keeps its existing provider and behavior unchanged.
     const { generateChatCompletion, GatewayError } = await import("@lovable.dev/ai-gateway");
     const signal = data.legacy ? undefined : AbortSignal.timeout(TRANSLATION_TIMEOUT_MS);
     try {

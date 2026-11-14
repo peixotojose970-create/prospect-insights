@@ -36,3 +36,13 @@ it("payment_required stops queued work without Portuguese fallback and permits e
   await vi.advanceTimersByTimeAsync(0);
   expect(localizedPair("Olá", "Proposta", "en", business, "direto").first).toBe("Hello");
 });
+it("Gemini quota refusal stops queued pairs and ends loading without Portuguese fallback", async () => {
+  vi.stubGlobal("window", {});
+  vi.useFakeTimers();
+  translator.mockResolvedValue({ translations: null, errorCode: "gemini_quota_exceeded", error: "Cota Gemini esgotada" });
+  const business = { name: "Oficina Gemini", city: "Campinas", country: "BR", category: "Oficina" } as Business;
+  for (const lang of ["en", "es", "fr", "it"] as const) localizedPair("Olá Gemini", "Proposta Gemini", lang, business, "direto");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(translator).toHaveBeenCalledTimes(2);
+  for (const lang of ["en", "es", "fr", "it"] as const) expect(localizedPair("Olá Gemini", "Proposta Gemini", lang, business, "direto")).toEqual({ first: "", second: "", pending: false, error: "Cota Gemini esgotada" });
+});

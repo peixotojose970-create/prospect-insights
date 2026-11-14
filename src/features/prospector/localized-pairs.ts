@@ -38,7 +38,7 @@ export function localizedPair(first: string, second: string, lang: MessageLang, 
     try {
       if (paymentBlock) { completed.error = paymentBlock; return; }
       const result = await withRequestTimeout(translateMessages({ data: { lang, texts: [first, second], country: business.country ?? "BR", context: { company: business.name, category: business.category, city: business.city, style } } }), 65_000);
-      if (result.errorCode === "payment_required") paymentBlock = result.error ?? "Tradução bloqueada: o proprietário precisa adicionar créditos de IA no Lovable.";
+      if (["payment_required", "gemini_quota_exceeded", "gemini_key_missing", "free_tier_unconfirmed", "gemini_access_denied", "gemini_billing_required", "gemini_model_unavailable"].includes(result.errorCode ?? "")) paymentBlock = result.error ?? "Tradução bloqueada: revise a configuração ou a cota antes de tentar novamente.";
       const opening = result.translations?.[0];
       const proposal = result.translations?.[1];
       completed = opening && proposal ? { first: opening, second: proposal, pending: false, error: null } : { ...completed, error: result.error ?? completed.error };

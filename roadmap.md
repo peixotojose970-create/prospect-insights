@@ -1,10 +1,15 @@
 # Atualização do Prospector
 
+## Gemini — pedido das 21:39
+- [x] Substituir tradução não rápida por Gemini Interactions, gemini-3.8-flash Standard, sem fallback; /rapido preservado.
+- [x] Validar proteção de chave, timeout, fila e respostas sem português substituto: 90 testes passaram; bloqueio seguro confirmado pelo app e build OK.
+- [ ] Traduções reais EN/ES/FR/IT — dependem de confirmação de projeto sem faturamento; chave já cadastrada.
+
 ## Traduções — pedido das 21:21
 - [x] Diagnosticar payment_required: SDK confirmou HTTP 402/top_up; LibreTranslate gratuito exige servidor externo, não ativado.
 - [x] Apresentar motivo específico, registrar códigos/identificadores seguros e interromper fila após recusa de pagamento.
 - [x] Testar recuperação sem substituição silenciosa: 82 testes passaram, build OK; chamada real pelo app encerrou pendência com HTTP 402 e textos vazios.
-- [ ] Confirmar traduções reais PT-PT/EN/ES/FR/IT — bloqueado: proprietário precisa adicionar créditos de IA; novos testes suspensos após HTTP 402.
+- [ ] Confirmar traduções reais PT-PT/EN/ES/FR/IT — substituído pelo pedido Gemini acima; aguarda confirmação do projeto gratuito, não recarga Lovable.
 
 ## Finalização solicitada às 21:06
 - [x] Adicionar limites persistentes por usuário verificado e origem, preservando proteção global e o fluxo rápido.
