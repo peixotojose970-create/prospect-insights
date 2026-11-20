@@ -176,7 +176,7 @@ function Configuracoes() {
 
       <Section title="Acesso à conta" description="Entre para sincronizar suas preferências e pesquisar no exterior."><SocialSignIn /></Section>
       <TemplatesSection />
-      <ApiLimitSection />
+
       <AppearanceSection />
       <AccentSection />
 

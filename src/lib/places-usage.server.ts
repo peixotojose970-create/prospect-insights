@@ -34,11 +34,11 @@ export class UsageBlockedError extends Error {
   }
 }
 
-/** Bloqueia antes de gastar e registra a chamada ao Google. */
+/** Registra a chamada ao Google. */
 export async function chargePlacesCall() {
   const db = await admin();
   const { data, error } = await db.rpc("reserve_places_call");
   const reservation = data?.[0];
   if (error || !reservation) throw new Error("Não foi possível reservar o consumo. Nenhuma nova chamada ao Google foi realizada.");
-  if (!reservation.allowed) throw new UsageBlockedError(reservation.calls, Math.floor(reservation.monthly_limit * BLOCK_RATIO));
+  // Sem limite: o consumo é apenas registrado, nunca bloqueia buscas.
 }
